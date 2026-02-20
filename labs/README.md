@@ -23,9 +23,13 @@ Probe large language models for security vulnerabilities — jailbreaks, prompt 
 
 ### Agent Red Teaming
 
-Attacking and evaluating autonomous AI agents — indirect prompt injection, tool-use exploitation, goal hijacking.
+Attacking and evaluating autonomous AI agents — prompt injection, system prompt extraction, goal hijacking.
 
-_Labs coming soon._ See [overview](./agents/red-teaming/).
+| # | Exercise | Tool | Target | Time |
+|---|----------|------|--------|------|
+| 1 | [Prompt Injection Challenges](./agents/red-teaming/folly/) | Folly | GPT-4 / Qwen | ~30 min |
+
+[Full lab overview](./agents/red-teaming/) with agent attack surface background.
 
 ### MCP Red Teaming
 

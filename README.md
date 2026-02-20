@@ -22,7 +22,8 @@ AISecWorkshops/
     │           │   └── 04_advanced_jailbreak_techniques.md
     │           └── samples/               # Sample scan reports and hitlogs
     ├── agents/
-    │   └── red-teaming/                   # Agent red teaming (coming soon)
+    │   └── red-teaming/
+    │       └── folly/                     # Prompt injection challenges with Folly
     └── mcp/
         └── red-teaming/                   # MCP red teaming (coming soon)
 ```
@@ -44,9 +45,11 @@ Probe large language models for security vulnerabilities using automated scannin
 
 ### Agent Red Teaming
 
-Attacking and evaluating autonomous AI agents — indirect prompt injection, tool-use exploitation, goal hijacking.
+Attacking and evaluating autonomous AI agents — prompt injection, system prompt extraction, goal hijacking.
 
-_Labs coming soon._ See [overview](./labs/agents/red-teaming/).
+| # | Exercise | Tool | Time | Description |
+|---|----------|------|------|-------------|
+| 1 | [Prompt Injection Challenges](./labs/agents/red-teaming/folly/) | Folly | ~30 min | Interactive prompt injection and system prompt extraction via web UI |
 
 ### MCP Red Teaming
 
@@ -92,6 +95,7 @@ Begin with [Explore Garak Probes](./labs/llms/red-teaming/garak/01_explore_garak
 | [Ollama](https://ollama.com/) | Local model inference | System install |
 | [Groq](https://groq.com/) | Cloud LLM inference API | API key |
 | [Promptfoo](https://www.promptfoo.dev/) | LLM eval & red teaming | `npm install -g promptfoo` |
+| [Folly](https://github.com/detoxio-ai/Folly) | Prompt injection challenges | `uv tool install --editable .` |
 | [DTX](https://github.com/detoxio-ai) | AI security testing | `uv tool install "dtx[torch]"` |
 
 ---

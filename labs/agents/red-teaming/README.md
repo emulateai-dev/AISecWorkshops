@@ -6,11 +6,11 @@ These labs focus on attacking and evaluating autonomous AI agents — systems th
 
 ## Labs
 
-| Lab | Tool | Status |
-|-----|------|--------|
-| _Agent Prompt Injection_ | — | Coming soon |
-| _Tool-Use Exploitation_ | — | Coming soon |
-| _Multi-Step Goal Hijacking_ | — | Coming soon |
+| # | Lab | Tool | Time | Description |
+|---|-----|------|------|-------------|
+| 1 | [Prompt Injection Challenges](./folly/) | Folly | ~30 min | Interactive prompt injection and system prompt extraction via web UI |
+| | _Tool-Use Exploitation_ | — | | Coming soon |
+| | _Multi-Step Goal Hijacking_ | — | | Coming soon |
 
 ---
 
@@ -29,5 +29,6 @@ AI agents extend LLM capabilities with tool access — web browsing, code execut
 ## Prerequisites
 
 - DTX Lab VM with tools installed
-- `GROQ_API_KEY` or `OPENAI_API_KEY` exported
-- Familiarity with the [LLM Red Teaming labs](../llms/red-teaming/) (recommended)
+- `OPENAI_API_KEY` or `GROQ_API_KEY` exported
+- `uv` installed (for Folly setup)
+- Familiarity with the [LLM Red Teaming labs](../../llms/red-teaming/) (recommended)
