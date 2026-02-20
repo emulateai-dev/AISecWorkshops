@@ -8,32 +8,48 @@ Hands-on labs covering offensive and defensive techniques across the AI/ML stack
 
 ## Lab Categories
 
-| Category | Topic | Lab | Description |
-|----------|-------|-----|-------------|
-| **LLMs** | [Red Teaming](./llms/red-teaming/) | [Garak](./llms/red-teaming/garak/) | Automated LLM vulnerability scanning with NVIDIA Garak |
-| **Agents** | [Red Teaming](./agents/red-teaming/) | _Coming soon_ | Attacking and evaluating autonomous AI agents |
-| **MCP** | [Red Teaming](./mcp/red-teaming/) | _Coming soon_ | Exploiting Model Context Protocol integrations |
+### LLM Red Teaming
+
+Probe large language models for security vulnerabilities — jailbreaks, prompt injection, encoding bypass, and more.
+
+| # | Exercise | Tool | Target | Time |
+|---|----------|------|--------|------|
+| 1 | [Explore Garak Probes](./llms/red-teaming/garak/01_explore_garak_probes.md) | Garak | `test.Blank` | ~10 min |
+| 2 | [Benchmark Groq Model](./llms/red-teaming/garak/02_benchmark_groq_model.md) | Garak | `qwen/qwen3-32b` | ~30 min |
+| 3 | [Benchmark HuggingFace Model](./llms/red-teaming/garak/03_benchmark_hf_model.md) | Garak | `smollm:135m` | ~2h (CPU) |
+| 4 | [Advanced Jailbreak Techniques](./llms/red-teaming/garak/advanced/04_advanced_jailbreak_techniques.md) | Garak | Various | ~20 min |
+
+[Full lab overview](./llms/red-teaming/garak/) with Garak introduction, architecture, and background.
+
+### Agent Red Teaming
+
+Attacking and evaluating autonomous AI agents — indirect prompt injection, tool-use exploitation, goal hijacking.
+
+_Labs coming soon._ See [overview](./agents/red-teaming/).
+
+### MCP Red Teaming
+
+Exploiting Model Context Protocol integrations — tool poisoning, server impersonation, rug pull attacks.
+
+_Labs coming soon._ See [overview](./mcp/red-teaming/).
 
 ---
 
-## Prerequisites
+## Environment Setup
 
-All labs assume you are running inside the **DTX Lab VM** (see [setup/vm/](./setup/vm/)).
+All labs assume you are running inside the **DTX Lab VM**.
 
-Minimum requirements:
-- Groq API key exported as `GROQ_API_KEY`
-- Tools pre-installed via `Tool_Setup.sh` (garak, dtx, promptfoo, etc.)
-- Ollama running with local models pulled
+| Step | Guide |
+|------|-------|
+| VM setup & tool installation | [setup/vm/](./setup/vm/) |
+| API key configuration | See [project README](../README.md#getting-started) |
 
----
-
-## Quick Start
+### Quick Verify
 
 ```bash
-# Verify your environment
-echo "Groq key set: ${GROQ_API_KEY:+yes}"
 garak --version
 ollama list
+echo "Groq key set: ${GROQ_API_KEY:+yes}"
 ```
 
-Pick a lab from the table above and follow its README.
+Start with [Exercise 1](./llms/red-teaming/garak/01_explore_garak_probes.md) — no API keys required.
