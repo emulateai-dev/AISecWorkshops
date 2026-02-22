@@ -167,4 +167,45 @@ echo "✅ Post-setup complete for $TARGET_USER"
 
 
 ## TODO
-## uv tool install open-webu
+
+## AI security lab cloneing in $HOME/labs/ folder 
+
+git clone https://github.com/emulateai-dev/AISecWorkshops.git
+
+
+## Ollama listen on 0.0.0.0
+```bash
+sudo mkdir -p /etc/systemd/system/ollama.service.d && echo -e "[Service]\nEnvironment=\"OLLAMA_HOST=0.0.0.0\"" | sudo tee /etc/systemd/system/ollama.service.d/override.conf > /dev/null && sudo systemctl daemon-reload && sudo systemctl restart ollama
+
+```
+
+## ### PyRIT Docker Setup Guide
+
+**Step 1: Clone the Repository**
+Pull the source code and navigate into the root directory. (Crucial: Do not go into the `docker/` folder yet!)
+
+```bash
+git clone https://github.com/jitendra-eai/PyRIT.git
+cd PyRIT
+
+```
+
+**Step 2: Build the Base Devcontainer Image**
+Because of how the context is structured, you must build the base image from the root of the repository to prevent the `path ".devcontainer" not found` error.
+
+```bash
+docker build -f .devcontainer/Dockerfile -t pyrit-devcontainer .devcontainer
+
+```
+
+**Step 3: Configure Your Environment (.env and .env.local)**
+PyRIT securely mounts your local `~/.pyrit/` directory to pass credentials into the containers. Set up the folder and create your environment files:
+
+```bash
+mkdir -p ~/.pyrit
+touch ~/.pyrit/.env ~/.pyrit/.env.local
+
+```
+
+
+

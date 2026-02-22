@@ -154,3 +154,28 @@
      git add ollama/
      git commit -m "Added customized Modelfile for <custom_model_name>"
      ```
+
+
+### **7. Run ollama to listen on 0.0.0.0"
+
+Here are the quickest one-liner commands to stop, reconfigure, and restart Ollama to listen on `0.0.0.0`, depending on how you prefer to run it.
+
+### Option 1: The Permanent Systemd One-Liner (Recommended)
+
+Since you are on a Linux host, Ollama is likely running as a background systemd service. Run this single chained command to automatically create the override file, apply the `0.0.0.0` environment variable, reload the daemon, and restart the service:
+
+```bash
+sudo mkdir -p /etc/systemd/system/ollama.service.d && echo -e "[Service]\nEnvironment=\"OLLAMA_HOST=0.0.0.0\"" | sudo tee /etc/systemd/system/ollama.service.d/override.conf > /dev/null && sudo systemctl daemon-reload && sudo systemctl restart ollama
+
+```
+
+*(Once this completes, Ollama will permanently listen on all interfaces, even after server reboots).*
+
+### Option 2: The Manual CLI Approach
+
+If you prefer to run Ollama directly in your terminal so you can watch the live logs, use this command to stop the background systemd service and instantly spin it up manually on all interfaces:
+
+```bash
+sudo systemctl stop ollama && OLLAMA_HOST=0.0.0.0 ollama serve
+
+```

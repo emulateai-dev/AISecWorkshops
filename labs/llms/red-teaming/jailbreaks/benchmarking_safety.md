@@ -32,13 +32,24 @@ Once setup is complete, open your browser and access the Jupyter notebook server
 - **Jupyter Notebooks:** [http://localhost:8888](http://localhost:8888)
 - **PyRIT GUI (optional):** [http://localhost:8000](http://localhost:8000)
 
+### Pre-Built Notebooks
+
+Pre-built notebooks for this assignment are available in the [`notebooks/`](./notebooks/) directory:
+
+| Notebook | Description |
+|----------|-------------|
+| [`01_benchmark_beavertails.ipynb`](./notebooks/01_benchmark_beavertails.ipynb) | BeaverTails + AIR-Bench benchmark against Groq |
+| [`02_ollama_flip_attack.ipynb`](./notebooks/02_ollama_flip_attack.ipynb) | FlipAttack against local Ollama `qwen3:0.6b` |
+
+Upload these to Jupyter at `localhost:8888` or follow the cells below to build the notebook from scratch.
+
 ---
 
 ## Part 2 — Create the Benchmark Notebook
 
 Once Jupyter is running at `localhost:8888`:
 
-1. Click **New → Python 3** to create a new notebook
+1. Click **New → Python 3** to create a new notebook (or upload `01_benchmark_beavertails.ipynb` from the `notebooks/` folder)
 2. Name it `benchmark_beavertails.ipynb`
 3. Follow the cells below
 

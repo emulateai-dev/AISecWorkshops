@@ -4,7 +4,7 @@
 Pull the source code and navigate into the root directory. (Crucial: Do not go into the `docker/` folder yet!)
 
 ```bash
-git clone https://github.com/Azure/PyRIT.git
+git clone https://github.com/jitendra-eai/PyRIT.git
 cd PyRIT
 
 ```
@@ -81,3 +81,7 @@ Your local environment is now fully running and authenticated with your override
 * **Jupyter Notebooks:** [http://localhost:8888](https://www.google.com/search?q=http://localhost:8888)
 
 ---
+
+
+
+

@@ -57,7 +57,9 @@ This is fundamentally different from Assignment 4 (single-shot benchmarking) —
 
 Ensure PyRIT is running (see [PyRIT Setup Guide](../../../setup/pyrit/README.md)).
 
-Open Jupyter at [http://localhost:8888](http://localhost:8888) and create a new notebook: `tap_red_teaming.ipynb`.
+Open Jupyter at [http://localhost:8888](http://localhost:8888).
+
+> **Quick option:** Upload the pre-built notebook [`03_tap_red_teaming.ipynb`](./notebooks/03_tap_red_teaming.ipynb) from the `notebooks/` directory, or create a new one and follow the cells below.
 
 ### Cell 1: Imports and Initialization
 
