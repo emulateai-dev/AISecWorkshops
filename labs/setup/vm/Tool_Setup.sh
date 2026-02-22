@@ -162,3 +162,9 @@ rm -rf "$TMPDIR"
 # ============================================================
 chown -R "$TARGET_USER:$TARGET_USER" "$TARGET_HOME/.aisecurity" 2>/dev/null || true
 echo "✅ Post-setup complete for $TARGET_USER"
+
+
+
+
+## TODO
+## uv tool install open-webu

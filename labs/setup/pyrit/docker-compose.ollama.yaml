@@ -1,0 +1,8 @@
+services:
+  pyrit-jupyter:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  
+  pyrit-gui:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

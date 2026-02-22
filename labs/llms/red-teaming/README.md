@@ -6,9 +6,10 @@ These labs focus on probing Large Language Models for vulnerabilities — prompt
 
 ## Labs
 
-| Lab | Tool | What you'll learn |
-|-----|------|-------------------|
-| [Garak](./garak/) | NVIDIA Garak | Automated vulnerability scanning of cloud-hosted LLMs via Groq |
+| Lab | Tool / Method | What you'll learn |
+|-----|---------------|-------------------|
+| [Jailbreaks](./jailbreaks/) | Manual prompting (Ollama, Groq) | Safety alignment, uncensored models, jailbreak techniques, encoding attacks, multi-turn exploitation, system prompt extraction |
+| [Garak](./garak/) | NVIDIA Garak | Automated vulnerability scanning of cloud-hosted and local LLMs |
 
 ---
 
