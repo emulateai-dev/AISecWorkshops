@@ -1,16 +1,16 @@
-# Assignment 8: Automated Red Teaming — Tree of Attacks (TAP)
+# Assignment 9: Automated Red Teaming — Tree of Attacks (TAP)
 
 **Time:** ~35 minutes  
 **Difficulty:** Advanced  
 **Type:** Hands-on (Jupyter Notebook)  
 **Target:** Groq-hosted `qwen/qwen3-32b`  
-**Prerequisites:** Assignment 4 (PyRIT setup complete), Assignment 7 (multi-turn concepts)
+**Prerequisites:** Assignment 4 (PyRIT setup complete), Assignment 8 (multi-turn concepts)
 
 ---
 
 ## Objective
 
-In Assignment 7 you manually crafted multi-turn social engineering attacks. Now you'll **automate** that process using PyRIT's `RedTeamingAttack` — which implements the **TAP (Tree of Attacks with Pruning)** strategy.
+In Assignment 8 you manually crafted multi-turn social engineering attacks. Now you'll **automate** that process using PyRIT's `RedTeamingAttack` — which implements the **TAP (Tree of Attacks with Pruning)** strategy.
 
 Instead of you writing each turn, an **attacker LLM** automatically generates adversarial prompts, evaluates the target's responses, and refines its strategy over multiple turns — just like a human red teamer would, but at machine speed.
 
@@ -377,7 +377,7 @@ print("=" * 60)
 | Approach | Assignment | Best For |
 |----------|-----------|----------|
 | **PromptSendingAttack** (single-shot) | Assignment 4 | Large-scale screening across many prompts; dataset-based benchmarking |
-| **RedTeamingAttack** (multi-turn TAP) | Assignment 8 | Deep probing of specific objectives; finding bypasses that static prompts miss |
+| **RedTeamingAttack** (multi-turn TAP) | Assignment 9 | Deep probing of specific objectives; finding bypasses that static prompts miss |
 
 In a real red team engagement, you'd use **both**: single-shot to find the broad vulnerability surface, then multi-turn TAP to deeply exploit the weakest areas.
 
@@ -391,4 +391,4 @@ In a real red team engagement, you'd use **both**: single-shot to find the broad
 
 ---
 
-**Previous:** [Assignment 7 — Multi-Turn & Social Engineering](./multi_turn_social_engineering.md) | **Next:** [Assignment 9 — System Prompt Extraction](./system_prompt_extraction.md) | **Back to:** [Jailbreaks Lab Index](./README.md)
+**Previous:** [Assignment 8 — Multi-Turn & Social Engineering](./multi_turn_social_engineering.md) | **Next:** [Assignment 10 — System Prompt Extraction](./system_prompt_extraction.md) | **Back to:** [Jailbreaks Lab Index](./README.md)

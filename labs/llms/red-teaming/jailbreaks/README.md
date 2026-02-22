@@ -2,7 +2,7 @@
 
 Hands-on assignments exploring LLM safety alignment, its limitations, and techniques to bypass it. You'll progress from understanding *why* models refuse harmful requests to systematically testing techniques that can break through those defenses.
 
-**Time:** ~4.5 hours (all assignments)  
+**Time:** ~5 hours (all assignments)  
 **Difficulty:** Beginner → Advanced  
 **Models:** Ollama (local), Groq (cloud), OpenAI, Gemini
 
@@ -16,7 +16,7 @@ Hands-on assignments exploring LLM safety alignment, its limitations, and techni
 | `qwen3:0.6b` pulled | `ollama run qwen3:0.6b` (then `/bye`) |
 | Groq API key | `echo $GROQ_API_KEY` |
 | `jq` installed | `jq --version` |
-| Docker installed (for Assignments 4, 8) | `docker --version` |
+| Docker installed (for Assignments 4, 7, 9) | `docker --version` |
 
 ---
 
@@ -30,9 +30,10 @@ Hands-on assignments exploring LLM safety alignment, its limitations, and techni
 | 4 | [Benchmarking Model Safety with PyRIT](./benchmarking_safety.md) | ~40 min | Intermediate | PyRIT setup; benchmark qwen3-32b against BeaverTails; ASR metrics; AIR-Bench evaluation |
 | 5 | [Basic Jailbreak Techniques](./basic_jailbreak_techniques.md) | ~30 min | Intermediate | DAN, persona injection, hypothetical framing, instruction override, grandma exploit |
 | 6 | [Encoding & Obfuscation](./encoding_obfuscation.md) | ~25 min | Intermediate | Base64, ROT13, leetspeak, character splitting, payload splitting |
-| 7 | [Multi-Turn & Social Engineering](./multi_turn_social_engineering.md) | ~25 min | Advanced | Context building, trust establishment, emotional manipulation, role escalation |
-| 8 | [Automated Red Teaming — TAP](./automated_red_teaming_tap.md) | ~35 min | Advanced | PyRIT RedTeamingAttack; automated multi-turn TAP; cross-model comparison |
-| 9 | [System Prompt Extraction](./system_prompt_extraction.md) | ~20 min | Advanced | Extract hidden instructions, secrets, and configuration from AI systems |
+| 7 | [PyRIT Prompt Converters](./pyrit_prompt_converters.md) | ~30 min | Intermediate | 30+ PyRIT converters; encoding, obfuscation, token smuggling; LLM-based translation, persuasion, math obfuscation |
+| 8 | [Multi-Turn & Social Engineering](./multi_turn_social_engineering.md) | ~25 min | Advanced | Context building, trust establishment, emotional manipulation, role escalation |
+| 9 | [Automated Red Teaming — TAP](./automated_red_teaming_tap.md) | ~35 min | Advanced | PyRIT RedTeamingAttack; automated multi-turn TAP; cross-model comparison |
+| 10 | [System Prompt Extraction](./system_prompt_extraction.md) | ~20 min | Advanced | Extract hidden instructions, secrets, and configuration from AI systems |
 
 ---
 
@@ -45,9 +46,10 @@ Assignment 3:   CLASSIFY             →  14 harm categories, risk taxonomies, b
 Assignment 4:   BENCHMARK            →  Automated safety evaluation with PyRIT + BeaverTails/AIR-Bench
 Assignment 5:   ATTACK               →  Classic single-turn jailbreak techniques
 Assignment 6:   OBFUSCATE            →  Encoding to bypass input filters
-Assignment 7:   ESCALATE             →  Multi-turn social engineering
-Assignment 8:   AUTOMATE             →  AI-vs-AI red teaming with TAP (Tree of Attacks)
-Assignment 9:   EXTRACT              →  System prompt & secrets extraction
+Assignment 7:   CONVERT              →  PyRIT prompt converters (encoding, obfuscation, LLM-based)
+Assignment 8:   ESCALATE             →  Multi-turn social engineering
+Assignment 9:   AUTOMATE             →  AI-vs-AI red teaming with TAP (Tree of Attacks)
+Assignment 10:  EXTRACT              →  System prompt & secrets extraction
 ```
 
 ---

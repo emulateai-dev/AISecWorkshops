@@ -6,17 +6,19 @@ Pre-built Jupyter notebooks and Python scripts for the PyRIT-based jailbreak ass
 
 | # | Notebook | Script | Assignment | Target | Attack Strategy |
 |---|----------|--------|-----------|--------|----------------|
+| 0 | [.ipynb](./00_prompt_sending.ipynb) | [.py](./00_prompt_sending.py) | Quick Start | Groq + local Ollama | PromptSendingAttack — single prompt, no scoring |
 | 1 | [.ipynb](./01_benchmark_beavertails.ipynb) | [.py](./01_benchmark_beavertails.py) | Assignment 4 | `qwen/qwen3-32b` (Groq) | PromptSendingAttack — BeaverTails + AIR-Bench |
 | 2 | [.ipynb](./02_ollama_flip_attack.ipynb) | [.py](./02_ollama_flip_attack.py) | Assignment 4 | `qwen3:0.6b` (local Ollama) | FlipAttack — encoding flip against local model |
-| 3 | [.ipynb](./03_tap_red_teaming.ipynb) | [.py](./03_tap_red_teaming.py) | Assignment 8 | `qwen/qwen3-32b` (Groq) | RedTeamingAttack (TAP) — automated multi-turn |
+| 3 | [.ipynb](./03_tap_red_teaming.ipynb) | [.py](./03_tap_red_teaming.py) | Assignment 9 | `qwen/qwen3-32b` (Groq) | RedTeamingAttack (TAP) — automated multi-turn |
+| 4 | [.ipynb](./04_prompt_converters.ipynb) | [.py](./04_prompt_converters.py) | Assignment 7 | `qwen/qwen3-32b` (Groq) | PyRIT Prompt Converters — encoding, obfuscation, LLM-based |
 
-The `.py` files contain the same code as the notebooks in a flat script format for easy copy-paste into a Jupyter cell or terminal.
+The `.py` files contain the same code as the notebooks — flat, top-level `await` code ready to paste into a Jupyter cell.
 
 ## Prerequisites
 
 - PyRIT Docker containers running (`docker compose -f docker/docker-compose.yaml --profile jupyter up -d`)
 - Groq API key configured in `~/.pyrit/.env.local`
-- For notebook 02: Ollama running on the host with `qwen3:0.6b` pulled
+- For notebooks 00 & 02: Ollama running on the host with `qwen3:0.6b` pulled
 
 ## How to Use
 
@@ -35,7 +37,7 @@ The `.py` files contain the same code as the notebooks in a flat script format f
 **Option C — Copy into the container:**
 
 ```bash
-docker cp notebooks/01_benchmark_beavertails.ipynb pyrit-jupyter:/home/user/
+docker cp notebooks/00_prompt_sending.ipynb pyrit-jupyter:/home/user/
 ```
 
 ---

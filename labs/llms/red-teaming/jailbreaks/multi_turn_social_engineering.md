@@ -1,4 +1,4 @@
-# Assignment 7: Multi-Turn & Social Engineering
+# Assignment 8: Multi-Turn & Social Engineering
 
 **Time:** ~25 minutes  
 **Difficulty:** Advanced  
@@ -14,7 +14,7 @@ Learn how **multi-turn conversations** and **social engineering** techniques can
 
 ## Why Multi-Turn Attacks Work
 
-In Assignment 4, you saw that `qwen3:0.6b` resisted 8+ single-turn jailbreak attempts. Multi-turn attacks are different: each individual message looks harmless, but the **cumulative context** shifts the model toward compliance.
+In earlier assignments, you saw that `qwen3:0.6b` resisted 8+ single-turn jailbreak attempts. Multi-turn attacks are different: each individual message looks harmless, but the **cumulative context** shifts the model toward compliance.
 
 | Single-Turn Attack | Multi-Turn Attack |
 |-------------------|-------------------|
@@ -269,4 +269,4 @@ Are larger models more or less susceptible to multi-turn attacks?
 
 ---
 
-**Previous:** [Assignment 6 — Encoding & Obfuscation](./encoding_obfuscation.md) | **Next:** [Assignment 8 — Automated Red Teaming (TAP)](./automated_red_teaming_tap.md) | **Back to:** [Jailbreaks Lab Index](./README.md)
+**Previous:** [Assignment 7 — PyRIT Prompt Converters](./pyrit_prompt_converters.md) | **Next:** [Assignment 9 — Automated Red Teaming (TAP)](./automated_red_teaming_tap.md) | **Back to:** [Jailbreaks Lab Index](./README.md)

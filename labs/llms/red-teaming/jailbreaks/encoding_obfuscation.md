@@ -218,4 +218,4 @@ curl -s https://api.groq.com/openai/v1/chat/completions \
 
 ---
 
-**Previous:** [Assignment 5 — Basic Jailbreak Techniques](./basic_jailbreak_techniques.md) | **Next:** [Assignment 7 — Multi-Turn & Social Engineering](./multi_turn_social_engineering.md) | **Back to:** [Jailbreaks Lab Index](./README.md)
+**Previous:** [Assignment 5 — Basic Jailbreak Techniques](./basic_jailbreak_techniques.md) | **Next:** [Assignment 7 — PyRIT Prompt Converters](./pyrit_prompt_converters.md) | **Back to:** [Jailbreaks Lab Index](./README.md)

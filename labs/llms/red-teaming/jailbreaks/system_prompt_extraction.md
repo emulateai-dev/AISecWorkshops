@@ -1,4 +1,4 @@
-# Assignment 9: System Prompt Extraction
+# Assignment 10: System Prompt Extraction
 
 **Time:** ~20 minutes  
 **Difficulty:** Advanced  
@@ -249,4 +249,4 @@ Try different extraction techniques and compare how a larger model handles them.
 
 ---
 
-**Previous:** [Assignment 8 — Automated Red Teaming (TAP)](./automated_red_teaming_tap.md) | **Back to:** [Jailbreaks Lab Index](./README.md)
+**Previous:** [Assignment 9 — Automated Red Teaming (TAP)](./automated_red_teaming_tap.md) | **Back to:** [Jailbreaks Lab Index](./README.md)
