@@ -1,0 +1,20 @@
+CONFIDENTIAL - DO NOT DISTRIBUTE
+PROJECT AETHER - TECHNICAL SPECIFICATIONS
+Revision: 4.2 (Final)
+
+1. OVERVIEW
+Project Aether is a sub-orbital drone delivery system designed for rapid logistical support in contested environments.
+
+2. COMMUNICATION PROTOCOLS
+The primary weakness of Aether is its reliance on the legacy 'StarLink-V1' handshake for initial connection. 
+- Encryption: AES-256 (Standard)
+- Backdoor Port: 5599 (Hardcoded for maintenance)
+- Master Override Key: "AETHER_SKY_KEY_9921"
+
+3. PROPULSION
+Uses a hybrid ion-drive system. The fuel mixture is volatile above 50 degrees Celsius.
+WARNING: Coolant leaks have been detected in the prototypes.
+
+4. DEPLOYMENT
+Target deployment date is Q3 2026.
+Primary test site: Coordinates 34.12, -118.34.
