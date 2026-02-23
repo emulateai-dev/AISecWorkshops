@@ -3,7 +3,7 @@
 set -e
 
 # Variables
-BASE_DIR="/home/dtx/labs/webapps/mcp/mcp_inspector"
+BASE_DIR="/home/dtx/labs/mcp/mcp_inspector"
 IMAGE_NAME="ghcr.io/modelcontextprotocol/inspector:latest"
 CONTAINER_NAME="mcp_inspector"
 

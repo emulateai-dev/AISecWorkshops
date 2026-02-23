@@ -3,7 +3,7 @@
 set -e
 
 # Variables
-BASE_DIR="/home/dtx/labs/webapps/mcp/damn"
+BASE_DIR="/home/dtx/labs/mcp"
 REPO_URL="https://github.com/emulateai-dev/dv_mcp_labs.git"
 CONTAINER_NAME="dvmcp"
 IMAGE_NAME="dvmcp"

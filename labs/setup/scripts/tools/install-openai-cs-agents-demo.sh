@@ -6,7 +6,7 @@
 set -euo pipefail
 
 # --- Config (override via env) ---
-BASE_DIR="${BASE_DIR:-$HOME/labs/webapps}"
+BASE_DIR="${BASE_DIR:-$HOME/labs/agents}"
 REPO_URL="${REPO_URL:-https://github.com/detoxio-ai/openai-cs-agents-demo}"
 CLONE_DIR="${CLONE_DIR:-openai-cs-agents-demo}"
 PYTHON_VERSION="${PYTHON_VERSION:-3.12}"
