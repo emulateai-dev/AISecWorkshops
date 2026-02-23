@@ -29,7 +29,9 @@ AISecWorkshops/
     │       └── open-ai-cs-agent/          # Airline multi-agent system red teaming
     │           └── challenges/            # 10 challenges: BOLA, social engineering, jailbreak
     └── mcp/
-        └── red-teaming/                   # MCP red teaming (coming soon)
+        └── red-teaming/
+            └── dv_mcp_labs/               # Damn Vulnerable MCP Server challenges
+                └── challenges/            # 10 challenges: injection, BOLA, SSRF
 ```
 
 ---
@@ -61,37 +63,52 @@ Attacking and evaluating autonomous AI agents — prompt injection, system promp
 
 Exploiting Model Context Protocol integrations — tool poisoning, server impersonation, rug pull attacks.
 
-_Labs coming soon._ See [overview](./labs/mcp/red-teaming/).
+| # | Exercise | Project | Challenges | Time | Description |
+|---|----------|---------|------------|------|-------------|
+| 1 | [Damn Vulnerable MCP Server](./labs/mcp/red-teaming/dv_mcp_labs/readme.md) | DVMS | 10 | ~60 min | Exploiting insecure tool/resource implementations in MCP |
 
 ---
 
-## Getting Started
+## Lab Environment Setup
 
-### 1. Set Up the Lab Environment
+The labs are designed to run in a dedicated pre-configured environment. Follow these steps to get started:
 
-Follow the **[VM Setup Guide](./labs/setup/vm/README.md)** to get the DTX Lab VM running with all tools pre-installed.
+### 1. Download & Import the DTX Lab VM
 
-> The setup guide covers: downloading the Kalki VM image, VirtualBox configuration, RAM/CPU allocation, port forwarding, API key setup, and common troubleshooting (KVM conflicts, USB errors, network adapter issues).
+The **DTX Lab VM** (Kalki.ova) comes with all tools, local models, and lab code pre-installed.
 
-### 2. Configure API Keys
+* **Hardware Requirements:** 16GB RAM (Min 8GB), 250GB Disk, 4+ vCPU.
+* **Download:** [Kalki.ova (HuggingFace)](https://huggingface.co/datasets/detoxioai/dtx-ai-sec-lab/blob/main/kalki.ova)
+* **Setup Guide:** Follow the **[Full VM Setup Guide](./labs/setup/vm/README.md)** for detailed instructions on VirtualBox configuration and port forwarding.
 
+### 2. Initial Configuration (Inside the VM)
+
+Once the VM is running, log in with `dtx : dtx` and perform the following:
+
+**A. Add API Keys**
 ```bash
 mkdir -p ~/.secrets/
-echo 'your-groq-key' > ~/.secrets/GROQ_API_KEY.txt
 echo 'your-openai-key' > ~/.secrets/OPENAI_API_KEY.txt
+echo 'your-groq-key' > ~/.secrets/GROQ_API_KEY.txt
 ```
 
-### 3. Verify Tools
+**B. Run Final Setup**
+```bash
+cd $HOME/labs/dtx_ai_sec_workshop_lab/setup/vm/
+sudo ./Tool_Setup.sh
+```
+
+### 3. Verify the Environment
 
 ```bash
 garak --version          # LLM vulnerability scanner
 ollama list              # Local model runtime
-echo "${GROQ_API_KEY:+Groq key is set}"
+echo "Groq key: ${GROQ_API_KEY:+Set}"
 ```
 
-### 4. Start with Exercise 1
+### 4. Start the Labs
 
-Begin with [Explore Garak Probes](./labs/llms/red-teaming/garak/01_explore_garak_probes.md) — no API keys needed.
+Begin with the [Explore Garak Probes](./labs/llms/red-teaming/garak/01_explore_garak_probes.md) exercise — it requires no API keys and is the best place to start.
 
 ---
 
