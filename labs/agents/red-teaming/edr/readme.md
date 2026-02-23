@@ -26,14 +26,14 @@ Because it has broad tool access and operates with implicit trust, it is an idea
 1. **Install the EDR lab**
 
    ```bash
-   INSTALL_SCRIPTS=$HOME/labs/dtx_ai_sec_workshop_lab/setup/scripts/tools/
+   INSTALL_SCRIPTS=$HOME/labs/AISecWorkshops/setup/scripts/tools/
    $INSTALL_SCRIPTS/install-edr.sh
    ```
 
 2. **Activate the virtual environment**
 
    ```bash
-   cd $HOME/labs/dtx_ai_sec_workshop_lab/agents/red-teaming/edr/enterprise-deep-research
+   cd $HOME/labs/AISecWorkshops/agents/red-teaming/edr/enterprise-deep-research
    source venv/bin/activate
    ```
 

@@ -34,7 +34,7 @@ The **OpenAI Customer Support Agent Demo** is a multi-agent system for handling 
 1. **Install the demo**
 
    ```bash
-   INSTALL_SCRIPTS=$HOME/labs/dtx_ai_sec_workshop_lab/setup/scripts/tools/
+   INSTALL_SCRIPTS=$HOME/labs/AISecWorkshops/setup/scripts/tools/
    $INSTALL_SCRIPTS/install-openai-cs-agents-demo.sh
    ```
 
