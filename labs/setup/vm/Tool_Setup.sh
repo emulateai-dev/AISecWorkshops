@@ -93,14 +93,13 @@ sudo -u "$TARGET_USER" bash -lc "
   set -e
   mkdir -p '$LABS_DIR'
   cd '$LABS_DIR'
-  [ -d ai-red-teaming-training ] || git clone https://github.com/detoxio-ai/ai-red-teaming-training.git
-  [ -d dtx_ai_sec_workshop_lab ] || git clone https://github.com/detoxio-ai/dtx_ai_sec_workshop_lab.git
+  [ -d AISecWorkshops ] || git clone https://github.com/emulateai-dev/AISecWorkshops.git
 "
 
 # ============================================================
 # 6) Copy validate_installation.sh if present
 # ============================================================
-INSTALL_DIR="$TARGET_HOME/labs/dtx_ai_sec_workshop_lab/setup/scripts/tools"
+INSTALL_DIR="$TARGET_HOME/labs/AISecWorkshops/labs/setup/scripts/tools"
 VALIDATE_SCRIPT="$INSTALL_DIR/../validate_installation.sh"
 if [ -f "$VALIDATE_SCRIPT" ]; then
   cp "$VALIDATE_SCRIPT" "$TARGET_HOME/validate_installation.sh"
@@ -157,55 +156,90 @@ yes | msfdb init   >/dev/null 2>&1 || true
 popd >/dev/null
 rm -rf "$TMPDIR"
 
+
+# ============================================================
+# 12) Ollama service — listen on 0.0.0.0 (remote access)
+# ============================================================
+mkdir -p /etc/systemd/system/ollama.service.d
+cat > /etc/systemd/system/ollama.service.d/override.conf <<'EOF'
+[Service]
+Environment="OLLAMA_HOST=0.0.0.0"
+EOF
+systemctl daemon-reload
+systemctl restart ollama > /dev/null 2>&1 || true
+echo "✅ Ollama configured to listen on 0.0.0.0"
+
+# ============================================================
+# 13) PyRIT Docker Setup (clone, build devcontainer image)
+# ============================================================
+PYRIT_DIR="$TARGET_HOME/labs/pyrit"
+sudo -u "$TARGET_USER" bash -lc "
+  set -e
+  mkdir -p '$PYRIT_DIR'
+  cd '$PYRIT_DIR'
+  if [ ! -d PyRIT ]; then
+    git clone https://github.com/jitendra-eai/PyRIT.git
+  else
+    echo 'ℹ️  PyRIT repo already exists; skipping clone.'
+  fi
+  mkdir -p \"\$HOME/.pyrit\"
+  touch \"\$HOME/.pyrit/.env\" \"\$HOME/.pyrit/.env.local\"
+"
+# Build devcontainer image from repo root (context must include .devcontainer/)
+docker build \
+  -f "$PYRIT_DIR/PyRIT/.devcontainer/Dockerfile" \
+  -t pyrit-devcontainer \
+  "$PYRIT_DIR/PyRIT/.devcontainer" \
+  > /dev/null 2>&1 || echo "⚠️  PyRIT devcontainer build failed (Docker may not be available)."
+echo "✅ PyRIT setup complete — repo: $PYRIT_DIR/PyRIT"
+
+# ============================================================
+# 14) Vulnerable Model Dataset (git-lfs clone, user-scope)
+# ============================================================
+VULN_MODEL_DIR="$TARGET_HOME/labs/datasets"
+sudo -u "$TARGET_USER" bash -lc "
+  set -e
+  git lfs install --skip-repo > /dev/null 2>&1 || true
+  mkdir -p '$VULN_MODEL_DIR'
+  cd '$VULN_MODEL_DIR'
+  if [ ! -d vulnerable_model ]; then
+    git clone https://huggingface.co/datasets/eai-sec-workshop/vulnerable_model
+  else
+    echo 'ℹ️  vulnerable_model dataset already exists; skipping clone.'
+  fi
+"
+echo "✅ Vulnerable model dataset ready: $VULN_MODEL_DIR/vulnerable_model"
+
+# ============================================================
+# 15) BurpSuite Community Edition (silent / non-interactive)
+# ============================================================
+BURP_TMP="$(mktemp -d)"
+BURP_INSTALLER="$BURP_TMP/burpsuite_installer.sh"
+curl -sSL \
+  "https://portswigger.net/burp/releases/download?product=community&version=2026.1.4&type=Linux" \
+  -o "$BURP_INSTALLER"
+chmod +x "$BURP_INSTALLER"
+# Run headless; accept defaults; suppress interactive prompts
+"$BURP_INSTALLER" -q 2>/dev/null || \
+  "$BURP_INSTALLER" --mode unattended 2>/dev/null || true
+rm -rf "$BURP_TMP"
+echo "✅ BurpSuite Community installation attempted."
+
+# ============================================================
+# 16) MCP Inspector — install globally via npm (user-scope)
+# ============================================================
+sudo -u "$TARGET_USER" bash -lc '
+  set -e
+  # Install the package globally so it is cached and ready to use without
+  # an extra download each time. Users can then launch it at any time with:
+  #   npx @modelcontextprotocol/inspector
+  npm install -g @modelcontextprotocol/inspector
+  echo "✅ MCP Inspector installed. Run with: npx @modelcontextprotocol/inspector"
+'
+
 # ============================================================
 # Done
 # ============================================================
 chown -R "$TARGET_USER:$TARGET_USER" "$TARGET_HOME/.aisecurity" 2>/dev/null || true
 echo "✅ Post-setup complete for $TARGET_USER"
-
-
-
-
-## TODO
-
-## AI security lab cloneing in $HOME/labs/ folder 
-
-git clone https://github.com/emulateai-dev/AISecWorkshops.git
-
-
-## Ollama listen on 0.0.0.0
-```bash
-sudo mkdir -p /etc/systemd/system/ollama.service.d && echo -e "[Service]\nEnvironment=\"OLLAMA_HOST=0.0.0.0\"" | sudo tee /etc/systemd/system/ollama.service.d/override.conf > /dev/null && sudo systemctl daemon-reload && sudo systemctl restart ollama
-
-```
-
-## ### PyRIT Docker Setup Guide
-
-**Step 1: Clone the Repository**
-Pull the source code and navigate into the root directory. (Crucial: Do not go into the `docker/` folder yet!)
-
-```bash
-git clone https://github.com/jitendra-eai/PyRIT.git
-cd PyRIT
-
-```
-
-**Step 2: Build the Base Devcontainer Image**
-Because of how the context is structured, you must build the base image from the root of the repository to prevent the `path ".devcontainer" not found` error.
-
-```bash
-docker build -f .devcontainer/Dockerfile -t pyrit-devcontainer .devcontainer
-
-```
-
-**Step 3: Configure Your Environment (.env and .env.local)**
-PyRIT securely mounts your local `~/.pyrit/` directory to pass credentials into the containers. Set up the folder and create your environment files:
-
-```bash
-mkdir -p ~/.pyrit
-touch ~/.pyrit/.env ~/.pyrit/.env.local
-
-```
-
-
 
