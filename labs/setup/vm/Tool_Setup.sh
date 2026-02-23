@@ -8,7 +8,7 @@ set -euo pipefail
 
 # --- Resolve target user/home (prefer sudo caller), fallback 'dtx' ---
 TARGET_USER="${SUDO_USER:-dtx}"
-if ! id "$TARGET_USER" &>/dev/null; then
+if ! id "$TARGET_USER"; then
   echo "❌ Target user '$TARGET_USER' does not exist."; exit 1
 fi
 TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
@@ -28,7 +28,7 @@ append_once_bashrc () {
   local marker="$1"
   local block="$2"
   local bashrc="$TARGET_HOME/.bashrc"
-  grep -qF "$marker" "$bashrc" 2>/dev/null || {
+  grep -qF "$marker" "$bashrc" || {
     printf "%s\n" "$block" >> "$bashrc"
     chown "$TARGET_USER:$TARGET_USER" "$bashrc"
   }
@@ -58,8 +58,8 @@ sudo -u "$TARGET_USER" bash -lc '
 # 3) Ollama models (system-level, tolerate absence)
 # ============================================================
 # Start/enable service if present (don’t fail hard on minimal envs)
-systemctl enable ollama >/dev/null 2>&1 || true
-systemctl start  ollama >/dev/null 2>&1 || true
+systemctl enable ollama || true
+systemctl start  ollama || true
 
 # Pull models (ignore failures if ollama/daemon not present yet)
 ollama pull smollm2                 || true
@@ -131,9 +131,9 @@ sudo -u "$TARGET_USER" bash -lc '
 # ============================================================
 sudo -u "$TARGET_USER" bash -lc '
   set -e
-  source "$HOME/.local/bin/env" 2>/dev/null || true
+  source "$HOME/.local/bin/env" || true
 
-  PY_BIN="$( (uv python find 3.12 2>/dev/null) || command -v python3.12 || command -v python3 || echo python )"
+  PY_BIN="$( (uv python find 3.12) || command -v python3.12 || command -v python3 || echo python )"
   "$PY_BIN" -m venv "$HOME/.aisecurity"
 
   source "$HOME/.aisecurity/bin/activate"
@@ -147,13 +147,13 @@ sudo -u "$TARGET_USER" bash -lc '
 # ============================================================
 # Use a temp working dir under /tmp, then clean up
 TMPDIR="$(mktemp -d)"
-pushd "$TMPDIR" >/dev/null
-curl -sSL https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb -o msfinstall
+pushd "$TMPDIR"
+curl -SL https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb -o msfinstall
 chmod 755 msfinstall
 rm -f /usr/share/keyrings/metasploit-framework.gpg || true
-yes | ./msfinstall >/dev/null 2>&1 || true
-yes | msfdb init   >/dev/null 2>&1 || true
-popd >/dev/null
+yes | ./msfinstall || true
+yes | msfdb init   || true
+popd
 rm -rf "$TMPDIR"
 
 
@@ -166,7 +166,7 @@ cat > /etc/systemd/system/ollama.service.d/override.conf <<'EOF'
 Environment="OLLAMA_HOST=0.0.0.0"
 EOF
 systemctl daemon-reload
-systemctl restart ollama > /dev/null 2>&1 || true
+systemctl restart ollama || true
 echo "✅ Ollama configured to listen on 0.0.0.0"
 
 # ============================================================
@@ -189,8 +189,7 @@ sudo -u "$TARGET_USER" bash -lc "
 docker build \
   -f "$PYRIT_DIR/PyRIT/.devcontainer/Dockerfile" \
   -t pyrit-devcontainer \
-  "$PYRIT_DIR/PyRIT/.devcontainer" \
-  > /dev/null 2>&1 || echo "⚠️  PyRIT devcontainer build failed (Docker may not be available)."
+  "$PYRIT_DIR/PyRIT/.devcontainer" || echo "⚠️  PyRIT devcontainer build failed (Docker may not be available)."
 echo "✅ PyRIT setup complete — repo: $PYRIT_DIR/PyRIT"
 
 # ============================================================
@@ -199,7 +198,7 @@ echo "✅ PyRIT setup complete — repo: $PYRIT_DIR/PyRIT"
 VULN_MODEL_DIR="$TARGET_HOME/labs/datasets"
 sudo -u "$TARGET_USER" bash -lc "
   set -e
-  git lfs install --skip-repo > /dev/null 2>&1 || true
+  git lfs install --skip-repo || true
   mkdir -p '$VULN_MODEL_DIR'
   cd '$VULN_MODEL_DIR'
   if [ ! -d vulnerable_model ]; then
@@ -215,31 +214,21 @@ echo "✅ Vulnerable model dataset ready: $VULN_MODEL_DIR/vulnerable_model"
 # ============================================================
 BURP_TMP="$(mktemp -d)"
 BURP_INSTALLER="$BURP_TMP/burpsuite_installer.sh"
-curl -sSL \
+curl -SL \
   "https://portswigger.net/burp/releases/download?product=community&version=2026.1.4&type=Linux" \
   -o "$BURP_INSTALLER"
 chmod +x "$BURP_INSTALLER"
 # Run headless; accept defaults; suppress interactive prompts
-"$BURP_INSTALLER" -q 2>/dev/null || \
-  "$BURP_INSTALLER" --mode unattended 2>/dev/null || true
+"$BURP_INSTALLER" -q || \
+  "$BURP_INSTALLER" --mode unattended || true
 rm -rf "$BURP_TMP"
 echo "✅ BurpSuite Community installation attempted."
 
-# ============================================================
-# 16) MCP Inspector — install globally via npm (user-scope)
-# ============================================================
-sudo -u "$TARGET_USER" bash -lc '
-  set -e
-  # Install the package globally so it is cached and ready to use without
-  # an extra download each time. Users can then launch it at any time with:
-  #   npx @modelcontextprotocol/inspector
-  npm install -g @modelcontextprotocol/inspector
-  echo "✅ MCP Inspector installed. Run with: npx @modelcontextprotocol/inspector"
-'
+
 
 # ============================================================
 # Done
 # ============================================================
-chown -R "$TARGET_USER:$TARGET_USER" "$TARGET_HOME/.aisecurity" 2>/dev/null || true
+chown -R "$TARGET_USER:$TARGET_USER" "$TARGET_HOME/.aisecurity" || true
 echo "✅ Post-setup complete for $TARGET_USER"
 
