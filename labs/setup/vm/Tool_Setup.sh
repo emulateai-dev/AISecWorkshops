@@ -203,7 +203,7 @@ sudo -u "$TARGET_USER" bash -lc "
   mkdir -p '$VULN_MODEL_DIR'
   cd '$VULN_MODEL_DIR'
   if [ ! -d vulnerable_model ]; then
-    git clone https://huggingface.co/datasets/eai-sec-workshop/vulnerable_model
+    git clone https://huggingface.co/eai-sec-workshop/vulnerable_llama_model
   else
     echo 'ℹ️  vulnerable_model dataset already exists; skipping clone.'
   fi

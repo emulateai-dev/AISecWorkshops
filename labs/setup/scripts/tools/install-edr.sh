@@ -112,11 +112,47 @@ fi
 # ── 5. Install Python dependencies ───────────────────────────
 info "Installing Python dependencies from requirements.txt ..."
 if [[ -f "${LAB_DIR}/requirements.txt" ]]; then
-  "${LAB_DIR}/venv/bin/pip" install -r "${LAB_DIR}/requirements.txt"
+  # ── Python 3.12+ compatibility patch ─────────────────────────────────────
+  # pandas==2.2.1, matplotlib==3.8.3, seaborn==0.13.2, scikit-learn==1.6.1
+  # are pinned to exact versions that have no pre-built wheels for Python
+  # 3.12/3.13 and fail to compile from source on those interpreters.
+  # We relax those exact == pins to >= so pip resolves a compatible wheel.
+  REQS_FILE="${LAB_DIR}/requirements.txt"
+  if [[ "${PY_MIN}" -ge 12 ]]; then
+    warn "Python 3.${PY_MIN} detected – relaxing hard-pinned packages that lack 3.12+ wheels."
+    REQS_FILE="$(mktemp /tmp/edr-requirements-XXXXXX.txt)"
+    sed \
+      -e 's/^pandas==\(.*\)/pandas>=\1/' \
+      -e 's/^matplotlib==\(.*\)/matplotlib>=\1/' \
+      -e 's/^seaborn==\(.*\)/seaborn>=\1/' \
+      -e 's/^scikit-learn==\(.*\)/scikit-learn>=\1/' \
+      -e 's/^numpy<\(.*\)/numpy>=1.26.0,<\1/' \
+      "${LAB_DIR}/requirements.txt" > "${REQS_FILE}"
+    info "Patched requirements written to: ${REQS_FILE}"
+  fi
+
+  "${LAB_DIR}/venv/bin/pip" install -r "${REQS_FILE}"
+
+  # Remove the temp file if we created one
+  if [[ "${REQS_FILE}" != "${LAB_DIR}/requirements.txt" ]]; then
+    rm -f "${REQS_FILE}"
+  fi
   success "Python dependencies installed."
 else
   warn "requirements.txt not found – skipping Python dep install."
 fi
+
+# ── 5b. Pin langchain-mcp-adapters to 0.1.x (compatible with langchain-core 0.3.x) ──
+# langchain-mcp-adapters 0.2.x requires langchain-core>=1.0.0 which does NOT
+# exist yet on PyPI — causing "No module named 'langchain_core.messages.content'"
+# (that module was never added to 0.3.x; it's a 1.0-era API).
+# Pinning to <0.2.0 keeps the 0.1.14 release which works cleanly with 0.3.x.
+info "Pinning langchain-mcp-adapters to 0.1.x for langchain-core 0.3.x compatibility ..."
+"${LAB_DIR}/venv/bin/pip" install \
+  "langchain-core>=0.3.78,<1.0.0" \
+  "langchain>=0.3.9,<1.0.0" \
+  "langchain-mcp-adapters>=0.0.6,<0.2.0"
+success "langchain ecosystem pinned to compatible versions."
 
 # Ensure uvicorn[standard] is present even if missing from requirements
 "${LAB_DIR}/venv/bin/pip" install --quiet "uvicorn[standard]" >/dev/null
@@ -129,7 +165,10 @@ if [[ -f "${LAB_DIR}/.env" ]]; then
 else
   if [[ -f "${LAB_DIR}/.env.sample" ]]; then
     cp "${LAB_DIR}/.env.sample" "${LAB_DIR}/.env"
-    success ".env created from .env.sample."
+    # Strip Windows CRLF line endings (\r\n → \n) — the upstream .env.sample
+    # is stored with CRLF, which causes "$'\r': command not found" when sourced
+    sed -i 's/\r//' "${LAB_DIR}/.env"
+    success ".env created from .env.sample (CRLF line endings stripped)."
     echo ""
     warn "┌──────────────────────────────────────────────────────────────┐"
     warn "│  ACTION REQUIRED: Edit ${LAB_DIR}/.env  │"

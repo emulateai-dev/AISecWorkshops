@@ -21,15 +21,21 @@ Probe large language models for security vulnerabilities — jailbreaks, prompt 
 
 [Full lab overview](./llms/red-teaming/garak/) with Garak introduction, architecture, and background.
 
+---
+
 ### Agent Red Teaming
 
-Attacking and evaluating autonomous AI agents — prompt injection, system prompt extraction, goal hijacking.
+Attacking and evaluating autonomous AI agents — prompt injection, system prompt extraction, goal hijacking, BOLA, social engineering.
 
-| # | Exercise | Tool | Target | Time |
-|---|----------|------|--------|------|
-| 1 | [Prompt Injection Challenges](./agents/red-teaming/folly/) | Folly | GPT-4 / Qwen | ~30 min |
+| # | Exercise | Tool | Challenges | Target | Time |
+|---|----------|------|-----------|--------|------|
+| 1 | [Prompt Injection Challenges](./agents/red-teaming/folly/README.md) | Folly | 15+ | GPT-4 / Qwen | ~30 min |
+| 2 | [Enterprise Deep Research (EDR)](./agents/red-teaming/edr/readme.md) | EDR Agent | 7 | RAG + SQL Agent | ~45 min |
+| 3 | [Airline Customer Support Agent](./agents/red-teaming/open-ai-cs-agent/readme.md) | OpenAI Agents SDK | 10 | Multi-Agent System | ~60 min |
 
-[Full lab overview](./agents/red-teaming/) with agent attack surface background.
+[Full lab overview](./agents/red-teaming/) with agent attack surface background and recommended learning path.
+
+---
 
 ### MCP Red Teaming
 
@@ -45,7 +51,7 @@ All labs assume you are running inside the **DTX Lab VM**.
 
 | Step | Guide |
 |------|-------|
-| VM setup & tool installation | [setup/vm/](./setup/vm/) |
+| VM setup & tool installation | [setup/vm/](./setup/vm/README.md) |
 | API key configuration | See [project README](../README.md#getting-started) |
 
 ### Quick Verify

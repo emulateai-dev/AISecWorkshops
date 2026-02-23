@@ -58,8 +58,8 @@ sudo ./Tool_Setup.sh
 ##### **Enable ports inside the VM Instance**
 
 ```
-cd $HOME/labs/dtx_ai_sec_workshop_lab/ && git pull origin main && cd $HOME
-sudo $HOME/labs/dtx_ai_sec_workshop_lab/setup/scripts/tools/open_ufw_ports.sh
+cd $HOME/labs/AISecWorkshops/ && git pull origin main && cd $HOME
+sudo $HOME/labs/AISecWorkshops/setup/scripts/tools/open_ufw_ports.sh
 ```
 
 ##### **Enable port forwaring at VM instance at VMbox level**
