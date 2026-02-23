@@ -23,7 +23,11 @@ AISecWorkshops/
     │           └── samples/               # Sample scan reports and hitlogs
     ├── agents/
     │   └── red-teaming/
-    │       └── folly/                     # Prompt injection challenges with Folly
+    │       ├── folly/                     # Prompt injection challenges with Folly
+    │       ├── edr/                       # Enterprise Deep Research agent red teaming
+    │       │   └── challenges/            # 7 challenges: RAG poisoning, Text2SQL, injection
+    │       └── open-ai-cs-agent/          # Airline multi-agent system red teaming
+    │           └── challenges/            # 10 challenges: BOLA, social engineering, jailbreak
     └── mcp/
         └── red-teaming/                   # MCP red teaming (coming soon)
 ```
@@ -45,11 +49,13 @@ Probe large language models for security vulnerabilities using automated scannin
 
 ### Agent Red Teaming
 
-Attacking and evaluating autonomous AI agents — prompt injection, system prompt extraction, goal hijacking.
+Attacking and evaluating autonomous AI agents — prompt injection, system prompt extraction, goal hijacking, BOLA, and social engineering.
 
-| # | Exercise | Tool | Time | Description |
-|---|----------|------|------|-------------|
-| 1 | [Prompt Injection Challenges](./labs/agents/red-teaming/folly/) | Folly | ~30 min | Interactive prompt injection and system prompt extraction via web UI |
+| # | Exercise | Tool | Challenges | Time | Description |
+|---|----------|------|-----------|------|-------------|
+| 1 | [Prompt Injection Challenges](./labs/agents/red-teaming/folly/README.md) | Folly | 15+ | ~30 min | Interactive prompt injection and system prompt extraction via web UI |
+| 2 | [Enterprise Deep Research (EDR)](./labs/agents/red-teaming/edr/readme.md) | EDR Agent | 7 | ~45 min | RAG poisoning, indirect prompt injection, Text-to-SQL abuse, hallucination |
+| 3 | [Airline Customer Support Agent](./labs/agents/red-teaming/open-ai-cs-agent/readme.md) | OpenAI Agents SDK | 10 | ~60 min | Guardrail bypass, BOLA, social engineering, multi-turn PII attacks |
 
 ### MCP Red Teaming
 
@@ -63,7 +69,9 @@ _Labs coming soon._ See [overview](./labs/mcp/red-teaming/).
 
 ### 1. Set Up the Lab Environment
 
-Follow the [VM setup guide](./labs/setup/vm/) to get the DTX Lab VM running with all tools pre-installed.
+Follow the **[VM Setup Guide](./labs/setup/vm/README.md)** to get the DTX Lab VM running with all tools pre-installed.
+
+> The setup guide covers: downloading the Kalki VM image, VirtualBox configuration, RAM/CPU allocation, port forwarding, API key setup, and common troubleshooting (KVM conflicts, USB errors, network adapter issues).
 
 ### 2. Configure API Keys
 
@@ -97,6 +105,7 @@ Begin with [Explore Garak Probes](./labs/llms/red-teaming/garak/01_explore_garak
 | [Promptfoo](https://www.promptfoo.dev/) | LLM eval & red teaming | `npm install -g promptfoo` |
 | [Folly](https://github.com/detoxio-ai/Folly) | Prompt injection challenges | `uv tool install --editable .` |
 | [DTX](https://github.com/detoxio-ai) | AI security testing | `uv tool install "dtx[torch]"` |
+| [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) | Multi-agent framework (CS Agent lab) | `pip install openai-agents` |
 
 ---
 
@@ -106,3 +115,5 @@ Begin with [Explore Garak Probes](./labs/llms/red-teaming/garak/01_explore_garak
 - [garak: A Framework for Security Probing LLMs](https://arxiv.org/html/2406.11036v1) — Derczynski et al., 2024
 - [NIST Adversarial Machine Learning Taxonomy](https://csrc.nist.gov/pubs/ai/100/2/e2023/final)
 - [MITRE ATLAS](https://atlas.mitre.org/) — Adversarial Threat Landscape for AI Systems
+- [Indirect Prompt Injection](https://arxiv.org/abs/2302.12173) — Greshake et al., 2023
+- [OWASP API Security Top 10 — BOLA](https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/)
