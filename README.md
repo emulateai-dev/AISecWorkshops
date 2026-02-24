@@ -79,11 +79,12 @@ The **DTX Lab VM** (Kalki.ova) comes with all tools, local models, and lab code 
 
 * **Hardware Requirements:** 16GB RAM (Min 8GB), 250GB Disk, 4+ vCPU.
 * **Download:** [Kalki.ova (HuggingFace)](https://huggingface.co/datasets/detoxioai/dtx-ai-sec-lab/blob/main/kalki.ova)
-* **Setup Guide:** Follow the **[Full VM Setup Guide](./labs/setup/vm/README.md)** for detailed instructions on VirtualBox configuration and port forwarding.
+* **Setup Guide:** Follow the **[Full VM Setup Guide](./labs/setup/vm/README.md)** for complete VM setup, VirtualBox configuration, networking, and troubleshooting details.
+* **Default VM Credentials:** Username `dtx` and Password `dtx`.
 
 ### 2. Initial Configuration (Inside the VM)
 
-Once the VM is running, log in with `dtx : dtx` and perform the following:
+Once the VM is running, log in with the default credentials `dtx : dtx` and perform the following:
 
 **A. Add API Keys**
 ```bash
@@ -94,7 +95,7 @@ echo 'your-groq-key' > ~/.secrets/GROQ_API_KEY.txt
 
 **B. Run Final Setup**
 ```bash
-cd $HOME/labs/dtx_ai_sec_workshop_lab/setup/vm/
+cd $HOME/
 sudo ./Tool_Setup.sh
 ```
 
@@ -118,11 +119,12 @@ Begin with the [Explore Garak Probes](./labs/llms/red-teaming/garak/01_explore_g
 |------|---------|---------------|
 | [Garak](https://github.com/NVIDIA/garak) | LLM vulnerability scanning | `uv tool install garak` |
 | [Ollama](https://ollama.com/) | Local model inference | System install |
-| [Groq](https://groq.com/) | Cloud LLM inference API | API key |
-| [Promptfoo](https://www.promptfoo.dev/) | LLM eval & red teaming | `npm install -g promptfoo` |
 | [Folly](https://github.com/detoxio-ai/Folly) | Prompt injection challenges | `uv tool install --editable .` |
 | [DTX](https://github.com/detoxio-ai) | AI security testing | `uv tool install "dtx[torch]"` |
-| [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) | Multi-agent framework (CS Agent lab) | `pip install openai-agents` |
+| [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) | Multi-agent framework (CS Agent lab) | Python package install |
+| [PyRIT](https://github.com/Azure/PyRIT) | Prompt attack and risk identification testing | Docker devcontainer build |
+| [LLM CLI](https://github.com/simonw/llm) | Command-line LLM interaction and key management | `uv tool install llm` |
+| [Burp Suite Community](https://portswigger.net/burp/communitydownload) | Web application security testing | Community installer |
 
 ---
 

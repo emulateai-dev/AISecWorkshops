@@ -51,6 +51,16 @@ This guide sets up the **DTX demo lab** using a **Simple Plug and Play VM** (no 
 sudo ./Tool_Setup.sh 
 ```
 
+### Validation: Successful Setup Output
+
+After `sudo ./Tool_Setup.sh` completes, you should see a final success line similar to:
+
+`✅ Post-setup complete for dtx`
+
+Reference screenshot:
+
+![Tool setup successful output](./tool-setup-success.png)
+
 ### Enable Ports Forwarding to Host
 
 #### Assuming NAT Interface
@@ -216,4 +226,29 @@ This guide provides solutions to common errors encountered when setting up and m
     3.  **This is the most important step:** The change only takes effect after a new session starts. You must either **log out and log back in**, or simply **reboot your computer**.
     4.  (Optional) After logging back in, you can verify your membership by typing `groups` in a terminal and checking for `vboxusers` in the output.
     5.  Remember, for full USB 2.0/3.0 support, you must also install the **VirtualBox Extension Pack** from the official website.
+
+#### 4\. `uv` Cache / Tool Setup Issues
+
+  * **Q: `Tool_Setup.sh` fails or behaves inconsistently after package/tool updates. How do I reset `uv` cache?**
+  * **Symptom:** You may see partial installs, stale wheels/sdists, or repeated setup issues.
+  * **Cause:** Old cache artifacts in `~/.cache/uv` can sometimes conflict with fresh installs.
+  * **Solution: Clean `uv` cache and rerun setup**
+    1.  (Optional) Inspect the cache:
+        ```bash
+        ls ~/.cache/uv
+        ```
+    2.  Remove the cache directory:
+        ```bash
+        rm -rf ~/.cache/uv
+        ```
+    3.  Re-run setup from the VM setup directory:
+        ```bash
+        cd $HOME/labs/AISecWorkshops/labs/setup/vm
+        sudo ./Tool_Setup.sh
+        ```
+    4.  Verify key tools:
+        ```bash
+        garak --version
+        ollama list
+        ```
 
