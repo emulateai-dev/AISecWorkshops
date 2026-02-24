@@ -113,6 +113,36 @@ After setup, you should see a success message similar to:
 
 Reference screenshot: [Tool setup success output](./labs/setup/vm/tool-setup-success.png)
 
+### 4. Validate Labs After Installation
+
+Run the validation script to verify tools, services, ports, and connectivity:
+
+> Note: This validation can take a couple of minutes to complete.
+
+```bash
+cd $HOME
+./validate_installation.sh
+```
+
+If the script is not in your home directory, run:
+
+```bash
+cd $HOME/labs/AISecWorkshops/labs/setup/scripts
+./validate_installation.sh
+```
+
+Expected output starts like:
+
+`🔍 DTX Validation Log - <date>`
+
+`🌍 External Network Info`
+
+`🌐 External IP: <your-ip>`
+
+On success, you should also see:
+
+`✅ DTX Validation complete.`
+
 ### Upgrade Environment
 
 Use this when you want to refresh tools/config from the latest repo version:
@@ -133,7 +163,7 @@ cd $HOME/labs/AISecWorkshops/labs/setup/vm
 sudo ./Tool_Setup.sh
 ```
 
-### 4. Start the Labs
+### 5. Start the Labs
 
 Begin with the [Explore Garak Probes](./labs/llms/red-teaming/garak/01_explore_garak_probes.md) exercise — it requires no API keys and is the best place to start.
 

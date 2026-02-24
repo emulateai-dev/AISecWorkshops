@@ -71,6 +71,36 @@ git clone https://github.com/emulateai-dev/AISecWorkshops.git
 sudo ./AISecWorkshops/labs/setup/vm/upgrade_env.sh
 ```
 
+### Validate Labs After Installation
+
+Run the validation script to verify installed tools, running services, exposed ports, and API connectivity:
+
+> Note: This validation can take a couple of minutes to complete.
+
+```bash
+cd $HOME
+./validate_installation.sh
+```
+
+If the script is missing in `$HOME`, run it directly from the repo:
+
+```bash
+cd $HOME/labs/AISecWorkshops/labs/setup/scripts
+./validate_installation.sh
+```
+
+Expected output starts with:
+
+`🔍 DTX Validation Log - <date>`
+
+`🌍 External Network Info`
+
+`🌐 External IP: <your-ip>`
+
+Successful completion ends with:
+
+`✅ DTX Validation complete.`
+
 ### Enable Ports Forwarding to Host
 
 #### Assuming NAT Interface
