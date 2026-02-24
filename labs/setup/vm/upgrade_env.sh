@@ -62,6 +62,12 @@ echo "✅ PyRIT setup complete — repo: $PYRIT_DIR/PyRIT"
 # ============================================================
 # 14) Vulnerable Model Dataset (git-lfs clone, user-scope)
 # ============================================================
+if ! git lfs version >/dev/null 2>&1; then
+  echo "ℹ️  git-lfs not found. Installing git-lfs..."
+  apt-get update
+  apt-get install -y git-lfs
+fi
+
 VULN_MODEL_DIR="$TARGET_HOME/labs/datasets"
 sudo -u "$TARGET_USER" bash -lc "
   set -e
