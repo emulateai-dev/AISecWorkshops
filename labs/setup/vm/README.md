@@ -61,6 +61,16 @@ Reference screenshot:
 
 ![Tool setup successful output](./tool-setup-success.png)
 
+### Steps to Upgrade Environment
+
+Use the following commands inside the VM to pull the latest environment upgrade script and apply updates:
+
+```bash
+cd $HOME
+git clone https://github.com/emulateai-dev/AISecWorkshops.git
+sudo ./AISecWorkshops/labs/setup/vm/upgrade_env.sh
+```
+
 ### Enable Ports Forwarding to Host
 
 #### Assuming NAT Interface

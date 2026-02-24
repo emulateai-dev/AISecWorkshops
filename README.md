@@ -95,7 +95,7 @@ echo 'your-groq-key' > ~/.secrets/GROQ_API_KEY.txt
 
 **B. Run Final Setup**
 ```bash
-cd $HOME/
+cd $HOME/labs/AISecWorkshops/labs/setup/vm
 sudo ./Tool_Setup.sh
 ```
 
@@ -105,6 +105,32 @@ sudo ./Tool_Setup.sh
 garak --version          # LLM vulnerability scanner
 ollama list              # Local model runtime
 echo "Groq key: ${GROQ_API_KEY:+Set}"
+```
+
+After setup, you should see a success message similar to:
+
+`✅ Post-setup complete for dtx`
+
+Reference screenshot: [Tool setup success output](./labs/setup/vm/tool-setup-success.png)
+
+### Upgrade Environment
+
+Use this when you want to refresh tools/config from the latest repo version:
+
+```bash
+cd $HOME
+git clone https://github.com/emulateai-dev/AISecWorkshops.git
+sudo ./AISecWorkshops/labs/setup/vm/upgrade_env.sh
+```
+
+### Troubleshooting (`uv` cache issues)
+
+If `Tool_Setup.sh` fails due to stale `uv` artifacts, clean cache and rerun:
+
+```bash
+rm -rf ~/.cache/uv
+cd $HOME/labs/AISecWorkshops/labs/setup/vm
+sudo ./Tool_Setup.sh
 ```
 
 ### 4. Start the Labs
@@ -123,7 +149,9 @@ Begin with the [Explore Garak Probes](./labs/llms/red-teaming/garak/01_explore_g
 | [DTX](https://github.com/detoxio-ai) | AI security testing | `uv tool install "dtx[torch]"` |
 | [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) | Multi-agent framework (CS Agent lab) | Python package install |
 | [PyRIT](https://github.com/Azure/PyRIT) | Prompt attack and risk identification testing | Docker devcontainer build |
+| [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/main/en/guides/cli) | Model and dataset access from terminal | `uv tool install "huggingface_hub[cli,torch]"` |
 | [LLM CLI](https://github.com/simonw/llm) | Command-line LLM interaction and key management | `uv tool install llm` |
+| [Metasploit Framework](https://github.com/rapid7/metasploit-framework) | Exploitation framework for security labs | `msfinstall` |
 | [Burp Suite Community](https://portswigger.net/burp/communitydownload) | Web application security testing | Community installer |
 
 ---

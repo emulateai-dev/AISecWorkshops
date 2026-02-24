@@ -1,3 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ============================================================
+# DTX Lab — Post setup (user tools, repos, models, keys)
+# Run with: sudo ./post.sh
+# ============================================================
+
+# --- Resolve target user/home (prefer sudo caller), fallback 'dtx' ---
+TARGET_USER="${SUDO_USER:-dtx}"
+if ! id "$TARGET_USER"; then
+  echo "❌ Target user '$TARGET_USER' does not exist."; exit 1
+fi
+TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
+if [[ -z "${TARGET_HOME}" || ! -d "${TARGET_HOME}" ]]; then
+  echo "❌ Could not resolve home for '$TARGET_USER'."; exit 1
+fi
+
+echo "➡️  Using TARGET_USER=$TARGET_USER  TARGET_HOME=$TARGET_HOME"
+
+# --- Ensure we're root for system actions
+if [[ $EUID -ne 0 ]]; then
+  echo "❌ Please run with sudo/root."; exit 1
+fi
+
+
 # ============================================================
 # 12) Ollama service — listen on 0.0.0.0 (remote access)
 # ============================================================
