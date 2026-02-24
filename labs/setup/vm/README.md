@@ -109,7 +109,7 @@ Successful completion ends with:
 
 ```
 cd $HOME/labs/AISecWorkshops/ && git pull origin main && cd $HOME
-sudo $HOME/labs/AISecWorkshops/setup/scripts/tools/open_ufw_ports.sh
+sudo $HOME/labs/AISecWorkshops/labs/setup/scripts/tools/open_ufw_ports.sh
 ```
 
 ##### **Enable port forwaring at VM instance at VMbox level**

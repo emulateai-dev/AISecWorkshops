@@ -26,7 +26,7 @@ Because it has broad tool access and operates with implicit trust, it is an idea
 1. **Install the EDR lab**
 
    ```bash
-   INSTALL_SCRIPTS=$HOME/labs/AISecWorkshops/setup/scripts/tools/
+   INSTALL_SCRIPTS=$HOME/labs/AISecWorkshops/labs/setup/scripts/tools/
    $INSTALL_SCRIPTS/install-edr.sh
    ```
 
