@@ -116,11 +116,15 @@ Detectors **analyze model outputs** to determine if an attack succeeded:
 | Garak installed | `garak --version` |
 | Groq API key set | `echo $GROQ_API_KEY` |
 | Ollama running | `ollama list` |
+| Alternative cloud lab (Kaggle) | Open the Kaggle notebook and run Garak there |
 
 ```bash
 export GROQ_API_KEY=$(cat ~/.secrets/GROQ_API_KEY.txt)
 garak --version
 ```
+
+Alternative: You can run this lab on Kaggle instead of local VM setup using  
+[LRT-2 LLM AI Red Teaming Garak Tool](https://www.kaggle.com/code/jitendradetoxio/lrt-2-llm-ai-red-teaming-garak-tool).
 
 ---
 

@@ -32,7 +32,7 @@ Hands-on assignments exploring LLM safety alignment, its limitations, and techni
 | 6 | [Encoding & Obfuscation](./encoding_obfuscation.md) | ~25 min | Intermediate | Base64, ROT13, leetspeak, character splitting, payload splitting |
 | 7 | [PyRIT Prompt Converters](./pyrit_prompt_converters.md) | ~30 min | Intermediate | 30+ PyRIT converters; encoding, obfuscation, token smuggling; LLM-based translation, persuasion, math obfuscation |
 | 8 | [Multi-Turn & Social Engineering](./multi_turn_social_engineering.md) | ~25 min | Advanced | Context building, trust establishment, emotional manipulation, role escalation |
-| 9 | [Automated Red Teaming — TAP](./automated_red_teaming_tap.md) | ~35 min | Advanced | PyRIT RedTeamingAttack; automated multi-turn TAP; cross-model comparison |
+| 9 | [Automated Red Teaming — TAP](./automated_red_teaming_tap.md) | ~35 min | Advanced | PyRIT TAPAttack; automated multi-turn tree search; cross-model comparison |
 | 10 | [System Prompt Extraction](./system_prompt_extraction.md) | ~20 min | Advanced | Extract hidden instructions, secrets, and configuration from AI systems |
 
 ---

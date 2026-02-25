@@ -9,7 +9,7 @@ Pre-built Jupyter notebooks and Python scripts for the PyRIT-based jailbreak ass
 | 0 | [.ipynb](./00_prompt_sending.ipynb) | [.py](./00_prompt_sending.py) | Quick Start | Groq + local Ollama | PromptSendingAttack — single prompt, no scoring |
 | 1 | [.ipynb](./01_benchmark_beavertails.ipynb) | [.py](./01_benchmark_beavertails.py) | Assignment 4 | `qwen/qwen3-32b` (Groq) | PromptSendingAttack — BeaverTails + AIR-Bench |
 | 2 | [.ipynb](./02_ollama_flip_attack.ipynb) | [.py](./02_ollama_flip_attack.py) | Assignment 4 | `qwen3:0.6b` (local Ollama) | FlipAttack — encoding flip against local model |
-| 3 | [.ipynb](./03_tap_red_teaming.ipynb) | [.py](./03_tap_red_teaming.py) | Assignment 9 | `qwen/qwen3-32b` (Groq) | RedTeamingAttack (TAP) — automated multi-turn |
+| 3 | [.ipynb](./03_tap_red_teaming.ipynb) | [.py](./03_tap_red_teaming.py) | Assignment 9 | `llama-3.3-70b-versatile` target (Groq) | TAPAttack (TAP) — automated multi-turn tree search |
 | 4 | [.ipynb](./04_prompt_converters.ipynb) | [.py](./04_prompt_converters.py) | Assignment 7 | `qwen/qwen3-32b` (Groq) | PyRIT Prompt Converters — encoding, obfuscation, LLM-based |
 
 The `.py` files contain the same code as the notebooks — flat, top-level `await` code ready to paste into a Jupyter cell.
