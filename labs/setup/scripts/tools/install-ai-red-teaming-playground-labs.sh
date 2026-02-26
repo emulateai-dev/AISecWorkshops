@@ -81,6 +81,11 @@ SECRET_KEY=${SECRET_KEY_VAL}
 APP_PORT=${APP_PORT}
 EOF
 
+# Strip Windows CRLF line endings if present
+if [[ -f .env ]]; then
+  sed -i 's/\r$//' .env
+fi
+
 echo "Wrote .env with APP_PORT=${APP_PORT}"
 
 # --- start.sh ---
@@ -90,18 +95,23 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 # Load .env so APP_PORT/AUTH_KEY are available to docker compose and for printing
-set -a
-[ -f .env ] && . ./.env
-set +a
+# We use a subshell with sed to strip CRLF if the user edited the file on Windows
+if [ -f .env ]; then
+  set -a
+  source <(sed 's/\r$//' .env)
+  set +a
+fi
 
 # Allow override at invocation: PORT=16000 ./start.sh
 export APP_PORT="${PORT:-${APP_PORT:-15000}}"
 
 # Resolve public IP (fallback to localhost if curl fails)
-PUBLIC_IP="$(curl -fsS ifconfig.io || true)"
-if [[ -z "$PUBLIC_IP" ]]; then
-  PUBLIC_IP="localhost"
-fi
+#PUBLIC_IP="$(curl -fsS ifconfig.io || true)"
+#if [[ -z "$PUBLIC_IP" ]]; then
+#  PUBLIC_IP="localhost"
+#fi
+
+PUBLIC_IP="localhost"
 
 # Bring up the stack (compose reads .env automatically)
 docker compose -f docker-compose-openai.yaml up -d

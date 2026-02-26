@@ -158,17 +158,56 @@ success "langchain ecosystem pinned to compatible versions."
 "${LAB_DIR}/venv/bin/pip" install --quiet "uvicorn[standard]" >/dev/null
 success "uvicorn[standard] confirmed."
 
+# ── Secret Discovery ─────────────────────────────────────────
+get_secret() {
+  local key_name="$1"
+  local secret_file="$HOME/.secrets/${key_name}.txt"
+  if [[ -f "${secret_file}" ]]; then
+    # Read first line and trim
+    head -n 1 "${secret_file}" | xargs 2>/dev/null || true
+  fi
+}
+
+info "Checking for existing API keys in ~/.secrets/ ..."
+DISCOVERED_OPENAI=$(get_secret "OPENAI_API_KEY")
+DISCOVERED_ANTHROPIC=$(get_secret "ANTHROPIC_API_KEY")
+DISCOVERED_GROQ=$(get_secret "GROQ_API_KEY")
+DISCOVERED_XAI=$(get_secret "XAI_API_KEY")
+[[ -z "${DISCOVERED_XAI}" ]] && DISCOVERED_XAI=$(get_secret "GROK_API_KEY")
+DISCOVERED_TAVILY=$(get_secret "TAVILY_API_KEY")
+DISCOVERED_E2B=$(get_secret "E2B_API_KEY")
+
 # ── 6. Configure .env ─────────────────────────────────────────
 info "Configuring environment file (.env) ..."
+
+update_env_key() {
+  local key="$1"
+  local val="$2"
+  [[ -z "${val}" ]] && return
+  if grep -q "^${key}=" "${LAB_DIR}/.env"; then
+    # Use | as delimiter in case the value contains /
+    sed -i "s|^${key}=.*|${key}=${val}|" "${LAB_DIR}/.env"
+  else
+    echo "${key}=${val}" >> "${LAB_DIR}/.env"
+  fi
+}
+
 if [[ -f "${LAB_DIR}/.env" ]]; then
   warn ".env already exists – skipping creation. Edit it manually if needed."
 else
   if [[ -f "${LAB_DIR}/.env.sample" ]]; then
     cp "${LAB_DIR}/.env.sample" "${LAB_DIR}/.env"
-    # Strip Windows CRLF line endings (\r\n → \n) — the upstream .env.sample
-    # is stored with CRLF, which causes "$'\r': command not found" when sourced
     sed -i 's/\r//' "${LAB_DIR}/.env"
-    success ".env created from .env.sample (CRLF line endings stripped)."
+    
+    # Inject discovered keys
+    update_env_key "OPENAI_API_KEY"   "${DISCOVERED_OPENAI}"
+    update_env_key "ANTHROPIC_API_KEY" "${DISCOVERED_ANTHROPIC}"
+    update_env_key "GROQ_API_KEY"      "${DISCOVERED_GROQ}"
+    update_env_key "XAI_API_KEY"       "${DISCOVERED_XAI}"
+    update_env_key "TAVILY_API_KEY"    "${DISCOVERED_TAVILY}"
+    update_env_key "E2B_API_KEY"       "${DISCOVERED_E2B}"
+
+    success ".env created from .env.sample and updated with discovered keys."
     echo ""
     warn "┌──────────────────────────────────────────────────────────────┐"
     warn "│  ACTION REQUIRED: Edit ${LAB_DIR}/.env  │"
@@ -178,8 +217,7 @@ else
     warn "└──────────────────────────────────────────────────────────────┘"
     echo ""
   else
-    warn ".env.sample not found – creating minimal .env template."
-    cat > "${LAB_DIR}/.env" <<'EOF'
+    cat > "${LAB_DIR}/.env" <<EOF
 # ── LLM Provider (choose one) ──────────────────────────────────
 # LLM_PROVIDER=openai
 # LLM_MODEL=gpt-4o
@@ -194,17 +232,18 @@ LLM_PROVIDER=openai
 LLM_MODEL=gpt-4o
 
 # ── API Keys ────────────────────────────────────────────────────
-OPENAI_API_KEY=""
-ANTHROPIC_API_KEY=""
-GROQ_API_KEY=""
-TAVILY_API_KEY=""
-E2B_API_KEY=""
-JINA_API_KEY=""
-FIRECRAWL_API_KEY=""
-LANGCHAIN_API_KEY=""
-GOOGLE_CLOUD_PROJECT=""
-SAMBNOVA_API_KEY=""
-SCRAPYBARA_API_KEY=""
+OPENAI_API_KEY="${DISCOVERED_OPENAI}"
+ANTHROPIC_API_KEY="${DISCOVERED_ANTHROPIC}"
+GROQ_API_KEY="${DISCOVERED_GROQ}"
+XAI_API_KEY="${DISCOVERED_XAI}"
+TAVILY_API_KEY="${DISCOVERED_TAVILY}"
+E2B_API_KEY="${DISCOVERED_E2B}"
+JINA_API_KEY="$(get_secret "JINA_API_KEY")"
+FIRECRAWL_API_KEY="$(get_secret "FIRECRAWL_API_KEY")"
+LANGCHAIN_API_KEY="$(get_secret "LANGCHAIN_API_KEY")"
+GOOGLE_CLOUD_PROJECT="$(get_secret "GOOGLE_CLOUD_PROJECT")"
+SAMBNOVA_API_KEY="$(get_secret "SAMBNOVA_API_KEY")"
+SCRAPYBARA_API_KEY="$(get_secret "SCRAPYBARA_API_KEY")"
 
 # ── Research config ─────────────────────────────────────────────
 SEARCH_API=tavily
@@ -254,7 +293,7 @@ echo "🚀 Starting EDR API server on port \${API_PORT} ..."
 if [[ -f "\${LAB_DIR}/.env" ]]; then
   set -a
   # shellcheck disable=SC1091
-  source "\${LAB_DIR}/.env"
+  source <(sed 's/\r$//' "\${LAB_DIR}/.env")
   set +a
 fi
 
