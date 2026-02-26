@@ -41,7 +41,7 @@ export OPENAI_API_KEY=$(cat ~/.secrets/OPENAI_API_KEY.txt)
 
 ```bash
 cd ~/labs
-git clone https://github.com/detoxio-ai/Folly.git
+git clone https://github.com/user1342/Folly.git
 cd Folly
 ```
 
