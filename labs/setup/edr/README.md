@@ -4,6 +4,16 @@ Scripts to install, start, and stop the Salesforce Enterprise Deep Research (EDR
 
 ---
 
+> **Note:** Important Update Notice
+> If you are facing issues running the scripts or they feel outdated, make sure you have the latest code from the workshop repository:
+> ```bash
+> cd ~/AISecWorkshops
+> git stash
+> git pull
+> ```
+
+---
+
 ## Prerequisites
 
 | Requirement | Check |
@@ -75,6 +85,35 @@ nano ~/labs/agents/red-teaming/edr/.env
 
 # 5. When done
 ~/labs/agents/red-teaming/edr/stop.sh
+```
+
+---
+
+## FAQ
+
+**Q: I am facing issues with the `venv` or `pip` directory or Python dependencies not loading correctly.**
+A: If you encounter issues related to the virtual environment, you can remove the existing `venv` folder and run the install script again. Run the following:
+
+```bash
+# 1. Remove the broken virtual environment
+rm -rf ~/labs/agents/red-teaming/edr/enterprise-deep-research/venv
+
+# 2. Run the install script again
+AISecWorkshops/labs/setup/scripts/tools/install-edr.sh
+```
+
+**Q: I get `Npm WARN EBADENGINE` or `Cannot find module 'node:path'` when the script tries to build the frontend.**
+A: This happens because your version of Node.js is too old to support modern JavaScript packages (which require Node 18 or 20). You'll need to upgrade Node.js on your system to complete the build successfully. You can upgrade using `nvm` (Node Version Manager):
+
+```bash
+# Install Node 20 with nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+source ~/.bashrc
+nvm install 20
+nvm use 20
+
+# Run the installer again
+AISecWorkshops/labs/setup/scripts/tools/install-edr.sh
 ```
 
 ---
