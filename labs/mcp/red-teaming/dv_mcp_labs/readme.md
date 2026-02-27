@@ -29,6 +29,7 @@ The **Damn Vulnerable MCP Server (DVMS)** is a deliberately insecure implementat
    git stash
    git pull
    ./labs/setup/scripts/tools/install_dvmcp.sh
+   echo '127.0.0.1 emulateai-mcp.local' | sudo tee -a /etc/hosts
    ```
 
 2. **Run the application**
