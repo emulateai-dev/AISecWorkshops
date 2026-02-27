@@ -30,12 +30,21 @@ The **Damn Vulnerable MCP Server (DVMS)** is a deliberately insecure implementat
 2. **Run the application**
    Navigate to each challenge directory and run the server. Most challenges run on different ports (18567-18576).
    ```bash
-   /home/dtx/labs/mcp/start_service.sh
-   python3 /home/dtx/labs/mcp/dv_mcp_labs/fixes/ollama_mcp_client.py
+   $HOME/labs/mcp/start_service.sh
+   python3 $HOME/labs/mcp/dv_mcp_labs/fixes/ollama_mcp_client.py
    ```
 
 3. **Access via Burp Suite (Recommended)**
    Use the **MCP Burp Extension** to perform reconnaissance and direct exploitation without an LLM in the loop.
+   
+   **To install the Burp extension:**
+   - Open Burp Suite.
+   - Navigate to the **Extensions** tab -> **Installed** sub-tab.
+   - Click the **Add** button.
+   - Set the **Extension type** to **Java**.
+   - Click **Select file ...** and navigate to:
+     `$HOME/labs/mcp/dv_mcp_labs/fixes/mcp-recon-burp-extension.jar`
+   - Click **Next** to install and load the extension.
 
 ---
 
