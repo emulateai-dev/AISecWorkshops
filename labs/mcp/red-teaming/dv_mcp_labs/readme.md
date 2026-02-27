@@ -20,10 +20,14 @@ The **Damn Vulnerable MCP Server (DVMS)** is a deliberately insecure implementat
 ## 🚀 Setup Instructions
 
 > **Prerequisites:** Make sure you have completed the **[Full VM Setup Guide](../../../setup/vm/README.md)**.
+> 
+> **Update the Repository:** Before proceeding, ensure your lab files are fully up to date by running `git pull` in the `AISecWorkshops` directory.
 
-1. **Install the DVMS lab**
+1. **Update and Install the DVMS lab**
    ```bash
    cd AISecWorkshops/
+   git stash
+   git pull
    ./labs/setup/scripts/tools/install_dvmcp.sh
    ```
 
