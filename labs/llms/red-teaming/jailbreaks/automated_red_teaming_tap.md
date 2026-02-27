@@ -28,6 +28,8 @@ Open Jupyter at [http://localhost:8888](http://localhost:8888).
 Use either:
 - Notebook: [`03_tap_red_teaming.ipynb`](./notebooks/03_tap_red_teaming.ipynb)
 - Script: [`03_tap_red_teaming.py`](./notebooks/03_tap_red_teaming.py)
+- Advanced Notebook (custom scorer + advanced TAP knobs): [`05_tap_advanced.ipynb`](./notebooks/05_tap_advanced.ipynb)
+- Advanced Script: [`05_tap_advanced.py`](./notebooks/05_tap_advanced.py)
 
 ---
 
@@ -139,6 +141,19 @@ for i, objective in enumerate(test_objectives, 1):
     )  # type: ignore
     await asyncio.sleep(1)
 ```
+
+---
+
+## Part 5 — Advanced TAP Configuration (Custom Scorer + Knobs)
+
+If you want to tune scorer logic and tree search behavior, use:
+- [`05_tap_advanced.ipynb`](./notebooks/05_tap_advanced.ipynb)
+- [`05_tap_advanced.py`](./notebooks/05_tap_advanced.py)
+
+The advanced version supports:
+- custom `TAPAttackScoringConfig` (objective scorer threshold tuning)
+- optional refusal/auxiliary scorers
+- advanced TAP options (`tree_width`, `tree_depth`, `branching_factor`, `batch_size`, `on_topic_checking_enabled`)
 
 ---
 
