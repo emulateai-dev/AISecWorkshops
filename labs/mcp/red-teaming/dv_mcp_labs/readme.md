@@ -50,6 +50,14 @@ The **Damn Vulnerable MCP Server (DVMS)** is a deliberately insecure implementat
      `$HOME/labs/mcp/dv_mcp_labs/fixes/mcp-recon-burp-extension.jar`
    - Click **Next** to install and load the extension.
 
+   **Port Forwarding (Cloud Users Only):**
+   > **Note:** If you are running the lab in the cloud and want to use Burp Suite on your local machine, you must use SSH to port forward the challenge ports to your localhost. This is required specifically for Burp to connect to the remote MCP servers.
+   > 
+   > Run this from your local machine, substituting the appropriate port for the challenge you are testing (most challenges use ports 18567-18576):
+   > ```bash
+   > ssh -L 18567:localhost:18567 dtx@<your_cloud_ip>
+   > ```
+
 ---
 
 ## ⚔️ Challenges Overview
