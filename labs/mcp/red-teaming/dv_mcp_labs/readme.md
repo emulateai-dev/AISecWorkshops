@@ -23,16 +23,15 @@ The **Damn Vulnerable MCP Server (DVMS)** is a deliberately insecure implementat
 
 1. **Install the DVMS lab**
    ```bash
-   INSTALL_SCRIPTS=$HOME/labs/dtx_ai_sec_workshop_lab/setup/scripts/tools/
-   $INSTALL_SCRIPTS/install-dv-mcp-server.sh
+   cd AISecWorkshops/
+   ./labs/setup/scripts/tools/install_dvmcp.sh
    ```
 
 2. **Run the application**
-   Navigate to each challenge directory and run the server. Most challenges run on different ports (9001-9010).
+   Navigate to each challenge directory and run the server. Most challenges run on different ports (18567-18576).
    ```bash
-   # Example for Challenge 1
-   cd $HOME/labs/dtx_ai_sec_workshop_lab/mcp/red-teaming/dv_mcp_labs/challenges/server1
-   python3 server.py
+   /home/dtx/labs/mcp/start_service.sh
+   python3 /home/dtx/labs/mcp/dv_mcp_labs/fixes/ollama_mcp_client.py
    ```
 
 3. **Access via Burp Suite (Recommended)**
