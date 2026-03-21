@@ -29,8 +29,20 @@ The **Damn Vulnerable MCP Server (DVMS)** is a deliberately insecure implementat
    git stash
    git pull
    ./labs/setup/scripts/tools/install_dvmcp.sh
-   echo '127.0.0.1 emulateai-mcp.local' | sudo tee -a /etc/hosts
    ```
+
+   **Configure local hostname (emulateai-mcp.local):**
+   Depending on your operating system, run the following command to map the lab's hostname to your local machine:
+   
+   - **Windows (PowerShell run as Administrator):**
+     ```powershell
+     Add-Content -Path C:\Windows\System32\drivers\etc\hosts -Value "127.0.0.1 emulateai-mcp.local"
+     ```
+   
+   - **Linux & macOS (Terminal run as root/sudo):**
+     ```bash
+     echo '127.0.0.1 emulateai-mcp.local' | sudo tee -a /etc/hosts
+     ```
 
 2. **Run the application**
    Navigate to each challenge directory and run the server. Most challenges run on different ports (18567-18576).
