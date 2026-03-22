@@ -1,13 +1,26 @@
 # pyrit-cli HELP
 
-Reference for **setup**, **ask-ai**, and **red-team** commands. Install and repo overview: project **README** (repository root `README.md`).
+Reference for **setup**, **ask-ai**, and **red-team** commands. Install and repo overview: project **README** (repository root `README.md`). This file is bundled inside the `pyrit-cli` package for `ask-ai`.
+
+**Quick map**
+
+| Area | Section |
+|------|---------|
+| Credentials / env | [Setup](#setup-pyrit-cli-setup), [Environment variables](#environment-variables-reference-targets) |
+| Natural language helper | [`ask-ai`](#ask-ai-natural-language--shell-command) |
+| Chat targets (`openai:`, `groq:`, …) | [Target syntax](#target-syntax-providermodel) |
+| Raw HTTP victim | [HTTP victim flags](#http-victim-flags-with---target-http-or---objective-target-http) |
+| Single-turn attack | [`prompt-sending-attack`](#1-prompt-sending-attack-single-turn) |
+| Multi-turn attack | [`red-teaming-attack`](#2-red-teaming-attack-multi-turn) |
+| TAP | [`tap-attack`](#3-tap-attack-tree-of-attacks-with-pruning) |
 
 **PyRIT docs (behavior and theory):**
 
 - Single-turn: [Prompt Sending Attack](https://azure.github.io/PyRIT/code/executor/attack/prompt-sending-attack/)
 - Multi-turn: [Red Teaming Attack](https://azure.github.io/PyRIT/code/executor/attack/red-teaming-attack/)
 - Tree of Attacks with Pruning: [TAP attack](https://azure.github.io/PyRIT/code/executor/attack/tap-attack/)
-- Targets overview (incl. Responses API vs chat): [OpenAI Responses Target](https://azure.github.io/PyRIT/code/targets/openai-responses-target/)
+- Raw HTTP victim: [HTTP Target](https://azure.github.io/PyRIT/code/targets/http-target/)
+- Targets overview (Responses API vs chat): [OpenAI Responses Target](https://azure.github.io/PyRIT/code/targets/openai-responses-target/)
 
 Use only on targets and data you are authorized to test.
 
@@ -62,6 +75,7 @@ Loads **this** HELP text and calls an OpenAI-compatible **`/v1/chat/completions`
 | `ollama:<model>` | (none for typical local Ollama) | `OLLAMA_HOST`, `OLLAMA_API_KEY` | Default host `127.0.0.1:11434`; endpoint becomes `http://…/v1`. |
 | `lmstudio:<model>` | (none if defaults work) | `LMSTUDIO_OPENAI_BASE_URL`, `LMSTUDIO_API_KEY` | Default `http://127.0.0.1:1234/v1`. |
 | `compat:<model>` | **`PYRIT_CLI_COMPAT_ENDPOINT`** | `PYRIT_CLI_COMPAT_API_KEY` | Generic OpenAI-compatible server. |
+| `http` (victim) | — | — | **No** extra env table: put tokens, cookies, and URLs in the **raw request file** (`--http-request`). |
 
 **Example (Groq one-liner before red-team commands):**
 
@@ -69,6 +83,24 @@ Loads **this** HELP text and calls an OpenAI-compatible **`/v1/chat/completions`
 export GROQ_API_KEY="gsk_..."   # from console.groq.com — not the same as OPENAI_CHAT_KEY
 pyrit-cli redteam prompt-sending-attack --target groq:llama-3.3-70b-versatile --objective "Reply: OK"
 ```
+
+**Example (Ollama, local default)** — uses Ollama’s **OpenAI-compatible** `/v1/chat/completions` API (`ollama:` → `http://127.0.0.1:11434/v1` by default). Ensure the server is running and the model tag exists (`ollama pull llama3.2`, `ollama list`).
+
+```bash
+ollama pull llama3.2   # once, if needed
+pyrit-cli redteam prompt-sending-attack --target ollama:llama3.2 --objective "Reply with exactly: OK"
+```
+
+Same pattern with another local model tag, e.g. `ollama:qwen2.5`.
+
+**Example (Ollama, remote or Docker host)** — point `OLLAMA_HOST` at `host:port` or a full URL; `/v1` is added when the value has no path.
+
+```bash
+export OLLAMA_HOST=http://192.168.1.50:11434
+pyrit-cli redteam prompt-sending-attack --target ollama:llama3.2 --objective "Reply with exactly: OK"
+```
+
+If your Ollama deployment requires an API key, set **`OLLAMA_API_KEY`** (otherwise the CLI sends a placeholder key, which is fine for typical local installs).
 
 ---
 
@@ -87,10 +119,51 @@ The **first** `:` separates **provider** from **model**. The model part may cont
 | `ollama:` | Local Ollama | **`OLLAMA_HOST`** (default `127.0.0.1:11434`, or a full `http(s)://` URL). Optional **`OLLAMA_API_KEY`**. API path `/v1` is appended when missing. |
 | `lmstudio:` | LM Studio local | **`LMSTUDIO_OPENAI_BASE_URL`** (default `http://127.0.0.1:1234/v1`). Optional **`LMSTUDIO_API_KEY`**. Alias: **`lm-studio:`**. |
 | `compat:` | Any OpenAI-compatible server | **`PYRIT_CLI_COMPAT_ENDPOINT`** (required, e.g. `https://host/v1`). Optional **`PYRIT_CLI_COMPAT_API_KEY`** (omit for no-auth locals). |
+| `http` | Raw **HTTP** victim ([`HTTPTarget`](https://azure.github.io/PyRIT/code/targets/http-target/)) | **`--http-request`**, **`--http-response-parser`**, optional `--http-*` flags below. **Not** for `tap-attack`. |
 
-You can **mix providers** across flags (e.g. victim `openai:gpt-4o-mini`, adversary `groq:llama-3.3-70b-versatile`, scorer `openai:gpt-4o-mini`) as long as each provider’s credentials are set.
+You can **mix providers** across flags (e.g. victim `openai:gpt-4o-mini`, adversary `groq:llama-3.3-70b-versatile`, scorer `openai:gpt-4o-mini`) as long as each provider’s credentials are set. For **`http`** victim + multi-turn, you **must** set **`--adversarial-target`** to a **chat** spec (HTTP is only the objective / victim).
 
 Run **`pyrit-cli targets list`** for the canonical list and notes.
+
+### HTTP victim flags (with `--target http` or `--objective-target http`)
+
+Aligned with the [PyRIT HTTP Target](https://azure.github.io/PyRIT/code/targets/http-target/) cookbook: a **raw HTTP request template** (Burp-style) with a prompt placeholder, plus a **response parser**.
+
+| Flag | When | Description |
+|------|------|-------------|
+| `--http-request` | required for `http` | Path to a text file containing the full raw HTTP request. Include your placeholder (default `{PROMPT}`) where the objective text should be injected (URL or body). |
+| `--http-response-parser` | required for `http` | **`json:KEYPATH`** — PyRIT JSON path, e.g. `choices[0].message.content`. **`regex:PATTERN`** — regex extract; optional **`--http-regex-base-url`** to prefix matches. **`jq:EXPR`** — run the **`jq`** binary on the response body (`-r`); install [jq](https://jqlang.org/) or use `json:` instead. |
+| `--http-prompt-placeholder` | optional | Substring/regex matched in the template for injection (default `{PROMPT}`). |
+| `--http-regex-base-url` | optional | Used with **`regex:`** parsers only. |
+| `--http-timeout` | optional | `httpx` client timeout (seconds). |
+| `--http-use-tls` / `--no-http-use-tls` | optional | Controls URL scheme when the request line is a path and `Host` header is used. |
+| `--http-json-body-converter` | optional | JSON-safe escaping of the prompt for embedding in JSON bodies (same role as PyRIT’s `JsonStringConverter`). **Cannot** combine with **`--request-converter`** on `red-teaming-attack`. |
+| `--http-model-name` | optional | Stored on the target identifier metadata. |
+
+Example template (also under `examples/http_target/sample_openai_chat.req` in the repo):
+
+```text
+POST https://api.example.com/v1/chat/completions HTTP/1.1
+Host: api.example.com
+Content-Type: application/json
+
+{"model":"gpt-4o-mini","messages":[{"role":"user","content":"{PROMPT}"}]}
+```
+
+```bash
+pyrit-cli redteam prompt-sending-attack \
+  --target http \
+  --http-request ./my.req \
+  --http-response-parser 'json:choices[0].message.content' \
+  --http-json-body-converter \
+  --objective "Say hello in one sentence."
+```
+
+**CLI validation (HTTP):**
+
+- `--http-request`, `--http-response-parser`, and other `--http-*` options are **only** allowed when the victim is **`http`** (`--target http` or `--objective-target http`). Otherwise the CLI errors.
+- On **`red-teaming-attack`**, **`--http-json-body-converter`** cannot be combined with **`--request-converter`** (pick one way to transform the victim-bound request).
+- **`jq:`** parsers need the **`jq`** binary on your `PATH`; use **`json:KEYPATH`** if you want zero extra installs.
 
 ### Discover data and knobs
 
@@ -100,7 +173,9 @@ Run **`pyrit-cli targets list`** for the canonical list and notes.
 | Converter modalities (all PyRIT converters) | `pyrit-cli converters list` or `--json` |
 | Keys for `--request-converter` / `--response-converter` (stateless only) | `pyrit-cli converters list-keys` |
 | Scorer presets and exports | `pyrit-cli scorers list` |
-| Target patterns (`openai:`, `groq:`, …) | `pyrit-cli targets list` |
+| Target patterns (`openai:`, `groq:`, `http`, …) | `pyrit-cli targets list` |
+
+Sample HTTP template (repo): `examples/http_target/sample_openai_chat.req` under the `pyrit_cli` project tree.
 
 ---
 
@@ -112,8 +187,11 @@ Maps to PyRIT **`PromptSendingAttack`**: one user-style objective per execution 
 
 | Option | Required | Description |
 |--------|----------|-------------|
-| `--target` | yes | `<provider>:<model>` (see **Target syntax**). |
+| `--target` | yes | `<provider>:<model>` or literal **`http`** (see **Target syntax** / **HTTP victim flags**). |
 | `--objective` | one of objective/dataset | Single string sent as the attack objective |
+| `--http-request` | with `http` | Path to raw HTTP template file |
+| `--http-response-parser` | with `http` | `json:…`, `regex:…`, or `jq:…` |
+| `--http-*` | optional | See **HTTP victim flags** |
 | `--dataset` | one of objective/dataset | `pyrit:<relative/path>` under PyRIT `DATASETS_PATH`, or `hf:<hub_id>` |
 | `--hf-split` | no | Hugging Face split (default `train`) |
 | `--hf-column` | no | Column name for objectives (default `text`) |
@@ -133,11 +211,18 @@ pyrit-cli redteam prompt-sending-attack \
   --objective "Reply with exactly: OK"
 ```
 
-**B. Local Ollama (same command shape; set `OLLAMA_HOST` if needed)**
+**B. Local Ollama (OpenAI-compatible API)**  
+The part after `ollama:` must match an Ollama model name on that host (`ollama list` / `ollama pull <tag>`). Default endpoint is `127.0.0.1:11434`; override with **`OLLAMA_HOST`** (see **Environment variables** examples above).
 
 ```bash
 pyrit-cli redteam prompt-sending-attack \
   --target ollama:llama3.2 \
+  --objective "Reply with exactly: OK"
+```
+
+```bash
+pyrit-cli redteam prompt-sending-attack \
+  --target ollama:qwen2.5 \
   --objective "Reply with exactly: OK"
 ```
 
@@ -166,6 +251,9 @@ pyrit-cli redteam prompt-sending-attack \
 **E. Batch without harmful content**  
 Use any benign `pyrit:` YAML or HF column suitable for your policy; `--limit` keeps cost bounded.
 
+**F. HTTP victim (`HTTPTarget`)**  
+Same as the [HTTP victim flags](#http-victim-flags-with---target-http-or---objective-target-http) section: raw request file + response parser. Typical JSON chat APIs use `json:choices[0].message.content` and often `--http-json-body-converter`.
+
 ---
 
 ## 2. `red-teaming-attack` (multi-turn)
@@ -176,9 +264,11 @@ Maps to PyRIT **`RedTeamingAttack`**: an **adversarial** chat model proposes pro
 
 | Option | Required | Description |
 |--------|----------|-------------|
-| `--objective-target` | yes | Victim: `<provider>:<model>` |
+| `--objective-target` | yes | Victim: `<provider>:<model>` or **`http`** (see **HTTP victim flags**). |
 | `--objective` | yes | High-level attack goal string |
-| `--adversarial-target` | no | Adversarial LLM; default = `--objective-target` |
+| `--adversarial-target` | no | Adversarial LLM; default = `--objective-target` (**required** chat spec when victim is `http`) |
+| `--http-request` / `--http-response-parser` | with `http` | Same as prompt-sending; required for victim `http` |
+| `--http-*` | optional | Same as **HTTP victim flags** |
 | `--max-turns` | no | Default `5`, minimum `1` |
 | `--rta-prompt` | no | Adversarial system template: `text_generation` (default), `image_generation`, `naive_crescendo`, `violent_durian`, `crucible` |
 | `--memory-labels-json` | no | JSON object of string labels for memory (e.g. `{"harm_category":"demo"}`) |
@@ -186,8 +276,8 @@ Maps to PyRIT **`RedTeamingAttack`**: an **adversarial** chat model proposes pro
 | `--true-description` | for `self-ask-tf` | Text criterion for scorer **True** = “objective achieved” |
 | `--refusal-mode` | no | `default` or `strict` — **PyRIT 0.11.x**: ignored for refusal preset; newer PyRIT may use distinct prompts |
 | `--scorer-chat-target` | no | Scorer LLM `<provider>:<model>`; default = adversarial target spec |
-| `--request-converter` | no | Repeatable; stateless converter keys (order matters) |
-| `--response-converter` | no | Repeatable; applied to responses |
+| `--request-converter` | no | Repeatable; stateless converter keys (order matters). **Disallowed** with **`--http-json-body-converter`** when victim is `http`. |
+| `--response-converter` | no | Repeatable; applied to responses (works with HTTP victim; stacks after any HTTP request converter). |
 | `--include-adversarial-conversation` | flag | Include red-team LLM transcript in printed report |
 
 ### Stateless `--request-converter` / `--response-converter` keys
@@ -281,6 +371,44 @@ pyrit-cli redteam red-teaming-attack \
   --include-adversarial-conversation
 ```
 
+**H. HTTP victim + chat red-team LLM**  
+Victim is **`http`**; adversarial and scorer chains stay **chat** targets. You **must** set **`--adversarial-target`** (cannot default to `http`).
+
+```bash
+pyrit-cli redteam red-teaming-attack \
+  --objective-target http \
+  --http-request ./my.req \
+  --http-response-parser 'json:choices[0].message.content' \
+  --http-json-body-converter \
+  --adversarial-target openai:gpt-4o-mini \
+  --objective "Benign lab objective text." \
+  --true-description "Criterion for success in plain language." \
+  --max-turns 3
+```
+
+**I. All-Ollama (local lab)**  
+Victim, adversary, and default scorer chain all use the same **`ollama:`** spec when you omit `--adversarial-target` and `--scorer-chat-target`. Ollama must be serving the model tag.
+
+```bash
+pyrit-cli redteam red-teaming-attack \
+  --objective-target ollama:llama3.2 \
+  --objective "Get the assistant to say the capital of France is Paris." \
+  --true-description "The response states that Paris is the capital of France." \
+  --max-turns 3
+```
+
+**J. OpenAI victim + Ollama adversary**  
+Cloud or workshop victim with a **local** red-team model (set **`OLLAMA_HOST`** if not on `127.0.0.1:11434`).
+
+```bash
+pyrit-cli redteam red-teaming-attack \
+  --objective-target openai:gpt-4o-mini \
+  --adversarial-target ollama:llama3.2 \
+  --objective "Benign lab objective text." \
+  --true-description "Criterion for success in plain language." \
+  --max-turns 3
+```
+
 ---
 
 ## 3. `tap-attack` (Tree of Attacks with Pruning)
@@ -293,7 +421,7 @@ All target flags use the same **`<provider>:<model>`** syntax as **red-teaming-a
 
 | Option | Required | Description |
 |--------|----------|-------------|
-| `--objective-target` | yes | Victim: `<provider>:<model>` |
+| `--objective-target` | yes | Chat victim `<provider>:<model>` only — **`http` is not allowed** (PyRIT TAPAttack requires PromptChatTarget). |
 | `--objective` | yes | Conversation objective string |
 | `--adversarial-target` | no | Red-team LLM; default = `--objective-target` |
 | `--adversarial-temperature` | no | e.g. `1.1` for a hotter adversarial `OpenAIChatTarget` |
@@ -320,6 +448,19 @@ pyrit-cli redteam tap-attack \
   --adversarial-temperature 1.1
 ```
 
+### Example (local Ollama, smaller tree)
+
+Same **`ollama:`** OpenAI-compatible endpoint as prompt-sending / red-teaming; smaller **`--tree-width`** / **`--tree-depth`** reduce load on a local GPU or CPU.
+
+```bash
+pyrit-cli redteam tap-attack \
+  --objective-target ollama:llama3.2 \
+  --objective "Get the assistant to state the capital of France is Paris." \
+  --tree-width 2 \
+  --tree-depth 2 \
+  --adversarial-temperature 1.0
+```
+
 ---
 
 ## Limitations (vs full PyRIT)
@@ -330,13 +471,15 @@ Not exposed in the CLI today (use Python / notebooks for these):
 - Custom **`AttackAdversarialConfig.seed_prompt`** (still default template with `{{ objective }}`).
 - Custom **filesystem** `system_prompt_path` beyond the `--rta-prompt` enum.
 - Extra OpenAI-compatible hosts **beyond** `compat:` + env (no arbitrary per-flag URL without `compat` or code changes).
-- Non-`OpenAIChatTarget` victims (e.g. `AzureMLChatTarget`, `TextTarget`, `OpenAIImageTarget`) and **prepended conversations** / jailbreak templates as in the long-form doc examples.
+- **`HTTPTarget`** is only wired for **`prompt-sending-attack`** and **`red-teaming-attack`** (victim `http` + `--http-*` flags). Other non-chat victims (`AzureMLChatTarget`, `TextTarget`, `OpenAIImageTarget`, …), **prepended conversations**, and advanced HTTP flows still need Python.
 - **LLM-backed** prompt converters.
 - **`tap-attack`**: no `--request-converter` / `--response-converter` wiring yet (use Python for `AttackConverterConfig`).
 
 ---
 
 ## Getting `--help`
+
+Typer/Rich may **truncate** option lists in a narrow terminal. If flags look cut off, widen the terminal or run with a larger width, e.g. `COLUMNS=120 pyrit-cli redteam red-teaming-attack --help`.
 
 ```bash
 pyrit-cli setup --help

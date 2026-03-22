@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from pathlib import Path
 from typing import Any
 
 from pyrit.executor.attack import (
@@ -17,6 +18,11 @@ from pyrit.executor.attack import (
 from pyrit.prompt_normalizer import PromptConverterConfiguration
 from pyrit.setup import IN_MEMORY, initialize_pyrit_async
 
+from pyrit_cli.redteam.http_target_cli import (
+    build_http_json_escape_converter_config,
+    build_http_objective_target,
+    is_http_victim_token,
+)
 from pyrit_cli.redteam.targets import openai_chat_from_spec
 from pyrit_cli.registries.converters import make_converters
 from pyrit_cli.registries.scorers import build_objective_scorer
@@ -39,7 +45,7 @@ def resolve_rta_prompt(name: str) -> Any:
     return _RTA_CHOICES[key]
 
 
-def _attack_converter_config(
+def attack_converter_config_from_keys(
     request_keys: list[str],
     response_keys: list[str],
 ) -> AttackConverterConfig | None:
@@ -52,6 +58,30 @@ def _attack_converter_config(
     if response_keys:
         resp_list = PromptConverterConfiguration.from_converters(converters=make_converters(response_keys))
     return AttackConverterConfig(request_converters=req_list, response_converters=resp_list)
+
+
+def build_redteam_converter_config(
+    *,
+    http_json_body_converter: bool,
+    request_converter_keys: list[str],
+    response_converter_keys: list[str],
+) -> AttackConverterConfig | None:
+    if http_json_body_converter and request_converter_keys:
+        raise ValueError(
+            "Cannot combine --http-json-body-converter with --request-converter; use one or the other."
+        )
+    if http_json_body_converter:
+        base = build_http_json_escape_converter_config()
+        if not response_converter_keys:
+            return base
+        resp_list = PromptConverterConfiguration.from_converters(
+            converters=make_converters(response_converter_keys)
+        )
+        return AttackConverterConfig(
+            request_converters=base.request_converters,
+            response_converters=resp_list,
+        )
+    return attack_converter_config_from_keys(request_converter_keys, response_converter_keys)
 
 
 async def run_red_teaming_async(
@@ -69,12 +99,43 @@ async def run_red_teaming_async(
     request_converter_keys: list[str],
     response_converter_keys: list[str],
     include_adversarial_conversation: bool,
+    http_request_path: str | None = None,
+    http_response_parser: str | None = None,
+    http_prompt_placeholder: str = "{PROMPT}",
+    http_regex_base_url: str | None = None,
+    http_timeout: float | None = None,
+    http_use_tls: bool = True,
+    http_json_body_converter: bool = False,
+    http_model_name: str = "",
 ) -> None:
     await initialize_pyrit_async(memory_db_type=IN_MEMORY)  # type: ignore[arg-type]
 
-    objective_target = openai_chat_from_spec(objective_target_spec)
-    adv_spec = adversarial_target_spec or objective_target_spec
-    adversarial_chat = openai_chat_from_spec(adv_spec)
+    if is_http_victim_token(objective_target_spec):
+        if not http_request_path or not http_response_parser:
+            raise ValueError(
+                "When --objective-target http, --http-request and --http-response-parser are required."
+            )
+        if not adversarial_target_spec or is_http_victim_token(adversarial_target_spec):
+            raise ValueError(
+                "When --objective-target http, set --adversarial-target to a chat target "
+                "(e.g. openai:gpt-4o-mini); HTTP is only supported for the victim."
+            )
+        objective_target = build_http_objective_target(
+            request_path=Path(http_request_path),
+            response_parser_spec=http_response_parser,
+            prompt_placeholder=http_prompt_placeholder,
+            regex_base_url=http_regex_base_url,
+            use_tls=http_use_tls,
+            timeout=http_timeout,
+            model_name=http_model_name,
+        )
+        adversarial_chat = openai_chat_from_spec(adversarial_target_spec)
+        adv_spec = adversarial_target_spec
+    else:
+        objective_target = openai_chat_from_spec(objective_target_spec)
+        adv_spec = adversarial_target_spec or objective_target_spec
+        adversarial_chat = openai_chat_from_spec(adv_spec)
+
     scorer_spec = scorer_chat_spec or adv_spec
     scorer_chat = openai_chat_from_spec(scorer_spec)
 
@@ -90,7 +151,11 @@ async def run_red_teaming_async(
         system_prompt_path=resolve_rta_prompt(rta_prompt),
     )
     scoring_config = AttackScoringConfig(objective_scorer=objective_scorer)
-    conv_cfg = _attack_converter_config(request_converter_keys, response_converter_keys)
+    conv_cfg = build_redteam_converter_config(
+        http_json_body_converter=http_json_body_converter and is_http_victim_token(objective_target_spec),
+        request_converter_keys=request_converter_keys,
+        response_converter_keys=response_converter_keys,
+    )
 
     attack = RedTeamingAttack(
         objective_target=objective_target,

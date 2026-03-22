@@ -8,7 +8,10 @@ from typing import Any
 from pyrit.prompt_target import OpenAIChatTarget
 
 # Typer option help (keep in sync with HELP.md and targets list).
-TARGET_SPEC_HELP = "<provider>:<model> — providers: openai, groq, ollama, lmstudio, compat (pyrit-cli targets list)"
+TARGET_SPEC_HELP = (
+    "<provider>:<model> (openai, groq, ollama, lmstudio, compat) or literal "
+    "`http` for HTTPTarget — see targets list / HELP for --http-* flags"
+)
 
 # Aliases map to the same routing key used in parse_target_spec.
 _PROVIDER_ALIASES: dict[str, str] = {

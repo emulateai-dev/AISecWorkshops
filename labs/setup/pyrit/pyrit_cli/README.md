@@ -62,6 +62,12 @@ pyrit-cli redteam prompt-sending-attack --target openai:gpt-4o --dataset pyrit:s
 pyrit-cli redteam prompt-sending-attack --target openai:gpt-4o --dataset hf:imdb --hf-split train --hf-column text --limit 1
 ```
 
+**Local Ollama** (OpenAI-compatible `/v1` on `127.0.0.1:11434` by default; use `OLLAMA_HOST` for a remote server — see [HELP.md](src/pyrit_cli/HELP.md)):
+
+```bash
+pyrit-cli redteam prompt-sending-attack --target ollama:llama3.2 --objective "Reply with exactly: OK"
+```
+
 **Multi-turn** (benign example: scorer checks that the model answered a simple factual ask)
 
 ```bash
@@ -71,6 +77,8 @@ pyrit-cli redteam red-teaming-attack \
   --true-description "The response states that Paris is the capital of France." \
   --max-turns 3
 ```
+
+Same flow against a local model: `--objective-target ollama:llama3.2` (and the same `--objective` / `--true-description` / `--max-turns` pattern).
 
 Optional: `--adversarial-target openai:...`, `--scorer-preset self-ask-refusal`, `--rta-prompt text_generation`, `--memory-labels-json '{"lab":"demo"}'`, stacked converters `--request-converter base64 --request-converter rot13`, `--include-adversarial-conversation`.
 

@@ -23,6 +23,8 @@ def test_targets_list() -> None:
     r = runner.invoke(app, ["targets", "list"])
     assert r.exit_code == 0
     assert "openai:" in r.stdout
+    assert "groq:" in r.stdout
+    assert "ollama:" in r.stdout
 
 
 def test_datasets_list() -> None:
@@ -43,7 +45,11 @@ def test_setup_status(pyrit_env_dir) -> None:
 
 
 def test_red_teaming_help() -> None:
-    r = runner.invoke(app, ["redteam", "red-teaming-attack", "--help"])
+    r = runner.invoke(
+        app,
+        ["redteam", "red-teaming-attack", "--help"],
+        env={"COLUMNS": "200", "LINES": "60"},
+    )
     assert r.exit_code == 0
     assert "objective-target" in r.stdout
 
@@ -84,6 +90,37 @@ def test_tap_attack_help() -> None:
     assert r.exit_code == 0
     assert "objective-target" in r.stdout
     assert "tree-width" in r.stdout
+
+
+def test_prompt_sending_http_requires_parser(tmp_path) -> None:
+    req = tmp_path / "a.req"
+    req.write_text(
+        'POST / HTTP/1.1\nHost: x.example\n\n{"p":"{PROMPT}"}',
+        encoding="utf-8",
+    )
+    r = runner.invoke(
+        app,
+        ["redteam", "prompt-sending-attack", "--target", "http", "--http-request", str(req), "--objective", "hi"],
+        env={"COLUMNS": "120"},
+    )
+    assert r.exit_code != 0
+
+
+def test_tap_attack_rejects_http_victim() -> None:
+    r = runner.invoke(
+        app,
+        [
+            "redteam",
+            "tap-attack",
+            "--objective-target",
+            "http",
+            "--objective",
+            "x",
+        ],
+        env={"COLUMNS": "200"},
+    )
+    assert r.exit_code != 0
+    assert "http" in r.stdout.lower() or "http" in r.stderr.lower()
 
 
 def test_converters_list(pyrit_env_dir) -> None:

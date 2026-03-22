@@ -5,12 +5,19 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 from pyrit.common.path import DATASETS_PATH
-from pyrit.executor.attack import ConsoleAttackResultPrinter, PromptSendingAttack
+
+from pyrit.executor.attack import AttackConverterConfig, ConsoleAttackResultPrinter, PromptSendingAttack
 from pyrit.models import SeedDataset
 from pyrit.setup import IN_MEMORY, initialize_pyrit_async
 
+from pyrit_cli.redteam.http_target_cli import (
+    build_http_json_escape_converter_config,
+    build_http_objective_target,
+    is_http_victim_token,
+)
 from pyrit_cli.redteam.targets import openai_chat_from_spec
 
 
@@ -90,11 +97,42 @@ def collect_objectives(
     return obs
 
 
-async def run_prompt_sending_async(target: str, objectives: Sequence[str]) -> None:
+async def run_prompt_sending_async(
+    target: str,
+    objectives: Sequence[str],
+    *,
+    http_request_path: str | None = None,
+    http_response_parser: str | None = None,
+    http_prompt_placeholder: str = "{PROMPT}",
+    http_regex_base_url: str | None = None,
+    http_timeout: float | None = None,
+    http_use_tls: bool = True,
+    http_json_body_converter: bool = False,
+    http_model_name: str = "",
+) -> None:
     await initialize_pyrit_async(memory_db_type=IN_MEMORY)  # type: ignore[arg-type]
 
-    chat_target = openai_chat_from_spec(target)
-    attack = PromptSendingAttack(objective_target=chat_target)
+    conv_cfg: AttackConverterConfig | None = None
+    if is_http_victim_token(target):
+        if not http_request_path or not http_response_parser:
+            raise ValueError(
+                "When --target http, --http-request and --http-response-parser are required."
+            )
+        chat_target = build_http_objective_target(
+            request_path=Path(http_request_path),
+            response_parser_spec=http_response_parser,
+            prompt_placeholder=http_prompt_placeholder,
+            regex_base_url=http_regex_base_url,
+            use_tls=http_use_tls,
+            timeout=http_timeout,
+            model_name=http_model_name,
+        )
+        if http_json_body_converter:
+            conv_cfg = build_http_json_escape_converter_config()
+    else:
+        chat_target = openai_chat_from_spec(target)
+
+    attack = PromptSendingAttack(objective_target=chat_target, attack_converter_config=conv_cfg)
     printer = ConsoleAttackResultPrinter()
 
     for obj in objectives:
@@ -102,5 +140,9 @@ async def run_prompt_sending_async(target: str, objectives: Sequence[str]) -> No
         await printer.print_result_async(result)
 
 
-def run_prompt_sending(target: str, objectives: Sequence[str]) -> None:
-    asyncio.run(run_prompt_sending_async(target, objectives))
+def run_prompt_sending(
+    target: str,
+    objectives: Sequence[str],
+    **kwargs: Any,
+) -> None:
+    asyncio.run(run_prompt_sending_async(target, objectives, **kwargs))

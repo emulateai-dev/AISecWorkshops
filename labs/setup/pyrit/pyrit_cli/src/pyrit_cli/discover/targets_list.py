@@ -23,6 +23,12 @@ _SUPPORTED = [
         "compat:<model>",
         "Custom OpenAI-compatible base URL. Env: PYRIT_CLI_COMPAT_ENDPOINT (required), PYRIT_CLI_COMPAT_API_KEY (optional).",
     ),
+    (
+        "http",
+        "Victim-only HTTPTarget (raw HTTP). Requires --http-request FILE and --http-response-parser (json:|regex:|jq:). "
+        "See HELP; example template: examples/http_target/sample_openai_chat.req. red-teaming needs --adversarial-target <chat>. "
+        "Not supported for tap-attack.",
+    ),
 ]
 
 _NOT_EXPOSED = [
@@ -33,7 +39,6 @@ _NOT_EXPOSED = [
     "OpenAIImageTarget",
     "OpenAICompletionTarget",
     "TextTarget",
-    "HTTPTarget",
     "HTTPXAPITarget",
     "PlaywrightTarget",
     "GandalfTarget",
@@ -51,7 +56,8 @@ def list_targets_text() -> str:
         lines.append(f"  {pat}")
         lines.append(f"      {note}")
     lines.append("")
-    lines.append("PyRIT reference (Responses vs chat): https://azure.github.io/PyRIT/code/targets/openai-responses-target/")
+    lines.append("PyRIT: chat vs Responses — https://azure.github.io/PyRIT/code/targets/openai-responses-target/")
+    lines.append("PyRIT: HTTP target — https://azure.github.io/PyRIT/code/targets/http-target/")
     lines.append("")
     lines.append("Not yet exposed via CLI (available in PyRIT library):")
     lines.append("-" * 60)

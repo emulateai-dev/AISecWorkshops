@@ -23,10 +23,47 @@ from pyrit_cli.env_status import (
     pyrit_dir,
 )
 from pyrit_cli.env_write import save_openai_compatible, save_openai_native
+from pyrit_cli.redteam.http_target_cli import HTTP_VICTIM_TARGET
 from pyrit_cli.redteam.prompt_sending import collect_objectives, run_prompt_sending
 from pyrit_cli.redteam.red_teaming import parse_memory_labels_json, run_red_teaming
 from pyrit_cli.redteam.tap_attack import run_tap_attack
 from pyrit_cli.redteam.targets import TARGET_SPEC_HELP
+
+
+def _validate_http_flags(
+    victim: str,
+    *,
+    http_request: str | None,
+    http_response_parser: str | None,
+    http_prompt_placeholder: str,
+    http_regex_base_url: str | None,
+    http_timeout: float | None,
+    http_use_tls: bool,
+    http_json_body_converter: bool,
+    http_model_name: str,
+) -> None:
+    v = victim.strip().lower()
+    is_http = v == HTTP_VICTIM_TARGET
+    if is_http:
+        if not http_request or not http_response_parser:
+            raise ValueError(
+                "With victim target 'http', --http-request and --http-response-parser are required."
+            )
+        return
+    if http_request or http_response_parser:
+        raise ValueError("--http-request / --http-response-parser are only valid with victim target 'http'.")
+    if http_json_body_converter:
+        raise ValueError("--http-json-body-converter is only valid with victim target 'http'.")
+    if http_regex_base_url:
+        raise ValueError("--http-regex-base-url is only valid with victim target 'http'.")
+    if http_timeout is not None:
+        raise ValueError("--http-timeout is only valid with victim target 'http'.")
+    if not http_use_tls:
+        raise ValueError("--no-http-use-tls is only valid with victim target 'http'.")
+    if http_prompt_placeholder != "{PROMPT}":
+        raise ValueError("--http-prompt-placeholder is only valid with victim target 'http'.")
+    if http_model_name.strip():
+        raise ValueError("--http-model-name is only valid with victim target 'http'.")
 
 
 def _version_callback(value: bool) -> None:
@@ -194,6 +231,46 @@ def redteam_prompt_sending(
     hf_column: str = typer.Option("text", "--hf-column"),
     hf_config: str | None = typer.Option(None, "--hf-config"),
     limit: int | None = typer.Option(None, "--limit", help="Max objectives (after load).", min=1),
+    http_request: str | None = typer.Option(
+        None,
+        "--http-request",
+        help="Path to raw HTTP template file when --target http (Burp-style; include {PROMPT}).",
+    ),
+    http_response_parser: str | None = typer.Option(
+        None,
+        "--http-response-parser",
+        help="json:KEYPATH | regex:PATTERN | jq:EXPR (see HELP). Required with --target http.",
+    ),
+    http_prompt_placeholder: str = typer.Option(
+        "{PROMPT}",
+        "--http-prompt-placeholder",
+        help="Substring/regex matched in the raw request for prompt injection (PyRIT HTTPTarget).",
+    ),
+    http_regex_base_url: str | None = typer.Option(
+        None,
+        "--http-regex-base-url",
+        help="Prefix for regex parser matches (optional; e.g. Bing-style flows).",
+    ),
+    http_timeout: float | None = typer.Option(
+        None,
+        "--http-timeout",
+        help="httpx client timeout seconds for HTTPTarget.",
+    ),
+    http_use_tls: bool = typer.Option(
+        True,
+        "--http-use-tls/--no-http-use-tls",
+        help="Infer https vs http from Host when the request line is a path (HTTPTarget use_tls).",
+    ),
+    http_json_body_converter: bool = typer.Option(
+        False,
+        "--http-json-body-converter",
+        help="Apply JsonStringConverter on requests (JSON bodies with --target http).",
+    ),
+    http_model_name: str = typer.Option(
+        "",
+        "--http-model-name",
+        help="Optional model label for HTTPTarget identifier metadata.",
+    ),
 ) -> None:
     try:
         objectives = collect_objectives(
@@ -208,13 +285,40 @@ def redteam_prompt_sending(
         typer.secho(str(e), err=True, fg=typer.colors.RED)
         raise typer.Exit(code=1) from e
 
+    try:
+        _validate_http_flags(
+            target,
+            http_request=http_request,
+            http_response_parser=http_response_parser,
+            http_prompt_placeholder=http_prompt_placeholder,
+            http_regex_base_url=http_regex_base_url,
+            http_timeout=http_timeout,
+            http_use_tls=http_use_tls,
+            http_json_body_converter=http_json_body_converter,
+            http_model_name=http_model_name,
+        )
+    except ValueError as e:
+        typer.secho(str(e), err=True, fg=typer.colors.RED)
+        raise typer.Exit(code=1) from e
+
     typer.secho(
         "Authorized red-teaming only. You are responsible for targets, credentials, and policy.",
         err=True,
         fg=typer.colors.YELLOW,
     )
     try:
-        run_prompt_sending(target, objectives)
+        run_prompt_sending(
+            target,
+            objectives,
+            http_request_path=http_request,
+            http_response_parser=http_response_parser,
+            http_prompt_placeholder=http_prompt_placeholder,
+            http_regex_base_url=http_regex_base_url,
+            http_timeout=http_timeout,
+            http_use_tls=http_use_tls,
+            http_json_body_converter=http_json_body_converter,
+            http_model_name=http_model_name,
+        )
     except Exception as e:
         typer.secho(str(e), err=True, fg=typer.colors.RED)
         raise typer.Exit(code=1) from e
@@ -279,10 +383,66 @@ def redteam_red_teaming(
         "--include-adversarial-conversation",
         help="Print red-team LLM conversation in the report.",
     ),
+    http_request: str | None = typer.Option(
+        None,
+        "--http-request",
+        help="Path to raw HTTP template when --objective-target http.",
+    ),
+    http_response_parser: str | None = typer.Option(
+        None,
+        "--http-response-parser",
+        help="json:KEYPATH | regex:PATTERN | jq:EXPR. Required with --objective-target http.",
+    ),
+    http_prompt_placeholder: str = typer.Option(
+        "{PROMPT}",
+        "--http-prompt-placeholder",
+        help="Prompt placeholder in raw HTTP request (HTTPTarget).",
+    ),
+    http_regex_base_url: str | None = typer.Option(
+        None,
+        "--http-regex-base-url",
+        help="Optional URL prefix for regex response parsing.",
+    ),
+    http_timeout: float | None = typer.Option(
+        None,
+        "--http-timeout",
+        help="httpx timeout seconds for HTTPTarget.",
+    ),
+    http_use_tls: bool = typer.Option(
+        True,
+        "--http-use-tls/--no-http-use-tls",
+        help="HTTPTarget use_tls when building URL from Host + path.",
+    ),
+    http_json_body_converter: bool = typer.Option(
+        False,
+        "--http-json-body-converter",
+        help="JsonStringConverter on victim requests (cannot combine with --request-converter).",
+    ),
+    http_model_name: str = typer.Option(
+        "",
+        "--http-model-name",
+        help="Optional HTTPTarget model_name metadata.",
+    ),
 ) -> None:
     try:
         memory_labels = parse_memory_labels_json(memory_labels_json)
     except (ValueError, json.JSONDecodeError) as e:
+        typer.secho(str(e), err=True, fg=typer.colors.RED)
+        raise typer.Exit(code=1) from e
+
+    try:
+        _validate_http_flags(
+            objective_target,
+            http_request=http_request,
+            http_response_parser=http_response_parser,
+            http_prompt_placeholder=http_prompt_placeholder,
+            http_regex_base_url=http_regex_base_url,
+            http_timeout=http_timeout,
+            http_use_tls=http_use_tls,
+            http_json_body_converter=http_json_body_converter,
+            http_model_name=http_model_name,
+        )
+    except ValueError as e:
         typer.secho(str(e), err=True, fg=typer.colors.RED)
         raise typer.Exit(code=1) from e
 
@@ -306,6 +466,14 @@ def redteam_red_teaming(
             request_converter_keys=list(request_converter or []),
             response_converter_keys=list(response_converter or []),
             include_adversarial_conversation=include_adversarial_conversation,
+            http_request_path=http_request,
+            http_response_parser=http_response_parser,
+            http_prompt_placeholder=http_prompt_placeholder,
+            http_regex_base_url=http_regex_base_url,
+            http_timeout=http_timeout,
+            http_use_tls=http_use_tls,
+            http_json_body_converter=http_json_body_converter,
+            http_model_name=http_model_name,
         )
     except ValueError as e:
         typer.secho(str(e), err=True, fg=typer.colors.RED)
@@ -371,6 +539,14 @@ def redteam_tap_attack(
         "--include-pruned-conversations/--no-include-pruned-conversations",
     ),
 ) -> None:
+    if objective_target.strip().lower() == HTTP_VICTIM_TARGET:
+        typer.secho(
+            "tap-attack does not support --objective-target http (PyRIT TAPAttack requires PromptChatTarget).",
+            err=True,
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(code=1)
+
     try:
         memory_labels = parse_memory_labels_json(memory_labels_json)
     except (ValueError, json.JSONDecodeError) as e:

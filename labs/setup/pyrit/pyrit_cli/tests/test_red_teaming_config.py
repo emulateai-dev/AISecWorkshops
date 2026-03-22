@@ -4,13 +4,19 @@ import pytest
 
 from pyrit_cli.redteam.red_teaming import resolve_rta_prompt
 from pyrit_cli.registries.scorers import build_objective_scorer
-from pyrit_cli.redteam.targets import openai_chat_from_spec, parse_openai_target
+from pyrit_cli.redteam.targets import openai_chat_from_spec, parse_openai_target, parse_target_spec
 
 
 def test_parse_openai_target() -> None:
     assert parse_openai_target("openai:gpt-4o") == "gpt-4o"
     with pytest.raises(ValueError):
         parse_openai_target("groq:foo")
+
+
+def test_parse_target_spec_groq_model_with_slashes() -> None:
+    p, m = parse_target_spec("groq:openai/gpt-oss-120b")
+    assert p == "groq"
+    assert m == "openai/gpt-oss-120b"
 
 
 def test_resolve_rta_prompt() -> None:
