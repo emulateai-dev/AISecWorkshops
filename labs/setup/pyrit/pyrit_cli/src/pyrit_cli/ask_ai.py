@@ -49,6 +49,33 @@ def _chat_completions_url(base: str) -> str:
     return f"{base.rstrip('/')}/chat/completions"
 
 
+def _ask_ai_system_prompt(help_md: str) -> str:
+    return (
+        "You help users with pyrit-cli for **authorized** red-teaming and workshop demos only. "
+        "Every fact and flag must come from the HELP reference below — do not invent subcommands or options.\n\n"
+        "## Output format\n"
+        "- Use Markdown. For each distinct approach, use a short heading (e.g. **Variant 1 — single-turn**).\n"
+        "- Immediately under each heading, a **Prerequisites** bullet list: which environment variables must be set, "
+        "with example lines like `export GROQ_API_KEY=\"...\"` or \"ensure OPENAI_CHAT_* in ~/.pyrit (pyrit-cli setup configure)\".\n"
+        "  Whenever you suggest `groq:`, `ollama:`, `lmstudio:`, or `compat:` targets, you MUST list their required env vars "
+        "(see HELP section \"Environment variables reference\"). `openai:` targets need OPENAI_CHAT_* or setup configure.\n"
+        "- Then a fenced bash block ```bash ... ``` containing the full `pyrit-cli` command (line continuations `\\` allowed).\n"
+        "- One line after the fence (plain text or `#` comment) summarizing when to use that variant.\n\n"
+        "## When to give one vs many variants\n"
+        "- **Specific** question (clear model, one attack type, one objective): one variant is enough (still include Prerequisites if not openai-only).\n"
+        "- **Generic or exploratory** question (e.g. how to test Groq, how to start, what attacks exist, compare approaches): "
+        "give **2–4** clearly different variants when the reference supports them — e.g. prompt-sending-attack vs red-teaming-attack "
+        "vs tap-attack; or openai: vs groq: with explicit Groq exports; or benign multi-turn with --true-description.\n\n"
+        "## Command choice hints\n"
+        "- Single-shot / smoke test → `redteam prompt-sending-attack`.\n"
+        "- Multi-turn with scorer → `redteam red-teaming-attack` + `--true-description` (self-ask-tf) unless refusal testing.\n"
+        "- Tree / TAP / pruning → `redteam tap-attack` only if relevant.\n"
+        "- Use benign placeholder objectives when the user is vague.\n\n"
+        "### pyrit-cli HELP reference\n\n"
+        + help_md
+    )
+
+
 def suggest_command(
     user_goal: str,
     *,
@@ -57,20 +84,12 @@ def suggest_command(
     base_url: str,
 ) -> str:
     help_md = load_help_markdown()
-    system = (
-        "You help users choose the correct pyrit-cli shell command for authorized red-teaming and "
-        "workshop demos. You MUST base suggestions only on the reference below.\n\n"
-        "Rules:\n"
-        "- Output a single runnable bash example starting with `pyrit-cli` (use line continuations `\\` if needed).\n"
-        "- Prefer the smallest command that fits the goal (e.g. prompt-sending-attack for one-shot; "
-        "red-teaming-attack for multi-turn with --true-description; tap-attack only if they ask for TAP/tree).\n"
-        "- Use placeholder objectives like benign test strings when the user is vague.\n"
-        "- After the command, one short line starting with # explaining the choice.\n"
-        "- Do not invent flags that are not in the reference. Do not output anything before the command line.\n\n"
-        "### pyrit-cli HELP reference\n\n"
-        + help_md
+    system = _ask_ai_system_prompt(help_md)
+    user = (
+        "User question (answer in the format described in your instructions):\n\n"
+        f"{user_goal.strip()}\n\n"
+        "If the question is broad, prioritize multiple variants with prerequisites for each."
     )
-    user = f"What pyrit-cli command fits this goal?\n\n{user_goal.strip()}"
 
     body: dict[str, Any] = {
         "model": model,
@@ -78,7 +97,7 @@ def suggest_command(
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
-        "temperature": 0.2,
+        "temperature": 0.45,
     }
     data = json.dumps(body).encode("utf-8")
     req = urllib.request.Request(

@@ -3,10 +3,30 @@
 from __future__ import annotations
 
 _SUPPORTED = [
-    ("openai:<model>", "OpenAI-compatible chat (OpenAIChatTarget). Uses OPENAI_CHAT_* from ~/.pyrit."),
+    (
+        "openai:<model>",
+        "OpenAIChatTarget using OPENAI_CHAT_ENDPOINT / OPENAI_CHAT_KEY / OPENAI_CHAT_MODEL from ~/.pyrit.",
+    ),
+    (
+        "groq:<model>",
+        "Groq OpenAI-compatible API. Env: GROQ_API_KEY; optional GROQ_OPENAI_BASE_URL (default https://api.groq.com/openai/v1).",
+    ),
+    (
+        "ollama:<model>",
+        "Local Ollama (/v1 chat). Env: OLLAMA_HOST (default 127.0.0.1:11434 or full URL); optional OLLAMA_API_KEY.",
+    ),
+    (
+        "lmstudio:<model>",
+        "LM Studio local server. Env: LMSTUDIO_OPENAI_BASE_URL (default http://127.0.0.1:1234/v1); optional LMSTUDIO_API_KEY.",
+    ),
+    (
+        "compat:<model>",
+        "Custom OpenAI-compatible base URL. Env: PYRIT_CLI_COMPAT_ENDPOINT (required), PYRIT_CLI_COMPAT_API_KEY (optional).",
+    ),
 ]
 
 _NOT_EXPOSED = [
+    "OpenAIResponseTarget (Responses API — see PyRIT docs)",
     "AzureMLChatTarget",
     "HuggingFaceChatTarget",
     "HuggingFaceEndpointTarget",
@@ -24,12 +44,14 @@ _NOT_EXPOSED = [
 
 def list_targets_text() -> str:
     lines = [
-        "Supported by pyrit-cli (use with --target / --objective-target / --adversarial-target):",
+        "Supported by pyrit-cli (use with --target / --objective-target / --adversarial-target / --scorer-chat-target):",
         "-" * 60,
     ]
     for pat, note in _SUPPORTED:
         lines.append(f"  {pat}")
         lines.append(f"      {note}")
+    lines.append("")
+    lines.append("PyRIT reference (Responses vs chat): https://azure.github.io/PyRIT/code/targets/openai-responses-target/")
     lines.append("")
     lines.append("Not yet exposed via CLI (available in PyRIT library):")
     lines.append("-" * 60)

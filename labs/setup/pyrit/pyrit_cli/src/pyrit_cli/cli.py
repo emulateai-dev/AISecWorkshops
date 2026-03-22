@@ -26,6 +26,7 @@ from pyrit_cli.env_write import save_openai_compatible, save_openai_native
 from pyrit_cli.redteam.prompt_sending import collect_objectives, run_prompt_sending
 from pyrit_cli.redteam.red_teaming import parse_memory_labels_json, run_red_teaming
 from pyrit_cli.redteam.tap_attack import run_tap_attack
+from pyrit_cli.redteam.targets import TARGET_SPEC_HELP
 
 
 def _version_callback(value: bool) -> None:
@@ -182,7 +183,7 @@ def _redteam_group(ctx: typer.Context) -> None:
 
 @redteam_app.command("prompt-sending-attack")
 def redteam_prompt_sending(
-    target: str = typer.Option(..., "--target", help="openai:<model_name>"),
+    target: str = typer.Option(..., "--target", help=TARGET_SPEC_HELP),
     objective: str | None = typer.Option(None, "--objective", help="Single objective string."),
     dataset: str | None = typer.Option(
         None,
@@ -224,13 +225,13 @@ def redteam_red_teaming(
     objective_target: str = typer.Option(
         ...,
         "--objective-target",
-        help="Victim model: openai:<model_name>",
+        help=f"Victim model: {TARGET_SPEC_HELP}",
     ),
     objective: str = typer.Option(..., "--objective", help="Attack objective string."),
     adversarial_target: str | None = typer.Option(
         None,
         "--adversarial-target",
-        help="Red-team LLM openai:<model>; default: same as --objective-target",
+        help=f"Red-team LLM; default: same as --objective-target. {TARGET_SPEC_HELP}",
     ),
     max_turns: int = typer.Option(5, "--max-turns", min=1),
     rta_prompt: str = typer.Option(
@@ -261,7 +262,7 @@ def redteam_red_teaming(
     scorer_chat_target: str | None = typer.Option(
         None,
         "--scorer-chat-target",
-        help="openai:<model> for scorer LLM; default: adversarial target",
+        help=f"Scorer LLM; default: adversarial target. {TARGET_SPEC_HELP}",
     ),
     request_converter: list[str] | None = typer.Option(
         None,
@@ -319,13 +320,13 @@ def redteam_tap_attack(
     objective_target: str = typer.Option(
         ...,
         "--objective-target",
-        help="Victim model: openai:<model_name>",
+        help=f"Victim model: {TARGET_SPEC_HELP}",
     ),
     objective: str = typer.Option(..., "--objective", help="Conversation objective for TAP."),
     adversarial_target: str | None = typer.Option(
         None,
         "--adversarial-target",
-        help="Red-team LLM openai:<model>; default: same as --objective-target",
+        help=f"Red-team LLM; default: same as --objective-target. {TARGET_SPEC_HELP}",
     ),
     adversarial_temperature: float | None = typer.Option(
         None,
@@ -354,7 +355,7 @@ def redteam_tap_attack(
     scorer_chat_target: str | None = typer.Option(
         None,
         "--scorer-chat-target",
-        help="openai:<model> for SelfAskScaleScorer inside FloatScaleThresholdScorer; default: adversarial",
+        help=f"Scorer for SelfAskScaleScorer; default: adversarial. {TARGET_SPEC_HELP}",
     ),
     score_threshold: float | None = typer.Option(
         None,
