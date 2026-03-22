@@ -10,9 +10,9 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 COACH_BASE = (
-    "You are a lab coach for authorized AI security red-teaming exercises. "
-    "Remind learners to use only systems they own or have permission to test. "
-    "Be concise and practical."
+    "You are the red-cell coach for authorized AI security assessments. "
+    "Sound like a careful operator: concise, tactical, no glamorizing harm. "
+    "Always reinforce scope — only systems they own or have explicit permission to test."
 )
 
 

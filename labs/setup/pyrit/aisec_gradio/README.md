@@ -1,6 +1,6 @@
 # aisec-gradio
 
-Workshop Gradio app: **Setup** (`~/.pyrit` env files) and **Red Team** (section tree: Datasets, Prompt Targets, Converters, Executors), coach chat, sample code, and **Run for me** (local PyRIT runners).
+Workshop Gradio app: **Setup** (`~/.pyrit` env files) and **Red Team** (section tree: Datasets, Prompt Targets, Converters, Executors). Each section lists **multiple assignments**; each assignment has curated **markdown** (summary + optional reference files) injected into the **coach** context so answers stay aligned with the lab. The UI also shows **sample code** where bundled (e.g. built-in datasets, OpenAI Chat Target), and **Run for me** for assignments that define a runner.
 
 Built-in **Datasets** content follows [Loading built-in datasets](https://azure.github.io/PyRIT/code/datasets/loading-datasets/) (PyRIT docs).
 
@@ -31,7 +31,7 @@ python -m aisec_gradio
 
 Or: `aisec-gradio`
 
-Defaults: `http://0.0.0.0:7860` (`GRADIO_SERVER_NAME`, `GRADIO_SERVER_PORT`).
+Defaults: `http://0.0.0.0:7860` (`GRADIO_SERVER_NAME`, `GRADIO_SERVER_PORT`). The UI uses a **dark “red cell”** Gradio theme (green accent, monospace code) for a red-team lab feel—still **authorized testing only**.
 
 ## Red Team coach (LangGraph)
 
@@ -52,6 +52,12 @@ Assignment text and linked **reference files** are injected into the system prom
 | `AISEC_SANDBOX_MAX_CODE_CHARS` | Max length of submitted code (default `200000`). |
 
 **Safety:** running arbitrary code is risky if the machine is shared or the environment is misconfigured. Prefer local-only workshops, a dedicated user, or container isolation. Stronger isolation (Docker/Firejail) is a possible follow-up; see `SandboxRunner` in `agent/sandbox.py` for a documented extension point.
+
+### Check assignment context (no API key)
+
+```bash
+poetry run python -c "from aisec_gradio.agent.context import load_assignment_context as l; print(l('prompt_targets:openai_chat')[:600])"
+```
 
 ## Docker
 

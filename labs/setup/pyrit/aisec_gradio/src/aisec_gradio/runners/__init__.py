@@ -12,6 +12,8 @@ RunnerFn = Callable[..., str]
 
 _REGISTRY: dict[str, RunnerFn] = {
     "datasets_list_names": datasets_runners.run_list_builtin_dataset_names,
+    "datasets_seed_programming": datasets_runners.run_seed_programming_demo,
+    "datasets_dataset_writing": datasets_runners.run_dataset_writing_demo,
     "stub": run_stub,
     "executors_prompt_sending": executors_runners.run_prompt_sending_lab,
 }

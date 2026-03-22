@@ -6,7 +6,12 @@ import os
 
 import gradio as gr
 
-from aisec_gradio.builtin_sample_code import BUILTIN_DATASETS_SAMPLE
+from aisec_gradio.builtin_sample_code import (
+    BUILTIN_DATASETS_SAMPLE,
+    DATASET_WRITING_SAMPLE,
+    OPENAI_CHAT_TARGET_SAMPLE,
+    SEED_PROGRAMMING_SAMPLE,
+)
 from aisec_gradio.coach import invoke_coach_graph
 from aisec_gradio.content_loader import load_content_markdown
 from aisec_gradio.env_manager import load_for_ui, save_openai_compatible, save_openai_native
@@ -18,6 +23,12 @@ from aisec_gradio.workshop_registry import (
     parse_assignment_key,
     radio_choices_for_section,
 )
+
+
+def workshop_ocean_theme() -> gr.themes.Base:
+    """Standard Gradio Ocean theme (cool blues / teals)."""
+    return gr.themes.Ocean()
+
 
 def _refresh_setup() -> tuple:
     data = load_for_ui()
@@ -75,11 +86,28 @@ def _build_panel_for_assignment(key: str) -> tuple:
 
     if key == "datasets:builtin":
         learner = (
-            "**Try it yourself:** copy the sample code below and run it with `python` in an environment where "
-            "PyRIT is installed, **or** click **Run for me** to list built-in dataset names on this machine "
-            "(safe default; no bulk download)."
+            "**Exfil (benign):** copy the **intel script** below or hit **Run for me** to dump registered "
+            "dataset handles on this host — no bulk pull, low noise."
         )
         code = BUILTIN_DATASETS_SAMPLE
+    elif key == "prompt_targets:openai_chat":
+        learner = (
+            "**Live range:** arm **Setup**, paste the payload locally, or debrief the coach on "
+            "`OpenAIChatTarget` + `PromptSendingAttack` tradecraft."
+        )
+        code = OPENAI_CHAT_TARGET_SAMPLE
+    elif key == "datasets:seed_programming":
+        learner = (
+            "**Run for me** runs the same **seed-group → parameter extraction** demo as the sample (needs **Setup** "
+            "for `OpenAIChatTarget` init; no model fire). Full playbook: `PyRIT/doc/code/datasets/2_seed_programming.py`."
+        )
+        code = SEED_PROGRAMMING_SAMPLE
+    elif key == "datasets:dataset_writing":
+        learner = (
+            "**Run for me** prints the bundled **tight** `SeedObjective` example. Cross-check with "
+            "[dataset-writing](https://azure.github.io/PyRIT/code/datasets/dataset-writing/)."
+        )
+        code = DATASET_WRITING_SAMPLE
     else:
         learner = (
             "**Run for me** executes the workshop sample for this assignment when a runner is defined; "
@@ -95,10 +123,12 @@ def build_app() -> gr.Blocks:
     data = load_for_ui()
     start_key = default_assignment_key()
 
-    with gr.Blocks(title="AISec PyRIT Workshop") as demo:
+    with gr.Blocks(title="AISec // PyRIT red cell") as demo:
         gr.Markdown(
-            "# AISec PyRIT workshop\n"
-            "Configure credentials in **Setup**, then use **Red Team** for guided PyRIT topics and **Run for me**."
+            "# `AISec` // PyRIT **red cell**\n"
+            "> *Authorized testing only — own systems or explicit written permission.*\n\n"
+            "Arm **Setup** (`~/.pyrit`), then pivot to **Red Team** for lab assignments, **coach** intel, and "
+            "**Run for me** payloads where a runner exists."
         )
         with gr.Tabs():
             with gr.Tab("Setup"):
@@ -213,8 +243,8 @@ def build_app() -> gr.Blocks:
 
             with gr.Tab("Red Team"):
                 gr.Markdown(
-                    "Open a **section** on the left, pick an **assignment**, read the summary, then use the "
-                    "coach or **Run for me**."
+                    "Select a **section** (left), choose an **assignment**, ingest the **briefing** + **sample "
+                    "payload**, then task the **coach** or trigger **Run for me**."
                 )
                 s0, l0, c0, _ = _build_panel_for_assignment(start_key)
 
@@ -232,9 +262,10 @@ def build_app() -> gr.Blocks:
                         {
                             "role": "assistant",
                             "content": (
-                                f"**{title}**\n\n"
-                                "Read the **summary** and **sample code** above. Use **Run for me** to execute the "
-                                "workshop sample on this machine (when available), or ask me questions about this topic."
+                                f"**`OP` // {title}**\n\n"
+                                "Review the **briefing** and **sample payload** above. **Run for me** fires the "
+                                "bundled runner on *this* host when defined; otherwise interrogate me on tactics, "
+                                "PyRIT APIs, or your authorized scenario."
                             ),
                         }
                     ]
@@ -275,10 +306,15 @@ def build_app() -> gr.Blocks:
                             label="Coach",
                             height=360,
                             value=_coach_welcome_for_key(start_key),
+                            allow_tags=["details", "summary", "pre", "code"],
                         )
-                        msg = gr.Textbox(label="Message to coach", placeholder="Ask a question…", lines=2)
+                        msg = gr.Textbox(
+                            label="Task the coach",
+                            placeholder="Request tradecraft, API clarifications, or in-scope debrief…",
+                            lines=2,
+                        )
                         with gr.Row():
-                            send = gr.Button("Send", variant="primary")
+                            send = gr.Button("Transmit", variant="primary")
                             clear = gr.Button("Clear chat")
 
                         objective = gr.Textbox(
@@ -385,4 +421,9 @@ def launch() -> None:
     host = os.environ.get("GRADIO_SERVER_NAME", "0.0.0.0")
     port = int(os.environ.get("GRADIO_SERVER_PORT", "7860"))
     demo = build_app()
-    demo.launch(server_name=host, server_port=port)
+    demo.launch(
+        server_name=host,
+        server_port=port,
+        theme=workshop_ocean_theme(),
+        css="footer.gradio-footer { opacity: 0.65; }",
+    )
