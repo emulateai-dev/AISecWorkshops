@@ -6,12 +6,37 @@ Hands-on workshop labs for offensive AI security — red teaming LLMs, agents, a
 
 ---
 
+## Repository setup (PyRIT submodule)
+
+This repo includes **[PyRIT](https://github.com/jitendra-eai/PyRIT)** as a git submodule at `labs/setup/pyrit/PyRIT`.
+
+After cloning, initialize submodules (or clone with submodules in one step):
+
+```bash
+git clone --recurse-submodules https://github.com/emulateai-dev/AISecWorkshops.git
+cd AISecWorkshops
+# If you cloned without --recurse-submodules:
+make init
+```
+
+To pull the latest PyRIT `main` into the submodule (merge remote tracking branch):
+
+```bash
+make merge
+```
+
+See also: [PyRIT setup guide](./labs/setup/pyrit/README.md).
+
+---
+
 ## Workshop Structure
 
 ```
 AISecWorkshops/
 └── labs/
-    ├── setup/vm/                          # Lab environment setup (VM, tools, API keys)
+    ├── setup/
+    │   ├── pyrit/PyRIT/                   # PyRIT (git submodule) — run: make init
+    │   └── vm/                            # Lab environment setup (VM, tools, API keys)
     ├── llms/
     │   └── red-teaming/
     │       └── garak/                     # LLM vulnerability scanning with NVIDIA Garak

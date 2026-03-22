@@ -1,0 +1,4 @@
+[submodule "labs/setup/pyrit/PyRIT"]
+	path = labs/setup/pyrit/PyRIT
+	url = https://github.com/jitendra-eai/PyRIT.git
+	branch = main

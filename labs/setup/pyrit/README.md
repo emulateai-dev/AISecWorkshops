@@ -10,14 +10,24 @@
 
 **Manual Setup (step-by-step)**
 
-**Step 1: Clone the Repository**
-Pull the source code and navigate into the root directory. (Crucial: Do not go into the `docker/` folder yet!)
+**Step 1: Get the PyRIT source**
+
+If you cloned **AISecWorkshops** with submodules, PyRIT is already at `labs/setup/pyrit/PyRIT`:
+
+```bash
+# from repo root (after git clone)
+make init
+cd labs/setup/pyrit/PyRIT
+```
+
+Or clone PyRIT standalone:
 
 ```bash
 git clone https://github.com/jitendra-eai/PyRIT.git
 cd PyRIT
-
 ```
+
+Work from the **PyRIT repository root** (`PyRIT/` or `labs/setup/pyrit/PyRIT`). Do not `cd docker/` before the devcontainer build in Step 2.
 
 **Step 2: Build the Base Devcontainer Image**
 Because of how the context is structured, you must build the base image from the root of the repository to prevent the `path ".devcontainer" not found` error.
@@ -91,7 +101,6 @@ Your local environment is now fully running and authenticated with your override
 * **Jupyter Notebooks:** http://localhost:8888
 
 ---
-
 
 
 

@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aisec-gradio"
+version = "0.1.0"
+description = "AISec workshop Gradio UI for PyRIT red-teaming labs"
+readme = "README.md"
+# PyPI ``pyrit`` (e.g. 0.11.x) requires Python >=3.10,<3.14 — keep in sync for Poetry/pip resolution.
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "gradio>=4.44",
+    "python-dotenv>=1.0.0",
+    "openai>=1.0.0",
+    "pyrit>=0.11.0,<0.12",
+    "langgraph>=0.2.0",
+    "langchain-core>=0.3.0",
+    "langchain-openai>=0.2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+
+[project.scripts]
+aisec-gradio = "aisec_gradio.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/emulateai-dev/AISecWorkshops"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aisec_gradio"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/aisec_gradio", "README.md"]
