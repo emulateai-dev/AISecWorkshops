@@ -24,6 +24,8 @@ Configure credentials interactively or by hand:
 pyrit-cli setup configure   # OpenAI or OpenAI-compatible (Groq-style); writes ~/.pyrit/.env + .env.local
 ```
 
+After **OpenAI-compatible** setup, use **`--target openai:<model>`** with a model id your host supports (e.g. Groq’s `llama-3.3-70b-versatile`), not OpenAI-only names unless that backend exposes them.
+
 Or follow the parent [README](../README.md). `OpenAIChatTarget` reads `OPENAI_CHAT_*` from `.env.local` (often mirroring `OPENAI_API_KEY` or `PLATFORM_*`).
 
 **ask-ai** loads the same HELP reference as humans and calls an OpenAI-compatible `/v1/chat/completions` endpoint using `OPENAI_API_KEY` or `OPENAI_CHAT_KEY` (and optional `OPENAI_CHAT_ENDPOINT`). Example:

@@ -125,9 +125,14 @@ Option A — OpenAI API
     OPENAI_CHAT_MODEL=gpt-4o
 
 Option B — OpenAI-compatible host (e.g. Groq)
-  In .env set PLATFORM_OPENAI_CHAT_ENDPOINT, PLATFORM_OPENAI_CHAT_API_KEY,
-  PLATFORM_OPENAI_CHAT_GPT4O_MODEL.
-  In .env.local map them to OPENAI_CHAT_* (see labs/setup/pyrit/README.md).
+  In ~/.pyrit/.env set (or use pyrit-cli setup configure):
+    PLATFORM_OPENAI_CHAT_ENDPOINT=https://api.groq.com/openai/v1
+    PLATFORM_OPENAI_CHAT_API_KEY=gsk_...
+    PLATFORM_OPENAI_CHAT_GPT4O_MODEL=llama-3.3-70b-versatile
+  In ~/.pyrit/.env.local the wizard writes OPENAI_CHAT_* pointing at those vars
+  (OPENAI_CHAT_ENDPOINT=${PLATFORM_OPENAI_CHAT_ENDPOINT}, etc.).
 
-Then run: pyrit-cli redteam prompt-sending-attack --target openai:<model> --objective "..."
+  Run red-team with a model id your host accepts, e.g.:
+    pyrit-cli redteam prompt-sending-attack --target openai:llama-3.3-70b-versatile --objective "Reply: OK"
+  Or: export GROQ_API_KEY=gsk_... and --target groq:llama-3.3-70b-versatile
 """.strip()

@@ -60,7 +60,19 @@ pyrit-cli setup guide        # OpenAI vs OpenAI-compatible summary
 
 Targets like **`groq:`**, **`ollama:`**, **`lmstudio:`**, **`compat:`** need **extra env vars** (not all set by the wizard). See the **Environment variables** table in [HELP.md](../src/pyrit_cli/HELP.md).
 
-Example (Groq):
+#### After `setup configure` → OpenAI-compatible (e.g. Groq)
+
+The wizard stores **`PLATFORM_OPENAI_CHAT_*`** in **`~/.pyrit/.env`** and maps **`OPENAI_CHAT_*`** in **`.env.local`** to that platform. Your default chat traffic uses **`OpenAIChatTarget`** with that endpoint and key.
+
+Use a **Groq model id** in **`openai:`**, matching **`OPENAI_CHAT_MODEL`** (not `gpt-4o-mini`, which is for OpenAI’s API):
+
+```bash
+pyrit-cli redteam prompt-sending-attack \
+  --target openai:llama-3.3-70b-versatile \
+  --objective "Reply: OK"
+```
+
+**Explicit Groq target** (same API key pattern; requires **`GROQ_API_KEY`**):
 
 ```bash
 export GROQ_API_KEY="gsk_..."

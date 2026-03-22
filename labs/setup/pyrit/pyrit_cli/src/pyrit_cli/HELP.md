@@ -36,6 +36,10 @@ Use only on targets and data you are authorized to test.
 
 After configuring, `OPENAI_CHAT_ENDPOINT`, `OPENAI_CHAT_KEY`, and `OPENAI_CHAT_MODEL` in `.env.local` are what PyRIT’s **`OpenAIChatTarget`** uses for **`openai:`** targets. Provider-specific targets (`groq:`, `ollama:`, etc.) use **additional** env vars documented below.
 
+**`openai:<model>` and your backend:** The string after `openai:` is sent to the API as the model name. It must match a model **on whatever host `OPENAI_CHAT_ENDPOINT` points to** (e.g. after the **OpenAI-compatible** wizard, use a **Groq** model id such as `llama-3.3-70b-versatile`, not `gpt-4o-mini`, or you will get 404 / model_not_found). Align with **`OPENAI_CHAT_MODEL`** in `.env.local`, or use **`groq:<model>`** with **`GROQ_API_KEY`** instead.
+
+**OpenAI-compatible wizard (manual file layout):** writes **`~/.pyrit/.env`** with `PLATFORM_OPENAI_CHAT_ENDPOINT`, `PLATFORM_OPENAI_CHAT_API_KEY`, `PLATFORM_OPENAI_CHAT_GPT4O_MODEL`, and **`.env.local`** with `OPENAI_CHAT_*` referencing those variables (see `pyrit-cli setup guide`).
+
 ---
 
 ## `ask-ai` (natural language → shell command)
@@ -80,7 +84,7 @@ Loads **this** HELP text and calls an OpenAI-compatible **`/v1/chat/completions`
 
 | If you use | Required | Optional | Notes |
 |------------|----------|----------|--------|
-| `openai:<model>` | `OPENAI_CHAT_KEY`, `OPENAI_CHAT_ENDPOINT`, `OPENAI_CHAT_MODEL` (or use **setup configure**) | — | Usually loaded from `~/.pyrit`. |
+| `openai:<model>` | `OPENAI_CHAT_KEY`, `OPENAI_CHAT_ENDPOINT`, `OPENAI_CHAT_MODEL` (or use **setup configure**) | — | Loaded from `~/.pyrit`. **Model** in `openai:<model>` must exist on that endpoint (Groq vs OpenAI ids differ). |
 | `groq:<model>` | **`GROQ_API_KEY`** | `GROQ_OPENAI_BASE_URL` | Default base `https://api.groq.com/openai/v1`. Without `GROQ_API_KEY`, Groq targets fail at runtime. |
 | `ollama:<model>` | (none for typical local Ollama) | `OLLAMA_HOST`, `OLLAMA_API_KEY` | Default host `127.0.0.1:11434`; endpoint becomes `http://…/v1`. |
 | `lmstudio:<model>` | (none if defaults work) | `LMSTUDIO_OPENAI_BASE_URL`, `LMSTUDIO_API_KEY` | Default `http://127.0.0.1:1234/v1`. |
