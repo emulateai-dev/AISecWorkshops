@@ -41,7 +41,11 @@ Attacking and evaluating autonomous AI agents — prompt injection, system promp
 
 Exploiting Model Context Protocol integrations — tool poisoning, server impersonation, rug pull attacks.
 
-_Labs coming soon._ See [overview](./mcp/red-teaming/).
+| # | Exercise | Tool | Challenges | Time |
+|---|----------|------|-----------|------|
+| 1 | [Damn Vulnerable MCP Server (DVMS)](./mcp/red-teaming/dv_mcp_labs/readme.md) | Docker + Ollama | 10 | ~2h |
+
+[Full lab overview](./mcp/red-teaming/) with MCP attack surface background.
 
 ---
 

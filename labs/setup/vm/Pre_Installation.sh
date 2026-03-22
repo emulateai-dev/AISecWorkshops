@@ -29,15 +29,16 @@ if [[ "${EUID}" -ne 0 ]]; then
 fi
 
 # ============================================================
-# 1) Harden SSH (Ubuntu service is 'ssh', not 'sshd')
+# 1) Harden SSH (install openssh-server first, then enable)
 # ============================================================
+apt-get update -qq
+apt-get install -y openssh-server
 systemctl enable ssh || true
 systemctl restart ssh || true
 
 # ============================================================
 # 2) Base packages (install curl/git before using them)
 # ============================================================
-apt-get update
 apt-get install -y \
   apt-transport-https \
   gcc \
@@ -52,12 +53,30 @@ apt-get install -y \
   net-tools \
   nmap \
   tmux \
-  python2 \
+  python3 \
+  python3-pip \
+  python3-venv \
+  python3.12-venv \
+  python-is-python3 \
+  build-essential \
+  software-properties-common \
+  nginx
+
+# Add deadsnakes PPA for Python 3.10 and 3.13 (not in Ubuntu 24.04 default repos)
+add-apt-repository -y ppa:deadsnakes/ppa
+apt-get update
+apt-get install -y \
+  python3.10 \
+  python3.10-dev \
+  python3.10-venv \
   python3.13 \
   python3.13-dev \
-  python3.13-venv \
-  build-essessntial \
-  nginx
+  python3.13-venv
+
+# Validate Python is accessible
+python3 --version >/dev/null 2>&1 || { echo "❌ python3 not found after install. Check apt output above."; exit 1; }
+python  --version >/dev/null 2>&1 && echo "✅ 'python' alias works." || echo "⚠️  'python' alias not set — install python-is-python3 manually if needed."
+echo "✅ Python checks passed."
 
 # ============================================================
 # 3) Docker
@@ -97,13 +116,10 @@ sudo -u "$TARGET_USER" bash -lc "
 
   # --- Node.js via asdf (+ keyring) ---
   asdf plugin list | grep -qx nodejs || asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
-  if [ -x \"$TARGET_HOME/.asdf/plugins/nodejs/bin/import-release-team-keyring\" ]; then
-    # bash \"$TARGET_HOME/.asdf/plugins/nodejs/bin/import-release-team-keyring\"
-  else
+  if [ ! -x \"$TARGET_HOME/.asdf/plugins/nodejs/bin/import-release-team-keyring\" ]; then
     echo '⚠️ nodejs plugin keyring script missing; re-adding plugin...'
     asdf plugin remove nodejs || true
     asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
-    # bash \"$TARGET_HOME/.asdf/plugins/nodejs/bin/import-release-team-keyring\"
   fi
   asdf install nodejs lts
   asdf global nodejs lts
@@ -156,7 +172,11 @@ chown -R "$TARGET_USER:$TARGET_USER" "$TARGET_HOME"
 # ============================================================
 # 5) Ollama (system level)
 # ============================================================
-curl -fsSL https://ollama.com/install.sh | sh
+if command -v ollama >/dev/null 2>&1; then
+  echo "ℹ️  Ollama already installed — skipping."
+else
+  curl -fsSL https://ollama.com/install.sh | sh
+fi
 # Service name may not exist in some environments immediately; don't fail hard
 systemctl enable ollama || true
 systemctl start ollama || true
@@ -166,8 +186,8 @@ systemctl start ollama || true
 # ============================================================
 SECRETS_DIR="$TARGET_HOME/.secrets"
 mkdir -p "$SECRETS_DIR"
-: > "$SECRETS_DIR/OPENAI_API_KEY.txt"
-: > "$SECRETS_DIR/GROQ_API_KEY.txt"
+touch "$SECRETS_DIR/OPENAI_API_KEY.txt"
+touch "$SECRETS_DIR/GROQ_API_KEY.txt"
 chown -R "$TARGET_USER:$TARGET_USER" "$SECRETS_DIR"
 
 # ============================================================
@@ -181,9 +201,9 @@ sudo -u "$TARGET_USER" bash -lc "
     echo '<h1>Hello from shared!</h1>' > \"\$SHARED_DIR/index.html\"
   fi
   # Permissions so nginx (www-data) can traverse
-  chmod o+x \"$TARGET_HOME\" \"$SHARED_DIR\"
-  find \"$SHARED_DIR\" -type d -exec chmod o+x {} \;
-  find \"$SHARED_DIR\" -type f -exec chmod o+r {} \;
+  chmod o+x \"$TARGET_HOME\" \"\$SHARED_DIR\"
+  find \"\$SHARED_DIR\" -type d -exec chmod o+x {} \;
+  find \"\$SHARED_DIR\" -type f -exec chmod o+r {} \;
 "
 
 NGINX_CONF=/etc/nginx/sites-available/shared

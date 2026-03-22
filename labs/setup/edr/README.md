@@ -29,7 +29,7 @@ Scripts to install, start, and stop the Salesforce Enterprise Deep Research (EDR
 
 ### `install-edr.sh` — Clone, Install, and Configure
 
-Clones the EDR repository from `SalesforceAIResearch/enterprise-deep-research`. Sets up a Python virtual environment, installs dependencies, builds the Node.js frontend, configures environment variables, generating the `.env` file along with the `start.sh` and `stop.sh` companion scripts.
+Clones the EDR repository from `SalesforceAIResearch/enterprise-deep-research`. Sets up a Python virtual environment, installs dependencies, builds the Node.js frontend, configures environment variables, generating the `.env` file along with the `start_service.sh` and `stop_service.sh` companion scripts.
 
 ```bash
 AISecWorkshops/labs/setup/scripts/tools/install-edr.sh
@@ -39,13 +39,13 @@ By default, the framework is installed to `~/labs/agents/red-teaming/edr` (confi
 
 ---
 
-### `start.sh` — Launch EDR API Server
+### `start_service.sh` — Launch EDR API Server
 
 Starts the EDR API server on port 8000 using `uvicorn`. This script is automatically generated inside the installation directory (`~/labs/agents/red-teaming/edr` by default).
 
 ```bash
 cd ~/labs/agents/red-teaming/edr
-./start.sh
+./start_service.sh
 ```
 
 | Environment Variable (in `.env`) | Default | Description |
@@ -56,13 +56,13 @@ cd ~/labs/agents/red-teaming/edr
 
 ---
 
-### `stop.sh` — Stop EDR API Server
+### `stop_service.sh` — Stop EDR API Server
 
 Stops the EDR API server background process by sending a `SIGTERM` to the matched `uvicorn app:app` instance. This script is generated inside the installation directory.
 
 ```bash
 cd ~/labs/agents/red-teaming/edr
-./stop.sh
+./stop_service.sh
 ```
 
 ---
@@ -77,14 +77,14 @@ cd ~/labs/agents/red-teaming/edr
 nano ~/labs/agents/red-teaming/edr/.env
 
 # 3. Start the API server
-~/labs/agents/red-teaming/edr/start.sh
+~/labs/agents/red-teaming/edr/start_service.sh
 
 # 4. Access the API & Docs
 # API:      http://localhost:8000
 # API docs: http://localhost:8000/docs
 
 # 5. When done
-~/labs/agents/red-teaming/edr/stop.sh
+~/labs/agents/red-teaming/edr/stop_service.sh
 ```
 
 ---

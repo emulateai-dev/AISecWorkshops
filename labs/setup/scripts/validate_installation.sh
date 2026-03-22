@@ -126,9 +126,9 @@ else
 fi
 
 # === AI Red Teaming Playground Labs ===
-if cd "$HOME/labs/webapps/AI-Red-Teaming-Playground-Labs" 2>/dev/null; then
+if cd "$HOME/labs/agents/AI-Red-Teaming-Playground-Labs" 2>/dev/null; then
   log "🚀 Starting AI Red Teaming Playground Labs..."
-  log "$(./start.sh 2>&1)" || true
+  log "$(./start_service.sh 2>&1)" || true
   sleep 5
   check_url "Playground Home (localhost)" "http://localhost:15000" || true
   log "🛑 Stopping Playground..."

@@ -8,61 +8,65 @@ Scripts to install, start, and stop the Folly prompt injection challenge framewo
 
 | Requirement | Check |
 |-------------|-------|
-| `uv` installed | `uv --version` |
 | `git` installed | `git --version` |
+| `python3` (3.7+) installed | `python3 --version` |
+| `pip3` installed | `pip3 --version` |
 | API key configured | `cat ~/.secrets/OPENAI_API_KEY.txt` or `cat ~/.secrets/GROQ_API_KEY.txt` |
 
 ---
 
-## Scripts
+## Install
 
-### `install.sh` — Clone and Install
-
-Clones Folly from GitHub and installs it as a `uv` tool (editable mode). If already cloned, pulls the latest changes.
+Run the installer from the `AISecWorkshops` repo root:
 
 ```bash
-./install.sh
+~/labs/AISecWorkshops/labs/setup/scripts/tools/install-folly.sh
 ```
 
-This installs three commands: `folly-api`, `folly-ui`, `folly-cli`.
+By default, Folly is installed to `~/labs/agents/red-teaming/folly/Folly` with a
+Python virtual environment. The installer also generates `start_service.sh` and `stop_service.sh`
+in `~/labs/agents/red-teaming/folly/`.
+
 
 ---
 
-### `start.sh` — Launch API + UI
-
-Starts both the API backend (port 5000) and web UI (port 5001) in the background.
+## Start
 
 ```bash
 # Basic challenges (default) with OpenAI
-./start.sh
+~/labs/agents/red-teaming/folly/start_service.sh
 
 # Advanced challenges
-./start.sh advanced
+~/labs/agents/red-teaming/folly/start_service.sh advanced
 
 # Use Groq instead of OpenAI
-FOLLY_PROVIDER=groq ./start.sh
+FOLLY_PROVIDER=groq ~/labs/agents/red-teaming/folly/start_service.sh
+
+# Use xAI / Grok
+FOLLY_PROVIDER=xai ~/labs/agents/red-teaming/folly/start_service.sh
+
+# Use Ollama (local, no API key required)
+FOLLY_PROVIDER=ollama ~/labs/agents/red-teaming/folly/start_service.sh
 
 # Advanced challenges on Groq with a specific model
-FOLLY_PROVIDER=groq FOLLY_MODEL=meta-llama/llama-4-scout-17b-16e-instruct ./start.sh advanced
+FOLLY_PROVIDER=groq FOLLY_MODEL=meta-llama/llama-4-scout-17b-16e-instruct \
+  ~/labs/agents/red-teaming/folly/start_service.sh advanced
 
 # Custom challenge config file
-./start.sh path/to/custom_challenges.json
+~/labs/agents/red-teaming/folly/start_service.sh path/to/custom_challenges.json
 ```
 
 | Environment Variable | Default | Description |
 |---------------------|---------|-------------|
-| `FOLLY_PROVIDER` | `openai` | LLM provider (`openai` or `groq`) |
-| `FOLLY_MODEL` | `gpt-4` (openai) / `qwen/qwen3-32b` (groq) | Model name |
-| `LABS_DIR` | `~/labs` | Directory where Folly is cloned |
+| `FOLLY_PROVIDER` | `openai` | LLM provider: `openai`, `groq`, `ollama`, `xai` |
+| `FOLLY_MODEL` | provider default | Override model name |
 
 ---
 
-### `stop.sh` — Stop API + UI
-
-Stops both the API and UI background processes.
+## Stop
 
 ```bash
-./stop.sh
+~/labs/agents/red-teaming/folly/stop_service.sh
 ```
 
 Falls back to killing processes on ports 5000/5001 if PID files are missing.
@@ -73,15 +77,15 @@ Falls back to killing processes on ports 5000/5001 if PID files are missing.
 
 ```bash
 # 1. Install
-./install.sh
+~/labs/AISecWorkshops/labs/setup/scripts/tools/install-folly.sh
 
 # 2. Start (basic challenges, OpenAI)
-./start.sh
+~/labs/agents/red-teaming/folly/start_service.sh
 
 # 3. Open browser to http://localhost:5001
 
 # 4. When done
-./stop.sh
+~/labs/agents/red-teaming/folly/stop_service.sh
 ```
 
 ---

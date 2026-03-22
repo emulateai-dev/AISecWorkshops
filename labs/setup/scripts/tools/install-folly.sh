@@ -7,9 +7,9 @@
 #    • user1342/Folly repo
 #    • Python 3.7+ virtualenv + pip install -e .
 #    • Ollama (optional, for local model provider)
-#    • Helper scripts: start.sh / stop.sh
+#    • Helper scripts: start_service.sh / stop_service.sh
 #
-#  Providers supported (via start.sh):
+#  Providers supported (via start_service.sh):
 #    openai  → https://api.openai.com/v1
 #    groq    → https://api.groq.com/openai/v1
 #    ollama  → http://localhost:11434/v1  (requires Ollama installed)
@@ -39,7 +39,7 @@ echo "============================================================"
 echo ""
 
 # ── Configuration (override via env vars) ─────────────────────
-BASE_DIR="${BASE_DIR:-/home/dtx/labs/agents/red-teaming/folly}"
+BASE_DIR="${BASE_DIR:-$HOME/labs/agents/red-teaming/folly}"
 REPO_URL="${REPO_URL:-https://github.com/user1342/Folly.git}"
 CLONE_DIR="${CLONE_DIR:-Folly}"
 API_PORT="${API_PORT:-5000}"
@@ -182,19 +182,19 @@ else
   info "Skipping Ollama install (INSTALL_OLLAMA=false)."
 fi
 
-# ── 8. Generate start.sh helper ──────────────────────────────
-START_SCRIPT="${BASE_DIR}/start.sh"
+# ── 8. Generate start_service.sh helper ──────────────────────────────
+START_SCRIPT="${BASE_DIR}/start_service.sh"
 info "Generating start script: ${START_SCRIPT}"
 cat > "${START_SCRIPT}" <<EOF
 #!/usr/bin/env bash
-# start.sh – Start Folly API + UI (Prompt Injection Challenge Framework)
+# start_service.sh – Start Folly API + UI (Prompt Injection Challenge Framework)
 # ============================================================
 # Usage:
-#   ./start.sh                    – basic challenges, OpenAI (default)
-#   ./start.sh advanced           – advanced challenges
-#   FOLLY_PROVIDER=groq ./start.sh
-#   FOLLY_PROVIDER=ollama ./start.sh
-#   FOLLY_MODEL=llama3.2 FOLLY_PROVIDER=ollama ./start.sh advanced
+#   ./start_service.sh                    – basic challenges, OpenAI (default)
+#   ./start_service.sh advanced           – advanced challenges
+#   FOLLY_PROVIDER=groq ./start_service.sh
+#   FOLLY_PROVIDER=ollama ./start_service.sh
+#   FOLLY_MODEL=llama3.2 FOLLY_PROVIDER=ollama ./start_service.sh advanced
 #
 # Provider env vars:
 #   FOLLY_PROVIDER  openai (default) | groq | ollama
@@ -223,7 +223,7 @@ FOLLY_UI="\${LAB_DIR}/venv/bin/folly-ui"
 
 # Guard: already running?
 if [[ -d "\${PID_DIR}" ]] && { [[ -f "\${PID_DIR}/api.pid" ]] || [[ -f "\${PID_DIR}/ui.pid" ]]; }; then
-  echo "⚠️  Folly may already be running. Run ./stop.sh first, or check:"
+  echo "⚠️  Folly may already be running. Run ./stop_service.sh first, or check:"
   echo "    API PID: \$(cat "\${PID_DIR}/api.pid" 2>/dev/null || echo 'none')"
   echo "    UI  PID: \$(cat "\${PID_DIR}/ui.pid"  2>/dev/null || echo 'none')"
   exit 1
@@ -354,18 +354,18 @@ echo ""
 echo "   Open in browser → http://localhost:\${UI_PORT}"
 echo "   API backend     → http://localhost:\${API_PORT}"
 echo ""
-echo "   Stop with:  \$(dirname "\$0")/stop.sh"
+echo "   Stop with:  \$(dirname "\$0")/stop_service.sh"
 echo ""
 EOF
 chmod +x "${START_SCRIPT}"
 success "Created: ${START_SCRIPT}"
 
-# ── 9. Generate stop.sh helper ───────────────────────────────
-STOP_SCRIPT="${BASE_DIR}/stop.sh"
+# ── 9. Generate stop_service.sh helper ───────────────────────────────
+STOP_SCRIPT="${BASE_DIR}/stop_service.sh"
 info "Generating stop script: ${STOP_SCRIPT}"
 cat > "${STOP_SCRIPT}" <<'EOF'
 #!/usr/bin/env bash
-# stop.sh – Stop Folly API + UI
+# stop_service.sh – Stop Folly API + UI
 set -euo pipefail
 
 PID_DIR="${XDG_RUNTIME_DIR:-/tmp}/folly"

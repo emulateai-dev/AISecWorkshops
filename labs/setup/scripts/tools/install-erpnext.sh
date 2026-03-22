@@ -34,8 +34,8 @@ if [ -f "$DOCKER_DIR/.env.example" ] && [ ! -f "$DOCKER_DIR/.env" ]; then
     cp "$DOCKER_DIR/.env.example" "$DOCKER_DIR/.env"
 fi
 
-# Create start.sh
-cat <<'EOF' > start.sh
+# Create start_service.sh
+cat <<'EOF' > start_service.sh
 #!/bin/bash
 set -euo pipefail
 
@@ -107,10 +107,10 @@ SITE="${ERP_SITE:-frontend}"
 docker compose -f "$compose_file" exec backend bench --site "$SITE" migrate || true
 docker compose -f "$compose_file" exec backend bench --site "$SITE" execute frappe.db.set_value --args "['User','Guest','enabled',1]" || true
 EOF
-chmod +x start.sh
+chmod +x start_service.sh
 
-# Create stop.sh
-cat <<'EOF' > stop.sh
+# Create stop_service.sh
+cat <<'EOF' > stop_service.sh
 #!/bin/bash
 set -euo pipefail
 
@@ -178,7 +178,7 @@ compose_cmd+=(down --remove-orphans)
 
 "${compose_cmd[@]}"
 EOF
-chmod +x stop.sh
+chmod +x stop_service.sh
 
 echo "$APP_NAME installed in $INSTALL_DIR"
-echo "Use $INSTALL_DIR/start.sh to start and $INSTALL_DIR/stop.sh to stop."
+echo "Use $INSTALL_DIR/start_service.sh to start and $INSTALL_DIR/stop_service.sh to stop."

@@ -31,7 +31,7 @@ echo "============================================================"
 echo ""
 
 # ── Configuration (override via env vars) ─────────────────────
-BASE_DIR="${BASE_DIR:-/home/dtx/labs/mcp}"
+BASE_DIR="${BASE_DIR:-$HOME/labs/mcp}"
 CLONE_DIR="${CLONE_DIR:-dv_mcp_labs}"
 REPO_SSH="git@github.com:emulateai-dev/dv_mcp_labs.git"
 REPO_HTTPS="https://github.com/emulateai-dev/dv_mcp_labs.git"
@@ -115,10 +115,27 @@ fi
 
 # ── 6. Pull vulnerable Llama model from HuggingFace via Ollama ─
 info "Checking model '${OLLAMA_MODEL_NAME}' (from HuggingFace: ${HF_REPO})..."
+
+# Check if model was already downloaded as a raw git-lfs clone by Tool_Setup.sh
+LOCAL_MODEL_DIR="$HOME/labs/datasets/vulnerable_llama_model"
+GGUF_FILE="$(find "${LOCAL_MODEL_DIR}" -name "*.gguf" 2>/dev/null | head -1 || true)"
+
 if ollama list 2>/dev/null | grep -q "^${OLLAMA_MODEL_NAME}"; then
   success "Model '${OLLAMA_MODEL_NAME}' already available in Ollama."
+elif [[ -n "${GGUF_FILE}" ]]; then
+  info "Found local GGUF at: ${GGUF_FILE}"
+  info "Creating Ollama model from local file (no re-download needed)..."
+  MODELFILE_TMP="$(mktemp)"
+  echo "FROM ${GGUF_FILE}" > "${MODELFILE_TMP}"
+  if ollama create "${OLLAMA_MODEL_NAME}" -f "${MODELFILE_TMP}"; then
+    success "Model '${OLLAMA_MODEL_NAME}' created from local file."
+  else
+    warn "ollama create from local file failed. Falling back to HuggingFace pull..."
+    ollama pull "hf.co/${HF_REPO}" || warn "ollama pull also failed. Retry manually: ollama pull hf.co/${HF_REPO}"
+  fi
+  rm -f "${MODELFILE_TMP}"
 else
-  info "Pulling vulnerable Llama model from HuggingFace..."
+  info "Local GGUF not found. Pulling from HuggingFace..."
   info "  HF repo : ${HF_REPO}"
   info "  This may take several minutes depending on your connection."
 

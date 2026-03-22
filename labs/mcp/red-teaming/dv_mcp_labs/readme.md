@@ -25,10 +25,7 @@ The **Damn Vulnerable MCP Server (DVMS)** is a deliberately insecure implementat
 
 1. **Update and Install the DVMS lab**
    ```bash
-   cd AISecWorkshops/
-   git stash
-   git pull
-   ./labs/setup/scripts/tools/install_dvmcp.sh
+   ~/labs/AISecWorkshops/labs/setup/scripts/tools/install-dvmcp.sh
    ```
 
    **Configure local hostname (emulateai-mcp.local):**

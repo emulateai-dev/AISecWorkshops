@@ -30,22 +30,23 @@ Because it has broad tool access and operates with implicit trust, it is an idea
    $INSTALL_SCRIPTS/install-edr.sh
    ```
 
-2. **Activate the virtual environment**
+2. **Start the application**
 
    ```bash
-   cd $HOME/labs/AISecWorkshops/agents/red-teaming/edr/enterprise-deep-research
+   $HOME/labs/agents/red-teaming/edr/start_service.sh
+   ```
+
+   Or manually:
+
+   ```bash
+   cd $HOME/labs/agents/red-teaming/edr/enterprise-deep-research
    source venv/bin/activate
+   uvicorn app:app --host 0.0.0.0 --port 8000
    ```
 
-3. **Run the application**
+3. **Access the demo**
 
-   ```bash
-   python3 app.py
-   ```
-
-4. **Access the demo**
-
-   * Visit: `http://IP_ADDRESS:PORT`
+   * Visit: `http://IP_ADDRESS:8000`
    * Replace `IP_ADDRESS` with your VM's IP address.
 
 ---

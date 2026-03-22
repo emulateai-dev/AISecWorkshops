@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # install-ai-red-teaming-playground-labs.sh
 # Finbot-style installer for microsoft/AI-Red-Teaming-Playground-Labs:
-# - clones into labs/webapps/
+# - clones into ~/labs/agents/
 # - writes .env (uses ~/.secrets/OPENAI_API_KEY.txt if present)
-# - creates start.sh/stop.sh (no compose overrides; mapping lives in your fork)
+# - creates start_service.sh/stop_service.sh (no compose overrides; mapping lives in your fork)
 #
 # After forking, ensure your docker-compose-openai.yaml maps:
 #   - "${APP_PORT:-15000}:5000"
@@ -12,7 +12,7 @@
 set -euo pipefail
 
 # --- Config (override via env) ---
-BASE_DIR="${BASE_DIR:-labs/agents}"
+BASE_DIR="${BASE_DIR:-$HOME/labs/agents}"
 REPO_URL="${REPO_URL:-https://github.com/detoxio-ai/AI-Red-Teaming-Playground-Labs.git}"
 CLONE_DIR_NAME="${CLONE_DIR_NAME:-AI-Red-Teaming-Playground-Labs}"
 APP_PORT="${APP_PORT:-15000}"
@@ -88,8 +88,8 @@ fi
 
 echo "Wrote .env with APP_PORT=${APP_PORT}"
 
-# --- start.sh ---
-cat > start.sh <<'EOF'
+# --- start_service.sh ---
+cat > start_service.sh <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -102,7 +102,7 @@ if [ -f .env ]; then
   set +a
 fi
 
-# Allow override at invocation: PORT=16000 ./start.sh
+# Allow override at invocation: PORT=16000 ./start_service.sh
 export APP_PORT="${PORT:-${APP_PORT:-15000}}"
 
 # Resolve public IP (fallback to localhost if curl fails)
@@ -121,27 +121,27 @@ AUTH_KEY="$(grep -E '^AUTH_KEY=' .env | cut -d= -f2- | tr -d '\r' || true)"
 echo ""
 echo "✅ Playground up. Login:"
 echo "   http://${PUBLIC_IP}:${APP_PORT}/login?auth=${AUTH_KEY}"
-echo "   (Challenges spawn on ports like 4001–4012)"
+echo "   (Challenges spawn on ports like 14001–14012)"
 echo ""
 EOF
-chmod +x start.sh
+chmod +x start_service.sh
 
-# --- stop.sh ---
-cat > stop.sh <<'EOF'
+# --- stop_service.sh ---
+cat > stop_service.sh <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")"
 docker compose -f docker-compose-openai.yaml down
 EOF
-chmod +x stop.sh
+chmod +x stop_service.sh
 
 # --- Final notes ---
 echo ""
 echo "✅ Install complete."
-echo "Repo: $(pwd)"
+echo "Repo: ${BASE_DIR}/${CLONE_DIR_NAME}"
 echo "Virtualenv: N/A (Docker/Compose app)"
-echo "Start script: $(pwd)/start.sh (default port ${APP_PORT})"
+echo "Start script: ${BASE_DIR}/${CLONE_DIR_NAME}/start_service.sh (default port ${APP_PORT})"
 echo ""
 echo "To run:"
-echo "  cd \"$(pwd)\""
-echo "  PORT=${APP_PORT} ./start.sh"
+echo "  cd \"${BASE_DIR}/${CLONE_DIR_NAME}\""
+echo "  PORT=${APP_PORT} ${BASE_DIR}/${CLONE_DIR_NAME}/start_service.sh"

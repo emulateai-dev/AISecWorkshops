@@ -1,5 +1,15 @@
 ### PyRIT Docker Setup Guide
 
+> **Quick Setup:** Use the automated installer:
+> ```bash
+> ~/labs/AISecWorkshops/labs/setup/scripts/tools/install-pyrit.sh
+> ```
+> This clones the repo, builds the Docker image, creates `~/.pyrit/` with your API key pre-populated from `~/.secrets/`, and generates `start_service.sh` / `stop_service.sh`.
+
+---
+
+**Manual Setup (step-by-step)**
+
 **Step 1: Clone the Repository**
 Pull the source code and navigate into the root directory. (Crucial: Do not go into the `docker/` folder yet!)
 
@@ -77,8 +87,8 @@ docker compose -f docker/docker-compose.yaml logs -f
 **Step 5: Access PyRIT**
 Your local environment is now fully running and authenticated with your overrides in place! You can access the interfaces in your browser:
 
-* **PyRIT GUI:** [http://localhost:8000](https://www.google.com/search?q=http://localhost:8000)
-* **Jupyter Notebooks:** [http://localhost:8888](https://www.google.com/search?q=http://localhost:8888)
+* **PyRIT GUI:** http://localhost:8000
+* **Jupyter Notebooks:** http://localhost:8888
 
 ---
 

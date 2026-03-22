@@ -41,8 +41,8 @@ The **OpenAI Customer Support Agent Demo** is a multi-agent system for handling 
 2. **Run the application**
 
    ```bash
-   cd ./labs/webapps/openai-cs-agents-demo
-   ./start.sh
+   cd $HOME/labs/agents/openai-cs-agents-demo
+   ./start_service.sh
    ```
 
    > ⚠️ Note: It may take a few seconds to compile.
