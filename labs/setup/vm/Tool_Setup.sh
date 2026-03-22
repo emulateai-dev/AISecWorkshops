@@ -3,7 +3,10 @@ set -euo pipefail
 
 # ============================================================
 # DTX Lab — Post setup (user tools, repos, models, keys)
-# Run with: sudo ./post.sh
+# Run with: sudo ./Tool_Setup.sh
+#
+# This script is idempotent — safe to re-run at any time to
+# install missing components or refresh the environment.
 # ============================================================
 
 # --- Resolve target user/home (prefer sudo caller), fallback 'dtx' ---
@@ -49,9 +52,10 @@ sudo -u "$TARGET_USER" bash -lc '
 sudo -u "$TARGET_USER" bash -lc '
   set -e
   source "$HOME/.local/bin/env"
-  uv tool install "dtx[torch]>=0.26.0"
-  uv tool install "garak"
-  uv tool install "huggingface_hub[cli,torch]"
+  # uv tool install is idempotent — upgrades if already installed
+  uv tool install --upgrade "dtx[torch]>=0.26.0"
+  uv tool install --upgrade "garak"
+  uv tool install --upgrade "huggingface_hub[cli,torch]"
 '
 
 # ============================================================
@@ -61,10 +65,18 @@ sudo -u "$TARGET_USER" bash -lc '
 systemctl enable ollama || true
 systemctl start  ollama || true
 
-# Pull models (ignore failures if ollama/daemon not present yet)
-ollama pull smollm2                 || true
-ollama pull qwen3:0.6b              || true
-ollama pull llama-guard3:1b-q3_K_S  || true
+# Pull models only if not already present
+pull_if_missing() {
+  local model="$1"
+  if ollama list 2>/dev/null | grep -q "^${model}"; then
+    echo "ℹ️  Model '${model}' already present — skipping pull."
+  else
+    ollama pull "${model}" || echo "⚠️  Failed to pull '${model}' — skipping."
+  fi
+}
+pull_if_missing smollm2
+pull_if_missing qwen3:0.6b
+pull_if_missing llama-guard3:1b-q3_K_S
 
 # ============================================================
 # 4) Export API keys from secrets via user's .bashrc
@@ -113,7 +125,7 @@ fi
 sudo -u "$TARGET_USER" bash -lc '
   set -e
   source "$HOME/.local/bin/env"
-  uv tool install "llm"
+  uv tool install --upgrade "llm"
   if [ -f "$HOME/.secrets/OPENAI_API_KEY.txt" ]; then
     OPENAI_KEY="$(cat "$HOME/.secrets/OPENAI_API_KEY.txt")"
     if [ -n "$OPENAI_KEY" ]; then
@@ -134,7 +146,13 @@ sudo -u "$TARGET_USER" bash -lc '
   source "$HOME/.local/bin/env" || true
 
   PY_BIN="$( (uv python find 3.12) || command -v python3.12 || command -v python3 || echo python )"
-  "$PY_BIN" -m venv "$HOME/.aisecurity"
+
+  if [ ! -d "$HOME/.aisecurity" ]; then
+    "$PY_BIN" -m venv "$HOME/.aisecurity"
+    echo "✅ Created ~/.aisecurity venv."
+  else
+    echo "ℹ️  ~/.aisecurity venv already exists — upgrading packages."
+  fi
 
   source "$HOME/.aisecurity/bin/activate"
   python -m pip install --upgrade pip
@@ -145,16 +163,19 @@ sudo -u "$TARGET_USER" bash -lc '
 # ============================================================
 # 11) Metasploit — MUST run as root (msfinstall does root ops)
 # ============================================================
-# Use a temp working dir under /tmp, then clean up
-TMPDIR="$(mktemp -d)"
-pushd "$TMPDIR"
-curl -SL https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb -o msfinstall
-chmod 755 msfinstall
-rm -f /usr/share/keyrings/metasploit-framework.gpg || true
-yes | ./msfinstall || true
-yes | msfdb init   || true
-popd
-rm -rf "$TMPDIR"
+if command -v msfconsole >/dev/null 2>&1; then
+  echo "ℹ️  Metasploit already installed — skipping."
+else
+  TMPDIR="$(mktemp -d)"
+  pushd "$TMPDIR"
+  curl -SL https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb -o msfinstall
+  chmod 755 msfinstall
+  rm -f /usr/share/keyrings/metasploit-framework.gpg || true
+  yes | ./msfinstall || true
+  yes | msfdb init   || true
+  popd
+  rm -rf "$TMPDIR"
+fi
 
 
 # ============================================================
@@ -185,11 +206,15 @@ sudo -u "$TARGET_USER" bash -lc "
   mkdir -p \"\$HOME/.pyrit\"
   touch \"\$HOME/.pyrit/.env\" \"\$HOME/.pyrit/.env.local\"
 "
-# Build devcontainer image from repo root (context must include .devcontainer/)
-docker build \
-  -f "$PYRIT_DIR/PyRIT/.devcontainer/Dockerfile" \
-  -t pyrit-devcontainer \
-  "$PYRIT_DIR/PyRIT/.devcontainer" || echo "⚠️  PyRIT devcontainer build failed (Docker may not be available)."
+# Build devcontainer image only if not already built
+if docker image inspect pyrit-devcontainer >/dev/null 2>&1; then
+  echo "ℹ️  pyrit-devcontainer image already exists — skipping build."
+else
+  docker build \
+    -f "$PYRIT_DIR/PyRIT/.devcontainer/Dockerfile" \
+    -t pyrit-devcontainer \
+    "$PYRIT_DIR/PyRIT/.devcontainer" || echo "⚠️  PyRIT devcontainer build failed (Docker may not be available)."
+fi
 echo "✅ PyRIT setup complete — repo: $PYRIT_DIR/PyRIT"
 
 # ============================================================
@@ -218,17 +243,22 @@ echo "✅ Vulnerable model dataset ready: $VULN_MODEL_DIR/vulnerable_model"
 # ============================================================
 # 15) BurpSuite Community Edition (silent / non-interactive)
 # ============================================================
-BURP_TMP="$(mktemp -d)"
-BURP_INSTALLER="$BURP_TMP/burpsuite_installer.sh"
-curl -SL \
-  "https://portswigger.net/burp/releases/download?product=community&version=2026.1.4&type=Linux" \
-  -o "$BURP_INSTALLER"
-chmod +x "$BURP_INSTALLER"
-# Run headless; accept defaults; suppress interactive prompts
-"$BURP_INSTALLER" -q || \
-  "$BURP_INSTALLER" --mode unattended || true
-rm -rf "$BURP_TMP"
-echo "✅ BurpSuite Community installation attempted."
+if command -v burpsuite >/dev/null 2>&1 || [ -f "/usr/local/bin/burpsuite" ] || \
+   find /opt /usr/local -name "burpsuite*" -maxdepth 4 2>/dev/null | grep -q .; then
+  echo "ℹ️  BurpSuite already installed — skipping."
+else
+  BURP_TMP="$(mktemp -d)"
+  BURP_INSTALLER="$BURP_TMP/burpsuite_installer.sh"
+  curl -SL \
+    "https://portswigger.net/burp/releases/download?product=community&version=2026.1.4&type=Linux" \
+    -o "$BURP_INSTALLER"
+  chmod +x "$BURP_INSTALLER"
+  # Run headless; accept defaults; suppress interactive prompts
+  "$BURP_INSTALLER" -q || \
+    "$BURP_INSTALLER" --mode unattended || true
+  rm -rf "$BURP_TMP"
+  echo "✅ BurpSuite Community installation attempted."
+fi
 
 
 

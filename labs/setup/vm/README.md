@@ -63,12 +63,13 @@ Reference screenshot:
 
 ### Steps to Upgrade Environment
 
-Use the following commands inside the VM to pull the latest environment upgrade script and apply updates:
+`Tool_Setup.sh` is idempotent — you can re-run it at any time to install missing
+components or refresh the environment. It will skip steps that are already complete.
 
 ```bash
-cd $HOME
-git clone https://github.com/emulateai-dev/AISecWorkshops.git
-sudo ./AISecWorkshops/labs/setup/vm/upgrade_env.sh
+cd $HOME/labs/AISecWorkshops
+git pull origin main
+sudo ./labs/setup/vm/Tool_Setup.sh
 ```
 
 ### Validate Labs After Installation

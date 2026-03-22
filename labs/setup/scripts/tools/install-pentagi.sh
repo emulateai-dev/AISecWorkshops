@@ -40,15 +40,22 @@ cp "$ENV_TEMPLATE" "$ENV_FILE"
 # Inject OpenAI API key
 if [ -f "$OPENAI_FILE" ]; then
   OPENAI_KEY=$(cat "$OPENAI_FILE")
-  if grep -q "^OPEN_AI_KEY=" "$ENV_FILE"; then
-    sed -i.bak "s|^OPEN_AI_KEY=.*|OPEN_AI_KEY=${OPENAI_KEY}|" "$ENV_FILE"
+  if [ -n "$OPENAI_KEY" ]; then
+    if grep -q "^OPEN_AI_KEY=" "$ENV_FILE"; then
+      sed -i.bak "s|^OPEN_AI_KEY=.*|OPEN_AI_KEY=${OPENAI_KEY}|" "$ENV_FILE"
+    else
+      echo "OPEN_AI_KEY=${OPENAI_KEY}" >> "$ENV_FILE"
+    fi
+    echo "✅ OpenAI key inserted into $ENV_FILE"
   else
-    echo "OPEN_AI_KEY=${OPENAI_KEY}" >> "$ENV_FILE"
+    echo "⚠️  WARNING: $OPENAI_FILE is empty. You will need to set the key manually."
+    echo "    Edit: $REPO_DIR/$ENV_FILE  →  OPEN_AI_KEY=your_key_here"
   fi
-  echo "✅ OpenAI key inserted into $ENV_FILE"
 else
-  echo "❌ ERROR: OpenAI key file not found at $OPENAI_FILE"
-  exit 1
+  echo "⚠️  WARNING: OpenAI key file not found at $OPENAI_FILE"
+  echo "    Installation will continue. Set the key before starting:"
+  echo "    mkdir -p ~/.secrets && echo 'your_key' > $OPENAI_FILE"
+  echo "    Then re-run this script, or edit: $REPO_DIR/$ENV_FILE"
 fi
 
 # Replace 127.0.0.1 with 0.0.0.0 in docker-compose.yml
@@ -59,11 +66,54 @@ else
   echo "⚠️ WARNING: $DOCKER_COMPOSE_FILE not found; skipping IP replacement."
 fi
 
-# Start and stop docker to pull and cache images
-echo "📦 Starting containers to preload images..."
+# --- Generate start_service.sh ---
+START_SCRIPT="${REPO_DIR}/start_service.sh"
+cat > "${START_SCRIPT}" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+echo "🚀 Starting Pentagi..."
 docker compose up -d
+echo "✅ Pentagi is running!"
+echo "→ Access: http://localhost:3000"
+EOF
+chmod +x "${START_SCRIPT}"
 
-echo "🧹 Shutting down containers (images cached)..."
+# --- Generate stop_service.sh ---
+STOP_SCRIPT="${REPO_DIR}/stop_service.sh"
+cat > "${STOP_SCRIPT}" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+echo "🛑 Stopping Pentagi..."
+docker compose down
+echo "✅ Pentagi stopped."
+EOF
+chmod +x "${STOP_SCRIPT}"
+
+# Preload Docker images
+echo "📦 Preloading Docker images..."
+docker compose up -d
 docker compose down
 
-echo "✅ Pentagi setup complete in: $REPO_DIR"
+echo ""
+echo "============================================================"
+echo "   Pentagi – Installation Complete!"
+echo "============================================================"
+echo ""
+echo "  Repository : ${REPO_DIR}"
+echo "  Config     : ${REPO_DIR}/.env"
+echo ""
+echo "  Helper scripts:"
+echo "    Start → ${START_SCRIPT}"
+echo "    Stop  → ${STOP_SCRIPT}"
+echo ""
+echo "  ─── Next steps ────────────────────────────────────────"
+echo "  1. Edit your API key (if not already set):"
+echo "       nano ${REPO_DIR}/.env"
+echo ""
+echo "  2. Start:"
+echo "       ${START_SCRIPT}"
+echo ""
+echo "  3. Access: http://localhost:3000"
+echo ""

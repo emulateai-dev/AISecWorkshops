@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Installs detoxio-ai/openai-cs-agents-demo under ~/labs/webapps/,
+# Installs detoxio-ai/openai-cs-agents-demo under ~/labs/agents/,
 # prepares python-backend/.venv with uv, installs UI deps,
-# binds Next.js dev/prod to 0.0.0.0, and creates start.sh to run `npm run dev`.
+# binds Next.js dev/prod to 0.0.0.0, and creates start_service.sh to run `npm run dev`.
 
 set -euo pipefail
 
@@ -75,8 +75,8 @@ if grep -q '"start"' package.json; then
 fi
 popd >/dev/null
 
-# --- start.sh at repo root ---
-cat > start.sh <<'EOF'
+# --- start_service.sh at repo root ---
+cat > start_service.sh <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 # Runs both frontend and backend via the ui package.json "dev" script.
@@ -89,27 +89,61 @@ fi
 
 exec npm run dev
 EOF
-chmod +x start.sh
+chmod +x start_service.sh
+
+# --- stop_service.sh at repo root ---
+STOP_SCRIPT="${BASE_DIR}/${CLONE_DIR}/stop_service.sh"
+cat > "${BASE_DIR}/${CLONE_DIR}/stop_service.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🛑 Stopping OpenAI CS Agents Demo..."
+PIDS=$(pgrep -f "npm run dev" 2>/dev/null || true)
+if [[ -n "${PIDS}" ]]; then
+  echo "${PIDS}" | xargs kill -TERM
+  echo "✅ Stopped."
+else
+  echo "ℹ️  No running npm run dev process found."
+fi
+EOF
+chmod +x "${BASE_DIR}/${CLONE_DIR}/stop_service.sh"
 
 # --- optional backend .env template ---
 if [[ ! -f python-backend/.env ]]; then
-  cat > python-backend/.env <<'EOF'
-OPENAI_API_KEY=replace_me
+  # Auto-read from ~/.secrets/ if available, otherwise leave as placeholder
+  _OPENAI_KEY=""
+  if [[ -n "${OPENAI_API_KEY:-}" ]]; then
+    _OPENAI_KEY="${OPENAI_API_KEY}"
+  elif [[ -f "$HOME/.secrets/OPENAI_API_KEY.txt" ]]; then
+    _OPENAI_KEY="$(cat "$HOME/.secrets/OPENAI_API_KEY.txt")"
+  fi
+
+  cat > python-backend/.env <<EOF
+OPENAI_API_KEY=${_OPENAI_KEY:-replace_me}
 EOF
+
+  if [[ -z "${_OPENAI_KEY}" ]]; then
+    echo "ℹ️  OPENAI_API_KEY not found in env or ~/.secrets/OPENAI_API_KEY.txt"
+    echo "    Edit python-backend/.env and set your key before starting."
+  else
+    echo "✅ OPENAI_API_KEY written to python-backend/.env"
+  fi
 fi
 
 echo ""
 echo "✅ Install complete."
 echo "Repo: ${BASE_DIR}/${CLONE_DIR}"
-echo "Start script: ${BASE_DIR}/${CLONE_DIR}/start.sh"
+echo ""
+echo "  Helper scripts:"
+echo "    Start → ${BASE_DIR}/${CLONE_DIR}/start_service.sh"
+echo "    Stop  → ${BASE_DIR}/${CLONE_DIR}/stop_service.sh"
 echo ""
 echo "Usage:"
 echo "  # Option A: export your key in the shell"
 echo "  export OPENAI_API_KEY=your_api_key"
-echo "  ${BASE_DIR}/${CLONE_DIR}/start.sh"
+echo "  ${BASE_DIR}/${CLONE_DIR}/start_service.sh"
 echo ""
 echo "  # Option B: put your key in ${BASE_DIR}/${CLONE_DIR}/python-backend/.env (already created)"
-echo "  ${BASE_DIR}/${CLONE_DIR}/start.sh"
+echo "  ${BASE_DIR}/${CLONE_DIR}/start_service.sh"
 echo ""
 echo "UI: Next.js dev binds to 0.0.0.0:3000"
 echo "API: Uvicorn binds to 0.0.0.0:8000"

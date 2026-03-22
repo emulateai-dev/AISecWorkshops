@@ -11,7 +11,7 @@ You already ran:
 This cloned the repo into:
 
 ```
-/home/dtx/labs/agents/AI-Red-Teaming-Playground-Labs
+~/labs/agents/AI-Red-Teaming-Playground-Labs
 ```
 
 and wrote `.env` with default port **15000**.
@@ -23,8 +23,8 @@ and wrote `.env` with default port **15000**.
 From the repo directory:
 
 ```bash
-cd /home/dtx/labs/agents/AI-Red-Teaming-Playground-Labs
-PORT=15000 ./start.sh
+cd ~/labs/agents/AI-Red-Teaming-Playground-Labs
+PORT=15000 ./start_service.sh
 ```
 
 ✅ This brings up multiple **Docker containers** that host the playground challenges.
@@ -63,8 +63,8 @@ Each challenge is self-contained and provides **instructions + a target model/ap
 When done, stop containers with:
 
 ```bash
-cd /home/dtx/labs/agents/AI-Red-Teaming-Playground-Labs
-./stop.sh
+cd ~/labs/agents/AI-Red-Teaming-Playground-Labs
+./stop_service.sh
 ```
 ---
 

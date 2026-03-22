@@ -63,14 +63,24 @@ folly-cli --help
 
 > **Troubleshooting:** If you see `error: externally-managed-environment`, make sure you're using `uv tool install` and not `pip install` directly.
 
-> **Quick Setup:** You can also use the automated scripts in [`labs/setup/folly/`](../../setup/folly/):
+> **Quick Setup:** Use the automated installer from the AISecWorkshops repo root:
 >
 > ```bash
-> cd labs/setup/folly
-> ./install.sh        # clone + install
-> ./start.sh          # start API + UI (basic challenges)
-> ./start.sh advanced # start with advanced challenges
-> ./stop.sh           # stop everything
+> # Install (run once)
+> ~/labs/AISecWorkshops/labs/setup/scripts/tools/install-folly.sh
+>
+> # Start (basic challenges — OpenAI by default)
+> ~/labs/agents/red-teaming/folly/start_service.sh
+>
+> # Start with Groq or Ollama
+> FOLLY_PROVIDER=groq ~/labs/agents/red-teaming/folly/start_service.sh
+> FOLLY_PROVIDER=ollama ~/labs/agents/red-teaming/folly/start_service.sh
+>
+> # Start advanced challenges
+> ~/labs/agents/red-teaming/folly/start_service.sh advanced
+>
+> # Stop
+> ~/labs/agents/red-teaming/folly/stop_service.sh
 > ```
 
 ---

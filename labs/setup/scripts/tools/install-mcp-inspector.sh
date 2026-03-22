@@ -3,7 +3,7 @@
 set -e
 
 # Variables
-BASE_DIR="/home/dtx/labs/mcp/mcp_inspector"
+BASE_DIR="${BASE_DIR:-$HOME/labs/mcp/mcp_inspector}"
 IMAGE_NAME="ghcr.io/modelcontextprotocol/inspector:latest"
 CONTAINER_NAME="mcp_inspector"
 
@@ -98,7 +98,23 @@ fi
 EOL
 chmod +x "$STOP_SCRIPT"
 
-echo "✅ Installation complete!"
-
-# Run service immediately
-"$START_SCRIPT"
+echo ""
+echo "============================================================"
+echo "   MCP Inspector – Installation Complete!"
+echo "============================================================"
+echo ""
+echo "  Directory : ${BASE_DIR}"
+echo ""
+echo "  Helper scripts:"
+echo "    Start → ${START_SCRIPT}"
+echo "    Stop  → ${STOP_SCRIPT}"
+echo ""
+echo "  ─── Next steps ────────────────────────────────────────"
+echo "  1. Start MCP Inspector:"
+echo "       ${START_SCRIPT}"
+echo ""
+echo "  2. The start script will print the access URL with auth token."
+echo ""
+echo "  3. Stop:"
+echo "       ${STOP_SCRIPT}"
+echo ""

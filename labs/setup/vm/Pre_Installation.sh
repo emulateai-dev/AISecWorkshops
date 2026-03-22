@@ -52,12 +52,22 @@ apt-get install -y \
   net-tools \
   nmap \
   tmux \
-  python2 \
+  python3 \
+  python3-pip \
+  python3.10 \
+  python3.10-dev \
+  python3.10-venv \
   python3.13 \
   python3.13-dev \
   python3.13-venv \
-  build-essessntial \
+  python-is-python3 \
+  build-essential \
   nginx
+
+# Validate Python is accessible
+python3 --version >/dev/null 2>&1 || { echo "❌ python3 not found after install. Check apt output above."; exit 1; }
+python  --version >/dev/null 2>&1 && echo "✅ 'python' alias works." || echo "⚠️  'python' alias not set — install python-is-python3 manually if needed."
+echo "✅ Python checks passed."
 
 # ============================================================
 # 3) Docker
@@ -156,7 +166,11 @@ chown -R "$TARGET_USER:$TARGET_USER" "$TARGET_HOME"
 # ============================================================
 # 5) Ollama (system level)
 # ============================================================
-curl -fsSL https://ollama.com/install.sh | sh
+if command -v ollama >/dev/null 2>&1; then
+  echo "ℹ️  Ollama already installed — skipping."
+else
+  curl -fsSL https://ollama.com/install.sh | sh
+fi
 # Service name may not exist in some environments immediately; don't fail hard
 systemctl enable ollama || true
 systemctl start ollama || true

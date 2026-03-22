@@ -57,7 +57,7 @@ Each junction in this map is an attack surface. The labs in this section target 
 
 - DTX Lab VM with tools installed → [VM Setup Guide](../../setup/vm/README.md)
 - `OPENAI_API_KEY` or `GROQ_API_KEY` exported
-- `uv` installed (for Folly setup)
+- `python3` and `pip3` installed
 - Familiarity with the [LLM Red Teaming labs](../../llms/red-teaming/) (recommended)
 
 ---

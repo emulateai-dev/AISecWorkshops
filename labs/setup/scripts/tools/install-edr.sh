@@ -8,7 +8,7 @@
 #    • Python 3.10+ virtualenv + pip dependencies
 #    • Node.js frontend (ai-research-assistant)
 #    • Generates .env from .env.sample (keys left blank for user)
-#    • Creates start.sh / stop.sh helper scripts
+#    • Creates start_service.sh / stop_service.sh helper scripts
 #
 #  Supports: Ubuntu / Debian-based Linux (tested on 22.04+)
 #  Usage:    bash install-edr.sh
@@ -34,7 +34,7 @@ echo "============================================================"
 echo ""
 
 # ── Configuration (override via env vars) ─────────────────────
-BASE_DIR="${BASE_DIR:-/home/dtx/labs/agents/red-teaming/edr}"
+BASE_DIR="${BASE_DIR:-$HOME/labs/agents/red-teaming/edr}"
 REPO_URL="${REPO_URL:-https://github.com/SalesforceAIResearch/enterprise-deep-research.git}"
 CLONE_DIR="${CLONE_DIR:-enterprise-deep-research}"
 PYTHON_MIN_MINOR=10
@@ -276,12 +276,12 @@ else
   warn "This may mean the repo layout has changed. Check: ${LAB_DIR}"
 fi
 
-# ── 8. Generate start.sh helper ──────────────────────────────
-START_SCRIPT="${BASE_DIR}/start.sh"
+# ── 8. Generate start_service.sh helper ──────────────────────────────
+START_SCRIPT="${BASE_DIR}/start_service.sh"
 info "Generating start script: ${START_SCRIPT}"
 cat > "${START_SCRIPT}" <<EOF
 #!/usr/bin/env bash
-# start.sh – Start Enterprise Deep Research (EDR) API server
+# start_service.sh – Start Enterprise Deep Research (EDR) API server
 set -euo pipefail
 
 LAB_DIR="${LAB_DIR}"
@@ -309,12 +309,12 @@ EOF
 chmod +x "${START_SCRIPT}"
 success "Created: ${START_SCRIPT}"
 
-# ── 9. Generate stop.sh helper ───────────────────────────────
-STOP_SCRIPT="${BASE_DIR}/stop.sh"
+# ── 9. Generate stop_service.sh helper ───────────────────────────────
+STOP_SCRIPT="${BASE_DIR}/stop_service.sh"
 info "Generating stop script: ${STOP_SCRIPT}"
 cat > "${STOP_SCRIPT}" <<'EOF'
 #!/usr/bin/env bash
-# stop.sh – Stop EDR API server
+# stop_service.sh – Stop EDR API server
 set -euo pipefail
 
 echo "🛑 Stopping EDR (uvicorn) process..."

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install_finbot-ctf-demo.sh
 # Installs finbot-ctf-demo into labs/webapps/ using uv, creates a local .venv,
-# and writes a start.sh to launch on port 10001.
+# and writes start_service.sh / stop_service.sh to launch on port 10001.
 
 set -euo pipefail
 
@@ -65,8 +65,9 @@ if ! command -v gunicorn >/dev/null 2>&1; then
   uv pip install gunicorn
 fi
 
-# --- Create start.sh ---
-cat > start.sh <<'EOF'
+# --- Create start_service.sh ---
+START_SCRIPT="${BASE_DIR}/${CLONE_DIR_NAME}/start_service.sh"
+cat > "${START_SCRIPT}" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -90,16 +91,44 @@ exec uv run gunicorn app:app \
   --workers "${WORKERS}" \
   --timeout "${TIMEOUT}"
 EOF
+chmod +x "${START_SCRIPT}"
 
-chmod +x start.sh
+# --- Create stop_service.sh ---
+STOP_SCRIPT="${BASE_DIR}/${CLONE_DIR_NAME}/stop_service.sh"
+cat > "${STOP_SCRIPT}" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🛑 Stopping finbot-ctf-demo (gunicorn)..."
+PIDS=$(pgrep -f "gunicorn app:app" 2>/dev/null || true)
+if [[ -n "${PIDS}" ]]; then
+  echo "${PIDS}" | xargs kill -TERM
+  echo "✅ Stopped."
+else
+  echo "ℹ️  No running gunicorn app:app process found."
+fi
+EOF
+chmod +x "${STOP_SCRIPT}"
 
 # --- Final notes ---
 echo ""
-echo "✅ Install complete."
-echo "Repo: $(pwd)"
-echo "Virtualenv: $(pwd)/.venv"
-echo "Start script: $(pwd)/start.sh (default port ${APP_PORT})"
+echo "============================================================"
+echo "   finbot-ctf-demo – Installation Complete!"
+echo "============================================================"
 echo ""
-echo "To run:"
-echo "  cd \"$(pwd)\""
-echo "  PORT=${APP_PORT} ./start.sh"
+echo "  Repo      : ${BASE_DIR}/${CLONE_DIR_NAME}"
+echo "  Virtualenv: ${BASE_DIR}/${CLONE_DIR_NAME}/.venv"
+echo ""
+echo "  Helper scripts:"
+echo "    Start → ${START_SCRIPT}"
+echo "    Stop  → ${STOP_SCRIPT}"
+echo ""
+echo "  ─── Next steps ────────────────────────────────────────"
+echo "  1. Start (default port ${APP_PORT}):"
+echo "       ${START_SCRIPT}"
+echo ""
+echo "  2. Override port:"
+echo "       PORT=${APP_PORT} ${START_SCRIPT}"
+echo ""
+echo "  3. Stop:"
+echo "       ${STOP_SCRIPT}"
+echo ""

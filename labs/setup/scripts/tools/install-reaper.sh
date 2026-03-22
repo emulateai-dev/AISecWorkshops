@@ -10,12 +10,17 @@ OPENAI_KEY_FILE="$HOME/.secrets/OPENAI_API_KEY.txt"
 PORT=18000
 PROXY_PORT=28080
 
-# --- Validate OpenAI Key ---
-if [[ ! -f "$OPENAI_KEY_FILE" ]]; then
-  echo "❌ Missing OpenAI API key file at: $OPENAI_KEY_FILE"
-  exit 1
+# --- Resolve OpenAI Key ---
+OPENAI_API_KEY=""
+if [[ -n "${OPENAI_API_KEY:-}" ]]; then
+  : # already set in environment
+elif [[ -f "$OPENAI_KEY_FILE" ]]; then
+  OPENAI_API_KEY=$(< "$OPENAI_KEY_FILE")
+else
+  echo "⚠️  WARNING: OpenAI API key not found at $OPENAI_KEY_FILE"
+  echo "    Installation will continue. Set your key before starting:"
+  echo "    mkdir -p ~/.secrets && echo 'your_key' > $OPENAI_KEY_FILE"
 fi
-OPENAI_API_KEY=$(< "$OPENAI_KEY_FILE")
 
 # --- Clone the repo if needed ---
 if [[ ! -d "$CLONE_DIR" ]]; then
@@ -56,12 +61,59 @@ services:
       - ${PROXY_PORT}:8080
 EOF
 
-# --- Start Reaper ---
-echo "🚀 Starting Reaper with Docker Compose..."
+# --- Generate start_service.sh ---
+START_SCRIPT="${CLONE_DIR}/start_service.sh"
+cat > "${START_SCRIPT}" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+echo "🚀 Starting Reaper..."
+docker compose up -d
+echo "✅ Reaper is running!"
+echo "→ Main UI:    http://localhost:18000"
+echo "→ Proxy Port: http://localhost:28080"
+EOF
+chmod +x "${START_SCRIPT}"
+
+# --- Generate stop_service.sh ---
+STOP_SCRIPT="${CLONE_DIR}/stop_service.sh"
+cat > "${STOP_SCRIPT}" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+echo "🛑 Stopping Reaper..."
+docker compose down
+echo "✅ Reaper stopped."
+EOF
+chmod +x "${STOP_SCRIPT}"
+
+# --- Preload Docker images ---
+echo "📦 Preloading Docker images (build + stop)..."
+cd "${CLONE_DIR}"
 docker compose up -d --build
 docker compose stop
 
 # --- Done ---
-echo "✅ Reaper is running!"
-echo "→ Main UI:     http://localhost:${PORT}"
-echo "→ Proxy Port:  http://localhost:${PROXY_PORT}"
+echo ""
+echo "============================================================"
+echo "   Reaper – Installation Complete!"
+echo "============================================================"
+echo ""
+echo "  Repository : ${CLONE_DIR}"
+echo "  Config     : ${CLONE_DIR}/.env"
+echo ""
+echo "  Helper scripts:"
+echo "    Start → $(realpath "${START_SCRIPT}")"
+echo "    Stop  → $(realpath "${STOP_SCRIPT}")"
+echo ""
+echo "  ─── Next steps ────────────────────────────────────────"
+echo "  1. Edit your API key (if not already set):"
+echo "       nano ${CLONE_DIR}/.env"
+echo ""
+echo "  2. Start:"
+echo "       $(realpath "${START_SCRIPT}")"
+echo ""
+echo "  3. Access:"
+echo "       Main UI:    http://localhost:18000"
+echo "       Proxy Port: http://localhost:28080"
+echo ""
