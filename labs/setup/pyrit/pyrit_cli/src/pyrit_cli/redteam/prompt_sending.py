@@ -16,7 +16,8 @@ from pyrit.setup import IN_MEMORY, initialize_pyrit_async
 from pyrit_cli.redteam.http_target_cli import (
     build_http_json_escape_converter_config,
     build_http_objective_target,
-    is_http_victim_token,
+    is_http_victim_spec,
+    parse_objective_http_url,
 )
 from pyrit_cli.redteam.targets import openai_chat_from_spec
 
@@ -113,10 +114,10 @@ async def run_prompt_sending_async(
     await initialize_pyrit_async(memory_db_type=IN_MEMORY)  # type: ignore[arg-type]
 
     conv_cfg: AttackConverterConfig | None = None
-    if is_http_victim_token(target):
+    if is_http_victim_spec(target):
         if not http_request_path or not http_response_parser:
             raise ValueError(
-                "When --target http, --http-request and --http-response-parser are required."
+                "When --target is `http` or an http(s) URL, --http-request and --http-response-parser are required."
             )
         chat_target = build_http_objective_target(
             request_path=Path(http_request_path),
@@ -126,6 +127,7 @@ async def run_prompt_sending_async(
             use_tls=http_use_tls,
             timeout=http_timeout,
             model_name=http_model_name,
+            objective_url=parse_objective_http_url(target),
         )
         if http_json_body_converter:
             conv_cfg = build_http_json_escape_converter_config()

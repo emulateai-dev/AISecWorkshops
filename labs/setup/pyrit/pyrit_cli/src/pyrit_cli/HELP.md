@@ -44,6 +44,14 @@ After configuring, `OPENAI_CHAT_ENDPOINT`, `OPENAI_CHAT_KEY`, and `OPENAI_CHAT_M
 pyrit-cli ask-ai "Describe what you want to run"
 ```
 
+**HTTP templates (optional files)** — attach a raw request draft and/or a sample response body so the model can suggest a polished **`--http-request`** file and a valid **`--http-response-parser`** (`json:KEYPATH`, `regex:PATTERN`, or `jq:EXPR` per the HTTP victim section). File contents are **sent to your chat API**; keep them under **64 KiB**, **UTF-8** text, and **redact secrets** (API keys, cookies) before running.
+
+```bash
+pyrit-cli ask-ai "Propose parser and polish this template" \
+  --http-request-file ./my.req \
+  --http-response-sample ./sample_response.json
+```
+
 Loads **this** HELP text and calls an OpenAI-compatible **`/v1/chat/completions`** API. The model is instructed to:
 
 - List **required environment variables** (with `export VAR=...` examples or “add to `~/.pyrit/.env`”) **whenever** a suggestion uses `groq:`, `ollama:`, `lmstudio:`, `compat:`, or mixed providers — not only `openai:`.
@@ -61,6 +69,8 @@ Loads **this** HELP text and calls an OpenAI-compatible **`/v1/chat/completions`
 | `--model` | Chat model for the helper call (default `gpt-4o-mini` or `OPENAI_CHAT_MODEL`). |
 | `--api-key` | Override API key for this call only. |
 | `--base-url` | Override API base URL for this call only. |
+| `--http-request-file` | Optional path to a raw HTTP template (for `--http-request`); max 64 KiB, UTF-8; contents sent to the API — redact secrets. |
+| `--http-response-sample` | Optional path to a sample response body to derive `--http-response-parser`; same limits and privacy note. |
 
 ---
 
@@ -75,7 +85,7 @@ Loads **this** HELP text and calls an OpenAI-compatible **`/v1/chat/completions`
 | `ollama:<model>` | (none for typical local Ollama) | `OLLAMA_HOST`, `OLLAMA_API_KEY` | Default host `127.0.0.1:11434`; endpoint becomes `http://…/v1`. |
 | `lmstudio:<model>` | (none if defaults work) | `LMSTUDIO_OPENAI_BASE_URL`, `LMSTUDIO_API_KEY` | Default `http://127.0.0.1:1234/v1`. |
 | `compat:<model>` | **`PYRIT_CLI_COMPAT_ENDPOINT`** | `PYRIT_CLI_COMPAT_API_KEY` | Generic OpenAI-compatible server. |
-| `http` (victim) | — | — | **No** extra env table: put tokens, cookies, and URLs in the **raw request file** (`--http-request`). |
+| `http` / `https://…` victim | — | — | **No** extra env table: put tokens and cookies in the **raw request file** (`--http-request`). You may put the endpoint in the file **or** pass a full **`https://host/path`** (or `http://…`) as `--target` / `--objective-target` so the CLI merges it into the request line (see **HTTP victim flags**). |
 
 **Example (Groq one-liner before red-team commands):**
 
@@ -119,20 +129,22 @@ The **first** `:` separates **provider** from **model**. The model part may cont
 | `ollama:` | Local Ollama | **`OLLAMA_HOST`** (default `127.0.0.1:11434`, or a full `http(s)://` URL). Optional **`OLLAMA_API_KEY`**. API path `/v1` is appended when missing. |
 | `lmstudio:` | LM Studio local | **`LMSTUDIO_OPENAI_BASE_URL`** (default `http://127.0.0.1:1234/v1`). Optional **`LMSTUDIO_API_KEY`**. Alias: **`lm-studio:`**. |
 | `compat:` | Any OpenAI-compatible server | **`PYRIT_CLI_COMPAT_ENDPOINT`** (required, e.g. `https://host/v1`). Optional **`PYRIT_CLI_COMPAT_API_KEY`** (omit for no-auth locals). |
-| `http` | Raw **HTTP** victim ([`HTTPTarget`](https://azure.github.io/PyRIT/code/targets/http-target/)) | **`--http-request`**, **`--http-response-parser`**, optional `--http-*` flags below. **Not** for `tap-attack`. |
+| `http` or `https://host/path…` | Raw **HTTP** victim ([`HTTPTarget`](https://azure.github.io/PyRIT/code/targets/http-target/)) | Literal **`http`** *or* a full **http(s) URL** as the victim spec: same **`--http-request`** template file, but when the template’s first line is path-only (e.g. `POST /v1/chat/completions HTTP/1.1`), the URL replaces the request-target so PyRIT sends to that endpoint. **`--http-response-parser`** + optional `--http-*` below. **Not** for `tap-attack`. |
 
-You can **mix providers** across flags (e.g. victim `openai:gpt-4o-mini`, adversary `groq:llama-3.3-70b-versatile`, scorer `openai:gpt-4o-mini`) as long as each provider’s credentials are set. For **`http`** victim + multi-turn, you **must** set **`--adversarial-target`** to a **chat** spec (HTTP is only the objective / victim).
+You can **mix providers** across flags (e.g. victim `openai:gpt-4o-mini`, adversary `groq:llama-3.3-70b-versatile`, scorer `openai:gpt-4o-mini`) as long as each provider’s credentials are set. For **HTTP** victim (`http` or an http(s) URL) + multi-turn, you **must** set **`--adversarial-target`** to a **chat** spec (HTTP is only the objective / victim).
 
 Run **`pyrit-cli targets list`** for the canonical list and notes.
 
-### HTTP victim flags (with `--target http` or `--objective-target http`)
+### HTTP victim flags (with `--target` / `--objective-target` = `http` or an http(s) URL)
 
 Aligned with the [PyRIT HTTP Target](https://azure.github.io/PyRIT/code/targets/http-target/) cookbook: a **raw HTTP request template** (Burp-style) with a prompt placeholder, plus a **response parser**.
 
+**URL as victim spec:** Use **`--objective-target https://api.example.com/v1/chat/completions`** (or `http://…`) instead of **`http`** when the template file uses a **relative** request line (`POST /v1/chat/completions HTTP/1.1`) and you want the endpoint outside the file. The CLI rewrites the first line to use that URL and updates the **`Host`** header to match.
+
 | Flag | When | Description |
 |------|------|-------------|
-| `--http-request` | required for `http` | Path to a text file containing the full raw HTTP request. Include your placeholder (default `{PROMPT}`) where the objective text should be injected (URL or body). |
-| `--http-response-parser` | required for `http` | **`json:KEYPATH`** — PyRIT JSON path, e.g. `choices[0].message.content`. **`regex:PATTERN`** — regex extract; optional **`--http-regex-base-url`** to prefix matches. **`jq:EXPR`** — run the **`jq`** binary on the response body (`-r`); install [jq](https://jqlang.org/) or use `json:` instead. |
+| `--http-request` | required for HTTP victim | Path to a text file containing the full raw HTTP request. Include your placeholder (default `{PROMPT}`) where the objective text should be injected (URL or body). |
+| `--http-response-parser` | required for HTTP victim | **`json:KEYPATH`** — PyRIT JSON path, e.g. `choices[0].message.content`. **`regex:PATTERN`** — regex extract; optional **`--http-regex-base-url`** to prefix matches. **`jq:EXPR`** — run the **`jq`** binary on the response body (`-r`); install [jq](https://jqlang.org/) or use `json:` instead. |
 | `--http-prompt-placeholder` | optional | Substring/regex matched in the template for injection (default `{PROMPT}`). |
 | `--http-regex-base-url` | optional | Used with **`regex:`** parsers only. |
 | `--http-timeout` | optional | `httpx` client timeout (seconds). |
@@ -161,7 +173,7 @@ pyrit-cli redteam prompt-sending-attack \
 
 **CLI validation (HTTP):**
 
-- `--http-request`, `--http-response-parser`, and other `--http-*` options are **only** allowed when the victim is **`http`** (`--target http` or `--objective-target http`). Otherwise the CLI errors.
+- `--http-request`, `--http-response-parser`, and other `--http-*` options are **only** allowed when the victim is **`http`** or an **http(s) URL**. Otherwise the CLI errors.
 - On **`red-teaming-attack`**, **`--http-json-body-converter`** cannot be combined with **`--request-converter`** (pick one way to transform the victim-bound request).
 - **`jq:`** parsers need the **`jq`** binary on your `PATH`; use **`json:KEYPATH`** if you want zero extra installs.
 
@@ -187,10 +199,10 @@ Maps to PyRIT **`PromptSendingAttack`**: one user-style objective per execution 
 
 | Option | Required | Description |
 |--------|----------|-------------|
-| `--target` | yes | `<provider>:<model>` or literal **`http`** (see **Target syntax** / **HTTP victim flags**). |
+| `--target` | yes | `<provider>:<model>`, literal **`http`**, or an **http(s) URL** for HTTPTarget (see **Target syntax** / **HTTP victim flags**). |
 | `--objective` | one of objective/dataset | Single string sent as the attack objective |
-| `--http-request` | with `http` | Path to raw HTTP template file |
-| `--http-response-parser` | with `http` | `json:…`, `regex:…`, or `jq:…` |
+| `--http-request` | with HTTP victim | Path to raw HTTP template file |
+| `--http-response-parser` | with HTTP victim | `json:…`, `regex:…`, or `jq:…` |
 | `--http-*` | optional | See **HTTP victim flags** |
 | `--dataset` | one of objective/dataset | `pyrit:<relative/path>` under PyRIT `DATASETS_PATH`, or `hf:<hub_id>` |
 | `--hf-split` | no | Hugging Face split (default `train`) |
@@ -264,10 +276,10 @@ Maps to PyRIT **`RedTeamingAttack`**: an **adversarial** chat model proposes pro
 
 | Option | Required | Description |
 |--------|----------|-------------|
-| `--objective-target` | yes | Victim: `<provider>:<model>` or **`http`** (see **HTTP victim flags**). |
+| `--objective-target` | yes | Victim: `<provider>:<model>`, **`http`**, or **http(s) URL** for HTTPTarget (see **HTTP victim flags**). |
 | `--objective` | yes | High-level attack goal string |
-| `--adversarial-target` | no | Adversarial LLM; default = `--objective-target` (**required** chat spec when victim is `http`) |
-| `--http-request` / `--http-response-parser` | with `http` | Same as prompt-sending; required for victim `http` |
+| `--adversarial-target` | no | Adversarial LLM; default = `--objective-target` (**required** chat spec when victim is HTTP) |
+| `--http-request` / `--http-response-parser` | with HTTP victim | Same as prompt-sending; required for HTTP victim |
 | `--http-*` | optional | Same as **HTTP victim flags** |
 | `--max-turns` | no | Default `5`, minimum `1` |
 | `--rta-prompt` | no | Adversarial system template: `text_generation` (default), `image_generation`, `naive_crescendo`, `violent_durian`, `crucible` |
@@ -276,7 +288,7 @@ Maps to PyRIT **`RedTeamingAttack`**: an **adversarial** chat model proposes pro
 | `--true-description` | for `self-ask-tf` | Text criterion for scorer **True** = “objective achieved” |
 | `--refusal-mode` | no | `default` or `strict` — **PyRIT 0.11.x**: ignored for refusal preset; newer PyRIT may use distinct prompts |
 | `--scorer-chat-target` | no | Scorer LLM `<provider>:<model>`; default = adversarial target spec |
-| `--request-converter` | no | Repeatable; stateless converter keys (order matters). **Disallowed** with **`--http-json-body-converter`** when victim is `http`. |
+| `--request-converter` | no | Repeatable; stateless converter keys (order matters). **Disallowed** with **`--http-json-body-converter`** when victim is HTTP. |
 | `--response-converter` | no | Repeatable; applied to responses (works with HTTP victim; stacks after any HTTP request converter). |
 | `--include-adversarial-conversation` | flag | Include red-team LLM transcript in printed report |
 
@@ -421,7 +433,7 @@ All target flags use the same **`<provider>:<model>`** syntax as **red-teaming-a
 
 | Option | Required | Description |
 |--------|----------|-------------|
-| `--objective-target` | yes | Chat victim `<provider>:<model>` only — **`http` is not allowed** (PyRIT TAPAttack requires PromptChatTarget). |
+| `--objective-target` | yes | Chat victim `<provider>:<model>` only — **HTTP victim** (`http` or http(s) URL) **is not allowed** (PyRIT TAPAttack requires PromptChatTarget). |
 | `--objective` | yes | Conversation objective string |
 | `--adversarial-target` | no | Red-team LLM; default = `--objective-target` |
 | `--adversarial-temperature` | no | e.g. `1.1` for a hotter adversarial `OpenAIChatTarget` |
@@ -471,7 +483,7 @@ Not exposed in the CLI today (use Python / notebooks for these):
 - Custom **`AttackAdversarialConfig.seed_prompt`** (still default template with `{{ objective }}`).
 - Custom **filesystem** `system_prompt_path` beyond the `--rta-prompt` enum.
 - Extra OpenAI-compatible hosts **beyond** `compat:` + env (no arbitrary per-flag URL without `compat` or code changes).
-- **`HTTPTarget`** is only wired for **`prompt-sending-attack`** and **`red-teaming-attack`** (victim `http` + `--http-*` flags). Other non-chat victims (`AzureMLChatTarget`, `TextTarget`, `OpenAIImageTarget`, …), **prepended conversations**, and advanced HTTP flows still need Python.
+- **`HTTPTarget`** is only wired for **`prompt-sending-attack`** and **`red-teaming-attack`** (victim **`http`** or an **http(s) URL** + `--http-*` flags). Other non-chat victims (`AzureMLChatTarget`, `TextTarget`, `OpenAIImageTarget`, …), **prepended conversations**, and advanced HTTP flows still need Python.
 - **LLM-backed** prompt converters.
 - **`tap-attack`**: no `--request-converter` / `--response-converter` wiring yet (use Python for `AttackConverterConfig`).
 

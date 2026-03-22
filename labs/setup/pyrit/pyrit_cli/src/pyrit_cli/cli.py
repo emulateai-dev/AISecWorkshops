@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.metadata
 import json
+from pathlib import Path
 
 import typer
 
@@ -23,7 +24,7 @@ from pyrit_cli.env_status import (
     pyrit_dir,
 )
 from pyrit_cli.env_write import save_openai_compatible, save_openai_native
-from pyrit_cli.redteam.http_target_cli import HTTP_VICTIM_TARGET
+from pyrit_cli.redteam.http_target_cli import is_http_victim_spec
 from pyrit_cli.redteam.prompt_sending import collect_objectives, run_prompt_sending
 from pyrit_cli.redteam.red_teaming import parse_memory_labels_json, run_red_teaming
 from pyrit_cli.redteam.tap_attack import run_tap_attack
@@ -42,28 +43,36 @@ def _validate_http_flags(
     http_json_body_converter: bool,
     http_model_name: str,
 ) -> None:
-    v = victim.strip().lower()
-    is_http = v == HTTP_VICTIM_TARGET
+    is_http = is_http_victim_spec(victim)
     if is_http:
         if not http_request or not http_response_parser:
             raise ValueError(
-                "With victim target 'http', --http-request and --http-response-parser are required."
+                "With HTTP victim (`http` or an http(s) URL), --http-request and --http-response-parser are required."
             )
         return
     if http_request or http_response_parser:
-        raise ValueError("--http-request / --http-response-parser are only valid with victim target 'http'.")
+        raise ValueError(
+            "--http-request / --http-response-parser are only valid with HTTP victim "
+            "(`http` or an http(s) URL for --target / --objective-target)."
+        )
     if http_json_body_converter:
-        raise ValueError("--http-json-body-converter is only valid with victim target 'http'.")
+        raise ValueError(
+            "--http-json-body-converter is only valid with HTTP victim (`http` or an http(s) URL)."
+        )
     if http_regex_base_url:
-        raise ValueError("--http-regex-base-url is only valid with victim target 'http'.")
+        raise ValueError(
+            "--http-regex-base-url is only valid with HTTP victim (`http` or an http(s) URL)."
+        )
     if http_timeout is not None:
-        raise ValueError("--http-timeout is only valid with victim target 'http'.")
+        raise ValueError("--http-timeout is only valid with HTTP victim (`http` or an http(s) URL).")
     if not http_use_tls:
-        raise ValueError("--no-http-use-tls is only valid with victim target 'http'.")
+        raise ValueError("--no-http-use-tls is only valid with HTTP victim (`http` or an http(s) URL).")
     if http_prompt_placeholder != "{PROMPT}":
-        raise ValueError("--http-prompt-placeholder is only valid with victim target 'http'.")
+        raise ValueError(
+            "--http-prompt-placeholder is only valid with HTTP victim (`http` or an http(s) URL)."
+        )
     if http_model_name.strip():
-        raise ValueError("--http-model-name is only valid with victim target 'http'.")
+        raise ValueError("--http-model-name is only valid with HTTP victim (`http` or an http(s) URL).")
 
 
 def _version_callback(value: bool) -> None:
@@ -115,6 +124,22 @@ def ask_ai_cmd(
         "--base-url",
         help="Chat API base URL (else OPENAI_CHAT_ENDPOINT or https://api.openai.com/v1).",
     ),
+    http_request_file: Path | None = typer.Option(
+        None,
+        "--http-request-file",
+        help=(
+            "Optional path to a raw HTTP request template for HTTPTarget; contents are read and sent "
+            "to the chat API (redact secrets). Max 64 KiB, UTF-8."
+        ),
+    ),
+    http_response_sample: Path | None = typer.Option(
+        None,
+        "--http-response-sample",
+        help=(
+            "Optional path to a sample HTTP response body to derive --http-response-parser; contents "
+            "are sent to the chat API (redact secrets). Max 64 KiB, UTF-8."
+        ),
+    ),
 ) -> None:
     """Suggest a pyrit-cli command using bundled HELP.md and a chat API (authorized use only)."""
     typer.secho(
@@ -122,9 +147,24 @@ def ask_ai_cmd(
         err=True,
         fg=typer.colors.YELLOW,
     )
+    if http_request_file is not None or http_response_sample is not None:
+        typer.secho(
+            "HTTP attachment file contents are sent to your configured chat API; redact secrets first.",
+            err=True,
+            fg=typer.colors.YELLOW,
+        )
     try:
-        typer.echo(run_ask_ai(query, model=model, api_key=api_key, base_url=base_url))
-    except (ValueError, FileNotFoundError, RuntimeError) as e:
+        typer.echo(
+            run_ask_ai(
+                query,
+                model=model,
+                api_key=api_key,
+                base_url=base_url,
+                http_request_file=http_request_file,
+                http_response_sample=http_response_sample,
+            )
+        )
+    except (ValueError, FileNotFoundError, IsADirectoryError, RuntimeError) as e:
         typer.secho(str(e), err=True, fg=typer.colors.RED)
         raise typer.Exit(code=1) from e
 
@@ -234,12 +274,12 @@ def redteam_prompt_sending(
     http_request: str | None = typer.Option(
         None,
         "--http-request",
-        help="Path to raw HTTP template file when --target http (Burp-style; include {PROMPT}).",
+        help="Path to raw HTTP template when --target is `http` or an http(s) URL (Burp-style; include {PROMPT}).",
     ),
     http_response_parser: str | None = typer.Option(
         None,
         "--http-response-parser",
-        help="json:KEYPATH | regex:PATTERN | jq:EXPR (see HELP). Required with --target http.",
+        help="json:KEYPATH | regex:PATTERN | jq:EXPR (see HELP). Required for HTTP victim target.",
     ),
     http_prompt_placeholder: str = typer.Option(
         "{PROMPT}",
@@ -264,7 +304,7 @@ def redteam_prompt_sending(
     http_json_body_converter: bool = typer.Option(
         False,
         "--http-json-body-converter",
-        help="Apply JsonStringConverter on requests (JSON bodies with --target http).",
+        help="Apply JsonStringConverter on requests (JSON bodies with HTTP victim target).",
     ),
     http_model_name: str = typer.Option(
         "",
@@ -386,12 +426,12 @@ def redteam_red_teaming(
     http_request: str | None = typer.Option(
         None,
         "--http-request",
-        help="Path to raw HTTP template when --objective-target http.",
+        help="Path to raw HTTP template when --objective-target is `http` or an http(s) URL.",
     ),
     http_response_parser: str | None = typer.Option(
         None,
         "--http-response-parser",
-        help="json:KEYPATH | regex:PATTERN | jq:EXPR. Required with --objective-target http.",
+        help="json:KEYPATH | regex:PATTERN | jq:EXPR. Required for HTTP victim.",
     ),
     http_prompt_placeholder: str = typer.Option(
         "{PROMPT}",
@@ -539,9 +579,10 @@ def redteam_tap_attack(
         "--include-pruned-conversations/--no-include-pruned-conversations",
     ),
 ) -> None:
-    if objective_target.strip().lower() == HTTP_VICTIM_TARGET:
+    if is_http_victim_spec(objective_target):
         typer.secho(
-            "tap-attack does not support --objective-target http (PyRIT TAPAttack requires PromptChatTarget).",
+            "tap-attack does not support HTTP victim targets (--objective-target `http` or an http(s) URL); "
+            "PyRIT TAPAttack requires PromptChatTarget.",
             err=True,
             fg=typer.colors.RED,
         )

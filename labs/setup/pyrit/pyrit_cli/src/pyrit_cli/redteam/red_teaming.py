@@ -21,7 +21,8 @@ from pyrit.setup import IN_MEMORY, initialize_pyrit_async
 from pyrit_cli.redteam.http_target_cli import (
     build_http_json_escape_converter_config,
     build_http_objective_target,
-    is_http_victim_token,
+    is_http_victim_spec,
+    parse_objective_http_url,
 )
 from pyrit_cli.redteam.targets import openai_chat_from_spec
 from pyrit_cli.registries.converters import make_converters
@@ -110,14 +111,15 @@ async def run_red_teaming_async(
 ) -> None:
     await initialize_pyrit_async(memory_db_type=IN_MEMORY)  # type: ignore[arg-type]
 
-    if is_http_victim_token(objective_target_spec):
+    if is_http_victim_spec(objective_target_spec):
         if not http_request_path or not http_response_parser:
             raise ValueError(
-                "When --objective-target http, --http-request and --http-response-parser are required."
+                "When --objective-target is `http` or an http(s) URL, --http-request and "
+                "--http-response-parser are required."
             )
-        if not adversarial_target_spec or is_http_victim_token(adversarial_target_spec):
+        if not adversarial_target_spec or is_http_victim_spec(adversarial_target_spec):
             raise ValueError(
-                "When --objective-target http, set --adversarial-target to a chat target "
+                "When the victim is HTTP (`http` or an http(s) URL), set --adversarial-target to a chat target "
                 "(e.g. openai:gpt-4o-mini); HTTP is only supported for the victim."
             )
         objective_target = build_http_objective_target(
@@ -128,6 +130,7 @@ async def run_red_teaming_async(
             use_tls=http_use_tls,
             timeout=http_timeout,
             model_name=http_model_name,
+            objective_url=parse_objective_http_url(objective_target_spec),
         )
         adversarial_chat = openai_chat_from_spec(adversarial_target_spec)
         adv_spec = adversarial_target_spec
@@ -152,7 +155,7 @@ async def run_red_teaming_async(
     )
     scoring_config = AttackScoringConfig(objective_scorer=objective_scorer)
     conv_cfg = build_redteam_converter_config(
-        http_json_body_converter=http_json_body_converter and is_http_victim_token(objective_target_spec),
+        http_json_body_converter=http_json_body_converter and is_http_victim_spec(objective_target_spec),
         request_converter_keys=request_converter_keys,
         response_converter_keys=response_converter_keys,
     )

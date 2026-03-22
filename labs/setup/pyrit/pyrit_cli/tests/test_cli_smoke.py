@@ -68,6 +68,8 @@ def test_ask_ai_help() -> None:
     )
     assert r.exit_code == 0
     assert "query" in r.stdout.lower() or "describe" in r.stdout.lower()
+    assert "http-request-file" in r.stdout
+    assert "http-response-sample" in r.stdout
 
 
 def test_setup_configure_help() -> None:
@@ -121,6 +123,45 @@ def test_tap_attack_rejects_http_victim() -> None:
     )
     assert r.exit_code != 0
     assert "http" in r.stdout.lower() or "http" in r.stderr.lower()
+
+
+def test_tap_attack_rejects_https_url_victim() -> None:
+    r = runner.invoke(
+        app,
+        [
+            "redteam",
+            "tap-attack",
+            "--objective-target",
+            "https://api.example.com/v1/chat",
+            "--objective",
+            "x",
+        ],
+        env={"COLUMNS": "200"},
+    )
+    assert r.exit_code != 0
+
+
+def test_prompt_sending_https_url_requires_parser(tmp_path) -> None:
+    req = tmp_path / "b.req"
+    req.write_text(
+        'POST / HTTP/1.1\nHost: x.example\n\n{"p":"{PROMPT}"}',
+        encoding="utf-8",
+    )
+    r = runner.invoke(
+        app,
+        [
+            "redteam",
+            "prompt-sending-attack",
+            "--target",
+            "https://api.example.com/v1/chat",
+            "--http-request",
+            str(req),
+            "--objective",
+            "hi",
+        ],
+        env={"COLUMNS": "120"},
+    )
+    assert r.exit_code != 0
 
 
 def test_converters_list(pyrit_env_dir) -> None:

@@ -24,9 +24,11 @@ _SUPPORTED = [
         "Custom OpenAI-compatible base URL. Env: PYRIT_CLI_COMPAT_ENDPOINT (required), PYRIT_CLI_COMPAT_API_KEY (optional).",
     ),
     (
-        "http",
-        "Victim-only HTTPTarget (raw HTTP). Requires --http-request FILE and --http-response-parser (json:|regex:|jq:). "
-        "See HELP; example template: examples/http_target/sample_openai_chat.req. red-teaming needs --adversarial-target <chat>. "
+        "http | https://host/path…",
+        "Victim-only HTTPTarget (raw HTTP). Use literal `http` or pass the full endpoint URL as "
+        "`--target` / `--objective-target` when the `.req` file uses a path-only request line — the CLI merges the URL into the first line. "
+        "Requires --http-request FILE and --http-response-parser (json:|regex:|jq:). "
+        "See HELP; example: examples/http_target/sample_openai_chat.req. red-teaming needs --adversarial-target <chat>. "
         "Not supported for tap-attack.",
     ),
 ]

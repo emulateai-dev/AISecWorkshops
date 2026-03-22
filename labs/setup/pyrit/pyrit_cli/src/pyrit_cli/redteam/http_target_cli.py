@@ -10,6 +10,7 @@ import subprocess
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from pyrit.executor.attack import AttackConverterConfig
 from pyrit.models import PromptDataType
@@ -44,6 +45,71 @@ class _JsonBodyEscapeConverter(PromptConverter):
 
 def is_http_victim_token(spec: str) -> bool:
     return spec.strip().lower() == HTTP_VICTIM_TARGET
+
+
+def is_http_objective_url(spec: str) -> bool:
+    """True if spec looks like an absolute http(s) URL (HTTPTarget endpoint from --objective-target / --target)."""
+    s = spec.strip().lower()
+    return s.startswith("http://") or s.startswith("https://")
+
+
+def is_http_victim_spec(spec: str) -> bool:
+    """Literal ``http`` or an ``http(s)://...`` URL selects HTTPTarget (with ``--http-*`` flags)."""
+    return is_http_victim_token(spec) or is_http_objective_url(spec)
+
+
+def parse_objective_http_url(spec: str) -> str | None:
+    """Return normalized URL string if ``spec`` is an http(s) objective URL; else None. Raises if malformed."""
+    if not is_http_objective_url(spec):
+        return None
+    raw = spec.strip()
+    u = urlparse(raw)
+    if u.scheme.lower() not in ("http", "https"):
+        return None
+    if not u.netloc:
+        raise ValueError(
+            f"HTTP(S) objective URL must include a host (e.g. https://api.example.com/v1/chat): {spec!r}"
+        )
+    return raw
+
+
+def merge_http_request_with_objective_url(raw: str, objective_url: str) -> str:
+    """Replace the request-target on the first line with ``objective_url``; align Host header with URL netloc."""
+    u = urlparse(objective_url.strip())
+    if u.scheme.lower() not in ("http", "https") or not u.netloc:
+        raise ValueError(
+            f"Invalid HTTP(S) objective URL {objective_url!r}; need scheme and host "
+            "(e.g. https://api.example.com/v1/chat/completions)."
+        )
+    text = raw.strip()
+    if not text:
+        raise ValueError("HTTP request template is empty")
+    parts = text.split("\n\n", 1)
+    head = parts[0]
+    body = parts[1] if len(parts) > 1 else ""
+    hlines = head.split("\n")
+    first = hlines[0].strip()
+    tokens = first.split()
+    if len(tokens) < 3:
+        raise ValueError(
+            f"HTTP request first line must look like 'METHOD /path HTTP/1.1'; got: {first!r}"
+        )
+    method = tokens[0]
+    version = tokens[-1]
+    if not version.upper().startswith("HTTP/"):
+        raise ValueError(f"Invalid HTTP version in first line: {first!r}")
+    new_first = f"{method} {objective_url.strip()} {version}"
+    host_val = u.netloc.split("@")[-1]
+    new_hlines = [new_first]
+    for hl in hlines[1:]:
+        if hl.strip().lower().startswith("host:"):
+            new_hlines.append(f"Host: {host_val}")
+        else:
+            new_hlines.append(hl)
+    new_head = "\n".join(new_hlines)
+    if body:
+        return f"{new_head}\n\n{body}"
+    return new_head
 
 
 def parse_http_response_parser(
@@ -131,8 +197,11 @@ def build_http_objective_target(
     use_tls: bool,
     timeout: float | None,
     model_name: str,
+    objective_url: str | None = None,
 ) -> HTTPTarget:
     http_request = load_raw_http_request(request_path)
+    if objective_url:
+        http_request = merge_http_request_with_objective_url(http_request, objective_url)
     callback = parse_http_response_parser(response_parser_spec, regex_base_url=regex_base_url)
     if not re.search(prompt_placeholder, http_request):
         logger.warning(
