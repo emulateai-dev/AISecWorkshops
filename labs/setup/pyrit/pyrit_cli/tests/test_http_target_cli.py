@@ -31,6 +31,22 @@ def test_parse_regex_parser() -> None:
     assert "hello world" in out
 
 
+def test_parse_regex_parser_decodes_utf8_bytes() -> None:
+    class _Resp:
+        content = b'{"choices":[{"message":{"role":"assistant","content":"hi"}}]}'
+
+    fn = parse_http_response_parser(r'regex:(?<="content":")([^"]*)', regex_base_url=None)
+    assert fn(response=_Resp()) == "hi"
+
+
+def test_parse_regex_parser_base_url_prefix() -> None:
+    class _Resp:
+        content = b"path/to/x"
+
+    fn = parse_http_response_parser(r"regex:path/to/x", regex_base_url="https://ex.com/")
+    assert fn(response=_Resp()) == "https://ex.com/path/to/x"
+
+
 def test_jq_parser_requires_binary(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("pyrit_cli.redteam.http_target_cli.shutil.which", lambda _: None)
     with pytest.raises(ValueError, match="jq"):

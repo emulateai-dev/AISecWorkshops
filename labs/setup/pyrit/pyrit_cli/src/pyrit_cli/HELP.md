@@ -144,7 +144,7 @@ Aligned with the [PyRIT HTTP Target](https://azure.github.io/PyRIT/code/targets/
 | Flag | When | Description |
 |------|------|-------------|
 | `--http-request` | required for HTTP victim | Path to a text file containing the full raw HTTP request. Include your placeholder (default `{PROMPT}`) where the objective text should be injected (URL or body). |
-| `--http-response-parser` | required for HTTP victim | **`json:KEYPATH`** — PyRIT JSON path, e.g. `choices[0].message.content`. **`regex:PATTERN`** — regex extract; optional **`--http-regex-base-url`** to prefix matches. **`jq:EXPR`** — run the **`jq`** binary on the response body (`-r`); install [jq](https://jqlang.org/) or use `json:` instead. |
+| `--http-response-parser` | required for HTTP victim | **`json:KEYPATH`** — PyRIT JSON path, e.g. `choices[0].message.content`. **`regex:PATTERN`** — search decoded **UTF-8** body (pyrit-cli); first match’s full span is returned; optional **`--http-regex-base-url`** prefixes that string. **`jq:EXPR`** — run **`jq`** on the body (`-r`); install [jq](https://jqlang.org/) or use `json:` instead. |
 | `--http-prompt-placeholder` | optional | Substring/regex matched in the template for injection (default `{PROMPT}`). |
 | `--http-regex-base-url` | optional | Used with **`regex:`** parsers only. |
 | `--http-timeout` | optional | `httpx` client timeout (seconds). |
@@ -171,6 +171,71 @@ pyrit-cli redteam prompt-sending-attack \
   --objective "Say hello in one sentence."
 ```
 
+#### Ollama local API via HTTPTarget (vs `ollama:<model>`)
+
+For day-to-day runs, **`ollama:llama3.2`** (OpenAI-compatible chat) is simpler. Use **`http`** or an **http(s) URL** victim when you want a **raw** template (custom headers, Burp-style replay, or teaching HTTP targets).
+
+Ollama’s OpenAI-compatible chat endpoint is **`http://127.0.0.1:11434/v1/chat/completions`** (or your **`OLLAMA_HOST`**). Example template: `examples/http_target/ollama_openai_chat.req` (path + `Host` only).
+
+**1. Victim = full URL (merges into the request line)** — good when the `.req` file omits an absolute URL:
+
+```bash
+pyrit-cli redteam prompt-sending-attack \
+  --target 'http://127.0.0.1:11434/v1/chat/completions' \
+  --http-request examples/http_target/ollama_openai_chat.req \
+  --http-response-parser 'json:choices[0].message.content' \
+  --http-json-body-converter \
+  --objective "Reply with exactly: OK"
+```
+
+**2. Victim = literal `http` and full URL inside the file** — same endpoint, URL stored in the template:
+
+```text
+POST http://127.0.0.1:11434/v1/chat/completions HTTP/1.1
+Host: 127.0.0.1:11434
+Content-Type: application/json
+
+{"model":"llama3.2","messages":[{"role":"user","content":"{PROMPT}"}],"stream":false}
+```
+
+```bash
+pyrit-cli redteam prompt-sending-attack \
+  --target http \
+  --http-request ./ollama.req \
+  --http-response-parser 'json:choices[0].message.content' \
+  --http-json-body-converter \
+  --objective "Reply with exactly: OK"
+```
+
+**3. Regex parser** (workshop-style; **fragile** if the model returns quotes or newlines inside `content`) — pyrit-cli runs the pattern on the **decoded** JSON text. Prefer **`json:choices[0].message.content`** for real runs.
+
+Ollama `stream:false` responses look like: `... "message":{"role":"assistant","content":"Hello"} ...`. To capture **only** the assistant text as the match, use a lookbehind so the **whole regex match** is the value (the callback returns the full match, not capture group 1):
+
+```bash
+pyrit-cli redteam prompt-sending-attack \
+  --target 'http://127.0.0.1:11434/v1/chat/completions' \
+  --http-request examples/http_target/ollama_openai_chat.req \
+  --http-response-parser 'regex:(?<="content":")([^"]*)' \
+  --http-json-body-converter \
+  --objective "Say hi in three words."
+```
+
+That pattern grabs the **first** `"content":"..."` value in the response text (fixed-width, no `"` inside the assistant string). If that hits the wrong field, use **`json:choices[0].message.content`**, **`jq:`**, or a tighter regex.
+
+**Multi-turn** (HTTP victim + chat red-team LLM):
+
+```bash
+pyrit-cli redteam red-teaming-attack \
+  --objective-target 'http://127.0.0.1:11434/v1/chat/completions' \
+  --http-request examples/http_target/ollama_openai_chat.req \
+  --http-response-parser 'json:choices[0].message.content' \
+  --http-json-body-converter \
+  --adversarial-target ollama:llama3.2 \
+  --objective "Benign factual lab objective." \
+  --true-description "Plain-language success criterion." \
+  --max-turns 3
+```
+
 **CLI validation (HTTP):**
 
 - `--http-request`, `--http-response-parser`, and other `--http-*` options are **only** allowed when the victim is **`http`** or an **http(s) URL**. Otherwise the CLI errors.
@@ -187,7 +252,7 @@ pyrit-cli redteam prompt-sending-attack \
 | Scorer presets and exports | `pyrit-cli scorers list` |
 | Target patterns (`openai:`, `groq:`, `http`, …) | `pyrit-cli targets list` |
 
-Sample HTTP template (repo): `examples/http_target/sample_openai_chat.req` under the `pyrit_cli` project tree.
+Sample HTTP templates (repo, under `pyrit_cli`): `examples/http_target/sample_openai_chat.req`, `examples/http_target/ollama_openai_chat.req`.
 
 ---
 

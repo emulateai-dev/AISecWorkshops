@@ -224,6 +224,7 @@ def setup_configure() -> None:
         m1, m2 = save_openai_compatible(endpoint, key, model)
         typer.secho(m1, fg=typer.colors.GREEN)
         typer.secho(m2, fg=typer.colors.GREEN)
+        configured_compatible = True
     else:
         key = typer.prompt("OpenAI API key", hide_input=True)
         if not key.strip():
@@ -233,12 +234,24 @@ def setup_configure() -> None:
         m1, m2 = save_openai_native(key, model=model)
         typer.secho(m1, fg=typer.colors.GREEN)
         typer.secho(m2, fg=typer.colors.GREEN)
+        configured_compatible = False
 
     typer.echo("")
     typer.echo("Current status (masked):")
     typer.echo(format_setup_report(load_for_cli()))
     typer.echo("")
-    typer.echo("Example: pyrit-cli redteam prompt-sending-attack --target openai:gpt-4o-mini --objective \"Reply: OK\"")
+    model_tag = model.strip()
+    typer.echo(
+        f'Example: pyrit-cli redteam prompt-sending-attack --target openai:{model_tag} --objective "Reply: OK"'
+    )
+    typer.echo(
+        "Use the same model id in openai:<model> that your OPENAI_CHAT_ENDPOINT accepts "
+        "(Groq model names when using Groq, OpenAI names when using api.openai.com)."
+    )
+    if configured_compatible:
+        typer.echo(
+            "Alternative: export GROQ_API_KEY=... and use --target groq:<model> for an explicit Groq target."
+        )
 
 
 redteam_app = typer.Typer(

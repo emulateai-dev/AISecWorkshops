@@ -2,6 +2,8 @@
 
 Workshop CLI for PyRIT: **configure** credentials (`setup configure`), **ask-ai** for natural-language command suggestions (uses bundled [HELP.md](src/pyrit_cli/HELP.md) + a chat API), inspect `~/.pyrit`, run **single-turn** / **multi-turn** / **TAP** attacks ([PyRIT docs](https://azure.github.io/PyRIT/)), and list **datasets**, **converters**, **scorers**, and **targets**.
 
+**Documentation (install → red team → ask-ai, basic → advanced):** see [docs/README.md](docs/README.md) and the linear [docs/workshop-track.md](docs/workshop-track.md). **Every flag:** [HELP.md](src/pyrit_cli/HELP.md).
+
 Use only on systems and models you are authorized to test.
 
 ## Install

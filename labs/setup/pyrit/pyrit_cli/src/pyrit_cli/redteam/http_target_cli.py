@@ -19,7 +19,6 @@ from pyrit.prompt_normalizer import PromptConverterConfiguration
 from pyrit.prompt_target import HTTPTarget
 from pyrit.prompt_target.http_target.http_target_callback_functions import (
     get_http_target_json_response_callback_function,
-    get_http_target_regex_matching_callback_function,
 )
 
 logger = logging.getLogger(__name__)
@@ -112,6 +111,38 @@ def merge_http_request_with_objective_url(raw: str, objective_url: str) -> str:
     return new_head
 
 
+def _response_body_text(response: Any) -> str:
+    """Decode httpx-like response body for regex search (UTF-8; avoids str(bytes) repr issues)."""
+    text_attr = getattr(response, "text", None)
+    if isinstance(text_attr, str):
+        return text_attr
+    raw = getattr(response, "content", b"")
+    if isinstance(raw, str):
+        return raw
+    if isinstance(raw, (bytes, bytearray)):
+        return raw.decode("utf-8", errors="replace")
+    return str(raw)
+
+
+def _make_regex_parser_callback(pattern: str, url: str | None) -> Callable[..., Any]:
+    """Regex parser over decoded response text (matches PyRIT semantics: full match + optional URL prefix)."""
+
+    re_pattern = re.compile(pattern)
+
+    def parse_using_regex_decoded(response: Any) -> str:
+        text = _response_body_text(response)
+        match = re_pattern.search(text)
+        if match:
+            fragment = match.group()
+            if url:
+                return url + fragment
+            return fragment
+        return text
+
+    parse_using_regex_decoded.__name__ = "parse_using_regex_decoded"
+    return parse_using_regex_decoded
+
+
 def parse_http_response_parser(
     spec: str,
     *,
@@ -134,8 +165,8 @@ def parse_http_response_parser(
         return get_http_target_json_response_callback_function(key=payload)
 
     if kind_l == "regex":
-        return get_http_target_regex_matching_callback_function(
-            key=payload,
+        return _make_regex_parser_callback(
+            payload,
             url=regex_base_url.strip() if regex_base_url else None,
         )
 
