@@ -77,6 +77,7 @@ pull_if_missing() {
 pull_if_missing smollm2
 pull_if_missing qwen3:0.6b
 pull_if_missing llama-guard3:1b-q3_K_S
+pull_if_missing llama3.1
 
 # ============================================================
 # 4) Export API keys from secrets via user's .bashrc
@@ -166,15 +167,15 @@ sudo -u "$TARGET_USER" bash -lc '
 if command -v msfconsole >/dev/null 2>&1; then
   echo "ℹ️  Metasploit already installed — skipping."
 else
-  TMPDIR="$(mktemp -d)"
-  pushd "$TMPDIR"
+  MSF_TMP="$(mktemp -d)"
+  pushd "$MSF_TMP"
   curl -SL https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb -o msfinstall
   chmod 755 msfinstall
   rm -f /usr/share/keyrings/metasploit-framework.gpg || true
   yes | ./msfinstall || true
   yes | msfdb init   || true
   popd
-  rm -rf "$TMPDIR"
+  rm -rf "$MSF_TMP"
 fi
 
 
@@ -222,7 +223,7 @@ echo "✅ PyRIT setup complete — repo: $PYRIT_DIR/PyRIT"
 # ============================================================
 if ! git lfs version >/dev/null 2>&1; then
   echo "ℹ️  git-lfs not found. Installing git-lfs..."
-  apt-get update
+  apt-get update || true
   apt-get install -y git-lfs
 fi
 
@@ -232,13 +233,33 @@ sudo -u "$TARGET_USER" bash -lc "
   git lfs install --skip-repo || true
   mkdir -p '$VULN_MODEL_DIR'
   cd '$VULN_MODEL_DIR'
-  if [ ! -d vulnerable_model ]; then
+  if [ ! -d vulnerable_llama_model ]; then
     git clone https://huggingface.co/eai-sec-workshop/vulnerable_llama_model
   else
     echo 'ℹ️  vulnerable_model dataset already exists; skipping clone.'
   fi
 "
-echo "✅ Vulnerable model dataset ready: $VULN_MODEL_DIR/vulnerable_model"
+echo "✅ Vulnerable model dataset ready: $VULN_MODEL_DIR/vulnerable_llama_model"
+
+# Register the vulnerable model with Ollama (single source of truth)
+# Both jailbroken-llama and vulnerable-llama point to the same GGUF
+if ollama list 2>/dev/null | grep -q "^jailbroken-llama"; then
+  echo "ℹ️  jailbroken-llama already registered in Ollama — skipping."
+else
+  echo "➡️  Registering jailbroken-llama with Ollama..."
+  (cd "$VULN_MODEL_DIR/vulnerable_llama_model" && ollama create jailbroken-llama -f Modelfile) \
+    && echo "✅ jailbroken-llama registered in Ollama." \
+    || echo "⚠️  Failed to register jailbroken-llama in Ollama."
+fi
+
+# Create vulnerable-llama alias (used by DVMCP lab) — same model, no re-download
+if ollama list 2>/dev/null | grep -q "^vulnerable-llama"; then
+  echo "ℹ️  vulnerable-llama alias already exists — skipping."
+else
+  ollama cp jailbroken-llama vulnerable-llama \
+    && echo "✅ vulnerable-llama alias created from jailbroken-llama." \
+    || echo "⚠️  Failed to create vulnerable-llama alias."
+fi
 
 # ============================================================
 # 15) BurpSuite Community Edition (silent / non-interactive)
@@ -261,6 +282,32 @@ else
 fi
 
 
+
+# ============================================================
+# 16) Lab installations (user-scope, all idempotent)
+# ============================================================
+SCRIPTS_DIR="$TARGET_HOME/labs/AISecWorkshops/labs/setup/scripts/tools"
+
+install_lab() {
+  local script="$1"
+  local label="$2"
+  if [ ! -f "$SCRIPTS_DIR/$script" ]; then
+    echo "⚠️  $script not found — skipping $label."
+    return
+  fi
+  echo "➡️  Installing $label..."
+  sudo -u "$TARGET_USER" bash -lc "bash '$SCRIPTS_DIR/$script'" \
+    && echo "✅ $label installed." \
+    || echo "⚠️  $label install failed — check output above."
+}
+
+install_lab install-folly.sh                        "Folly"
+install_lab install-pyrit.sh                        "PyRIT"
+install_lab install-edr.sh                          "EDR"
+install_lab install-openai-cs-agents-demo.sh        "OpenAI CS Agents"
+install_lab install-dvmcp.sh                        "DVMCP"
+install_lab install-pentagi.sh                      "PentAGI"
+install_lab install-ai-red-teaming-playground-labs.sh "AI Red Teaming Labs"
 
 # ============================================================
 # Done

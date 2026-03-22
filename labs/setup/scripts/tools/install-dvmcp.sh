@@ -117,7 +117,7 @@ fi
 info "Checking model '${OLLAMA_MODEL_NAME}' (from HuggingFace: ${HF_REPO})..."
 
 # Check if model was already downloaded as a raw git-lfs clone by Tool_Setup.sh
-LOCAL_MODEL_DIR="$HOME/labs/datasets/vulnerable_model"
+LOCAL_MODEL_DIR="$HOME/labs/datasets/vulnerable_llama_model"
 GGUF_FILE="$(find "${LOCAL_MODEL_DIR}" -name "*.gguf" 2>/dev/null | head -1 || true)"
 
 if ollama list 2>/dev/null | grep -q "^${OLLAMA_MODEL_NAME}"; then

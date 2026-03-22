@@ -31,24 +31,58 @@ This guide sets up the **DTX demo lab** using a **Simple Plug and Play VM** (no 
 
 [![Setup Tutorial](./thumbnail.png)](https://www.youtube.com/watch?v=rKCMBK2kqGM)
 
+## Option A — Pre-built VM (Kalki.ova) — Recommended
+
 - Install Oracle Virtualbox
 - Download the [Kalki.ova](https://huggingface.co/datasets/detoxioai/dtx-ai-sec-lab/blob/main/kalki.ova)
 - Open the ```Kalki.ova``` with Oracle VirtualBox ( It will started to import the labs )
 - Once Import is done, Set the configuration by press the setting
-- - **RAM:** 16GB RAM ( Min 8GB of RAM recommended ) 
+- - **RAM:** 16GB RAM ( Min 8GB of RAM recommended )
 - - **HDD:** 250GB HDD ( Min 50GB of HDD recommended )
-- - **CPU :** 8 Core 
-- Then Start the machine 
+- - **CPU :** 8 Core
+- Then Start the machine
 - Enter the Username & Password: ``` dtx : dtx ```
-- Paste API keys in .secret Directory
+- Paste API keys in .secrets directory
 ``` bash
  mkdir -p ~/.secrets/
  echo '< OPENAI_API_KEY >' > ~/.secrets/OPENAI_API_KEY.txt
  echo '< GROQ_API_KEY >' > ~/.secrets/GROQ_API_KEY.txt
 ```
-- Run the Tool_setup.sh file 
+- Run the Tool_Setup.sh file
 ``` bash
-sudo ./Tool_Setup.sh 
+cd $HOME/labs/AISecWorkshops/labs/setup/vm
+sudo ./Tool_Setup.sh
+```
+
+---
+
+## Option B — Fresh Ubuntu Install (22.04 / 24.04)
+
+Use this path if you are setting up on a clean Ubuntu machine instead of the pre-built OVA.
+
+**Step 1 — Run Pre_Installation.sh** (requires sudo, ~10–15 min)
+
+This installs system dependencies: SSH, Python 3.10/3.12/3.13, Docker, Node.js, Go, Ollama, NGINX, and base tooling.
+
+```bash
+cd $HOME/labs/AISecWorkshops/labs/setup/vm
+sudo ./Pre_Installation.sh
+```
+
+**Step 2 — Add your API keys**
+
+```bash
+mkdir -p ~/.secrets/
+echo '< OPENAI_API_KEY >' > ~/.secrets/OPENAI_API_KEY.txt
+echo '< GROQ_API_KEY >' > ~/.secrets/GROQ_API_KEY.txt
+```
+
+**Step 3 — Run Tool_Setup.sh** (requires sudo, ~20–40 min depending on downloads)
+
+This installs all lab tools, pulls Ollama models, registers the vulnerable LLM, installs Metasploit, BurpSuite, and sets up all 7 labs (Folly, PyRIT, EDR, CS Agent, DVMCP, PentAGI, AI Red Teaming Labs).
+
+```bash
+sudo ./Tool_Setup.sh
 ```
 
 ### Validation: Successful Setup Output
