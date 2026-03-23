@@ -57,7 +57,7 @@ The **Damn Vulnerable MCP Server (DVMS)** is a deliberately insecure implementat
    - Click the **Add** button.
    - Set the **Extension type** to **Java**.
    - Click **Select file ...** and navigate to:
-     `$HOME/labs/mcp/dv_mcp_labs/fixes/mcp-recon-burp-extension.jar`
+     `$HOME/labs/mcp/red-taming/dv_mcp_labs/mcp-recon-burp-extension.jar`
    - Click **Next** to install and load the extension.
 
    **Port Forwarding (Cloud Users Only):**
