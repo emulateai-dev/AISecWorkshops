@@ -6,9 +6,9 @@ Hands-on workshop labs for offensive AI security — red teaming LLMs, agents, a
 
 ---
 
-## Repository setup (PyRIT submodule)
+## Repository setup (PyRIT and pyrit_cli submodules)
 
-This repo includes **[PyRIT](https://github.com/jitendra-eai/PyRIT)** as a git submodule at `labs/setup/pyrit/PyRIT`.
+This repo includes **[PyRIT](https://github.com/jitendra-eai/PyRIT)** as a git submodule at `labs/setup/pyrit/PyRIT` and **[pyrit_cli](https://github.com/emulateai-dev/pyrit_cli)** at `labs/setup/pyrit/pyrit_cli`.
 
 After cloning, initialize submodules (or clone with submodules in one step):
 
@@ -16,13 +16,13 @@ After cloning, initialize submodules (or clone with submodules in one step):
 git clone --recurse-submodules https://github.com/emulateai-dev/AISecWorkshops.git
 cd AISecWorkshops
 # If you cloned without --recurse-submodules:
-make init
+make submodules-init
 ```
 
-To pull the latest PyRIT `main` into the submodule (merge remote tracking branch):
+To pull the latest `main` for each submodule that tracks a branch (merge remote tracking branch):
 
 ```bash
-make merge
+make submodules-update
 ```
 
 See also: [PyRIT setup guide](./labs/setup/pyrit/README.md).
@@ -35,7 +35,8 @@ See also: [PyRIT setup guide](./labs/setup/pyrit/README.md).
 AISecWorkshops/
 └── labs/
     ├── setup/
-    │   ├── pyrit/PyRIT/                   # PyRIT (git submodule) — run: make init
+    │   ├── pyrit/PyRIT/                   # PyRIT (git submodule) — run: make submodules-init
+    │   ├── pyrit/pyrit_cli/               # pyrit_cli (git submodule)
     │   └── vm/                            # Lab environment setup (VM, tools, API keys)
     ├── llms/
     │   └── red-teaming/

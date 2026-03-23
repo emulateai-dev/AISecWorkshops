@@ -12,7 +12,7 @@
 
 **Step 1: Get the PyRIT source**
 
-If you cloned **AISecWorkshops** with submodules, PyRIT is already at `labs/setup/pyrit/PyRIT`:
+If you cloned **AISecWorkshops** with submodules, PyRIT is at `labs/setup/pyrit/PyRIT` and **pyrit_cli** at `labs/setup/pyrit/pyrit_cli`:
 
 ```bash
 # from repo root (after git clone)
@@ -102,52 +102,11 @@ Your local environment is now fully running and authenticated with your override
 
 ---
 
-## Workshop Gradio (AISec)
+## Workshop CLI (pyrit_cli)
 
-Separate from upstream `pyrit/ui`, the **aisec-gradio** package lives at `labs/setup/pyrit/aisec_gradio/`. It provides a **Setup** tab (writes `~/.pyrit/.env` + `.env.local` for native OpenAI or OpenAI-compatible backends) and a **Red Team** tab with a **section tree** (Datasets, Prompt Targets, Converters, Executors), per-assignment summaries (see [Loading built-in datasets](https://azure.github.io/PyRIT/code/datasets/loading-datasets/)), sample code, coach chat, and **Run for me** for local PyRIT samples.
+The **pyrit_cli** package is a git submodule at `labs/setup/pyrit/pyrit_cli`. It provides a terminal workflow for PyRIT setup, discovery, and red-team exercises. See [pyrit_cli/README.md](./pyrit_cli/README.md) for install (`pip install -e ./pyrit_cli` with PyRIT on `PYTHONPATH` or editable) and usage.
 
-### Local install
-
-From `labs/setup/pyrit` (with PyRIT submodule at `./PyRIT`):
-
-```bash
-pip install -e ./PyRIT
-pip install -e ./aisec_gradio
-```
-
-### Environment
-
-Same contract as **Step 3** above: `mkdir -p ~/.pyrit` and credentials in `.env` / `.env.local`. Optional override for the config directory: `PYRIT_ENV_DIR`.
-
-For **native OpenAI**, the Setup tab saves `OPENAI_API_KEY` in `.env` and also writes `OPENAI_CHAT_ENDPOINT`, `OPENAI_CHAT_KEY`, and `OPENAI_CHAT_MODEL` into `.env.local` so PyRIT’s `OpenAIChatTarget` resolves keys (PyRIT expects `OPENAI_CHAT_*`, not `OPENAI_API_KEY` alone).
-
-### Launch
-
-```bash
-cd labs/setup/pyrit
-python -m aisec_gradio
-# or: aisec-gradio
-```
-
-Defaults: `http://0.0.0.0:7860` (override with `GRADIO_SERVER_NAME`, `GRADIO_SERVER_PORT`).
-
-From the repo root you can also run: `make pyrit-gradio` (starts the app; requires the same `pip install -e` steps).
-
-### Docker
-
-Build context must be **`labs/setup/pyrit`** (contains both `PyRIT/` and `aisec_gradio/`):
-
-```bash
-cd labs/setup/pyrit
-docker build -f Dockerfile.aisec -t aisec-gradio .
-docker run --rm -p 7860:7860 \
-  -v ~/.pyrit:/root/.pyrit \
-  -e AISEC_WORKSHOP_ROOT=/workshop \
-  -v /path/to/AISecWorkshops:/workshop \
-  aisec-gradio
-```
-
-Adjust host paths and user as needed. The container expects API keys only via the mounted `~/.pyrit` volume (or equivalent env files).
+Environment variables follow the same contract as **Step 3** above: `mkdir -p ~/.pyrit` and credentials in `~/.pyrit/.env` / `~/.pyrit/.env.local`.
 
 ---
 

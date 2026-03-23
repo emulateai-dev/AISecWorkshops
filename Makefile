@@ -1,29 +1,25 @@
-# AISecWorkshops — PyRIT submodule helpers
+# AISecWorkshops — git submodule helpers (PyRIT, pyrit_cli)
 #
-# After clone: run `make init` (or `make`) to fetch the PyRIT submodule.
-# To pull upstream PyRIT changes with merge: `make merge`
+# After clone: run `make submodules-init` (or `make`) to fetch submodules.
+# To pull upstream changes with merge: `make submodules-update`
 
 PYRIT_SUBMODULE := labs/setup/pyrit/PyRIT
 
-.PHONY: help init merge submodule-init submodule-merge all
+.PHONY: help submodules-init submodules-update all
 
 help:
 	@echo "AISecWorkshops Makefile"
 	@echo ""
-	@echo "  make / make init   Initialize and checkout git submodules (PyRIT)"
-	@echo "  make merge         Update PyRIT submodule from remote with merge"
+	@echo "  make / make submodules-init   Initialize and checkout git submodules (PyRIT, pyrit_cli)"
+	@echo "  make submodules-update        Update tracked-branch submodules from remote with merge"
 	@echo ""
-	@echo "Submodule path: $(PYRIT_SUBMODULE)"
+	@echo "Submodule paths: $(PYRIT_SUBMODULE), labs/setup/pyrit/pyrit_cli"
 
-# Default: same as init
-all: init
+# Default: same as submodules-init
+all: submodules-init
 
-init: submodule-init
-
-submodule-init:
+submodules-init:
 	git submodule update --init --recursive
 
-merge: submodule-merge
-
-submodule-merge:
-	git submodule update --remote --merge $(PYRIT_SUBMODULE)
+submodules-update:
+	git submodule update --remote --merge

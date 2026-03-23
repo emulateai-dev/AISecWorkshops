@@ -2,3 +2,7 @@
 	path = labs/setup/pyrit/PyRIT
 	url = https://github.com/jitendra-eai/PyRIT.git
 	branch = main
+[submodule "labs/setup/pyrit/pyrit_cli"]
+	path = labs/setup/pyrit/pyrit_cli
+	url = https://github.com/emulateai-dev/pyrit_cli.git
+	branch = main
