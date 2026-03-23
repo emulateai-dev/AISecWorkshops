@@ -301,13 +301,15 @@ install_lab() {
     || echo "⚠️  $label install failed — check output above."
 }
 
-install_lab install-folly.sh                        "Folly"
-install_lab install-pyrit.sh                        "PyRIT"
-install_lab install-edr.sh                          "EDR"
-install_lab install-openai-cs-agents-demo.sh        "OpenAI CS Agents"
-install_lab install-dvmcp.sh                        "DVMCP"
-install_lab install-pentagi.sh                      "PentAGI"
-install_lab install-ai-red-teaming-playground-labs.sh "AI Red Teaming Labs"
+# install_lab install-folly.sh                        "Folly"
+# install_lab install-pyrit.sh                        "PyRIT"
+# install_lab install-edr.sh                          "EDR"
+# install_lab install-openai-cs-agents-demo.sh        "OpenAI CS Agents"
+# install_lab install-dvmcp.sh                        "DVMCP"
+# install_lab install-pentagi.sh                      "PentAGI"
+# install_lab install-ai-red-teaming-playground-labs.sh "AI Red Teaming Labs"
+
+echo '127.0.0.1 emulateai-mcp.local' | sudo tee -a /etc/hosts
 
 # ============================================================
 # Done
