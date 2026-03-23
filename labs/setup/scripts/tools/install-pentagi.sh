@@ -75,7 +75,7 @@ cd "$(dirname "$0")"
 echo "🚀 Starting Pentagi..."
 docker compose up -d
 echo "✅ Pentagi is running!"
-echo "→ Access: http://localhost:3000"
+echo "→ Access: https://localhost:8443"
 EOF
 chmod +x "${START_SCRIPT}"
 
@@ -115,5 +115,5 @@ echo ""
 echo "  2. Start:"
 echo "       ${START_SCRIPT}"
 echo ""
-echo "  3. Access: http://localhost:3000"
+echo "  3. Access: https://localhost:8443"
 echo ""
