@@ -8,7 +8,9 @@ Hands-on workshop labs for offensive AI security — red teaming LLMs, agents, a
 
 ## Repository setup (PyRIT and pyrit_cli submodules)
 
-This repo includes **[PyRIT](https://github.com/jitendra-eai/PyRIT)** as a git submodule at `labs/setup/pyrit/PyRIT` and **[pyrit_cli](https://github.com/emulateai-dev/pyrit_cli)** at `labs/setup/pyrit/pyrit_cli`.
+This repo includes **[PyRIT](https://github.com/jitendra-eai/PyRIT)** as a git submodule at `labs/setup/pyrit/PyRIT` and **[pyrit_cli](https://github.com/emulateai-dev/pyrit_cli)** at `labs/setup/pyrit/pyrit_cli`. Each submodule is its **own Git repository** pinned to a commit in this parent repo. Updating or pulling **AISecWorkshops** alone does not refresh submodule contents until you run **`make submodules-update`** (or `git submodule update --remote --merge`) intentionally.
+
+**Recommended order:** (1) clone with submodules or run **`make submodules-init`** from the repo root so both directories are populated, (2) when you want newer PyRIT or pyrit_cli from their remotes, run **`make submodules-update`**, (3) install **pyrit-cli** from the submodule path if you use the terminal labs (below).
 
 After cloning, initialize submodules (or clone with submodules in one step):
 
@@ -25,6 +27,60 @@ To pull the latest `main` for each submodule that tracks a branch (merge remote 
 make submodules-update
 ```
 
+### pyrit-cli (optional terminal tool)
+
+From the repo root after submodules are initialized, install **pyrit-cli** using any of the options below. The **`[hf]`** extra pulls in Hugging Face **datasets** (needed for jailbreak benchmark labs that use `--dataset hf:…`).
+
+**pip** (default)
+
+```bash
+cd labs/setup/pyrit/pyrit_cli
+pip install -e ".[hf]"
+```
+
+**uv** — global tool ([install uv](https://docs.astral.sh/uv/getting-started/installation/)), similar to pipx:
+
+```bash
+cd labs/setup/pyrit/pyrit_cli
+uv tool install --editable ".[hf]"
+```
+
+Reinstall after pulling submodule updates: `uv tool install --editable --force ".[hf]"` from the same directory. Uninstall: `uv tool uninstall pyrit-cli`.
+
+**uv** — virtualenv in the submodule (good for development):
+
+```bash
+cd labs/setup/pyrit/pyrit_cli
+uv venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+uv pip install -e ".[hf]"
+```
+
+Or, using the submodule lockfile: `uv sync --extra hf` (same directory; installs into `.venv` if present).
+
+**Poetry** — **pyrit-cli** uses Hatch, not a Poetry layout. Activate the virtualenv you use for workshops (for example `poetry shell` from **your** lab `pyproject.toml` directory), **then**:
+
+```bash
+cd labs/setup/pyrit/pyrit_cli
+pip install -e ".[hf]"
+```
+
+The editable install must run from `labs/setup/pyrit/pyrit_cli` so pip resolves the package; the interpreter comes from your Poetry-managed (or other) venv.
+
+**After install** (any method):
+
+```bash
+pyrit-cli setup configure   # interactive wizard; writes ~/.pyrit/.env and .env.local
+pyrit-cli setup             # masked status
+```
+
+**Documentation** (inside the submodule, linked from the workshop):
+
+- [pyrit_cli/README.md](./labs/setup/pyrit/pyrit_cli/README.md) — install and quick examples
+- [pyrit_cli/docs/workshop-track.md](./labs/setup/pyrit/pyrit_cli/docs/workshop-track.md) — linear path: setup → discover → red team → ask-ai
+- [pyrit_cli/src/pyrit_cli/HELP.md](./labs/setup/pyrit/pyrit_cli/src/pyrit_cli/HELP.md) — full CLI flags and environment variables
+
+You can also run `pyrit-cli ask-ai "…"` (loads HELP into the helper); **verify** any suggested command before running.
+
 See also: [PyRIT setup guide](./labs/setup/pyrit/README.md).
 
 ---
@@ -40,13 +96,15 @@ AISecWorkshops/
     │   └── vm/                            # Lab environment setup (VM, tools, API keys)
     ├── llms/
     │   └── red-teaming/
-    │       └── garak/                     # LLM vulnerability scanning with NVIDIA Garak
-    │           ├── 01_explore_garak_probes.md
-    │           ├── 02_benchmark_groq_model.md
-    │           ├── 03_benchmark_hf_model.md
-    │           ├── advanced/
-    │           │   └── 04_advanced_jailbreak_techniques.md
-    │           └── samples/               # Sample scan reports and hitlogs
+    │       ├── garak/                     # LLM vulnerability scanning with NVIDIA Garak
+    │       │   ├── 01_explore_garak_probes.md
+    │       │   ├── 02_benchmark_groq_model.md
+    │       │   ├── 03_benchmark_hf_model.md
+    │       │   ├── advanced/
+    │       │   │   └── 04_advanced_jailbreak_techniques.md
+    │       │   └── samples/               # Sample scan reports and hitlogs
+    │       └── jailbreaks/                # Jailbreak lab — Jupyter (PyRIT Docker) and/or pyrit-cli
+    │           └── README.md
     ├── agents/
     │   └── red-teaming/
     │       ├── folly/                     # Prompt injection challenges with Folly
@@ -74,6 +132,7 @@ Probe large language models for security vulnerabilities using automated scannin
 | 2 | [Benchmark Groq Model](./labs/llms/red-teaming/garak/02_benchmark_groq_model.md) | `qwen/qwen3-32b` | ~30 min | Run DAN jailbreak probes against a cloud LLM, review reports |
 | 3 | [Benchmark HuggingFace Model](./labs/llms/red-teaming/garak/03_benchmark_hf_model.md) | `smollm:135m` | ~2h (CPU) | Scan a local model, compare to cloud, interpret findings |
 | 4 | [Advanced Jailbreak Techniques](./labs/llms/red-teaming/garak/advanced/04_advanced_jailbreak_techniques.md) | Various | ~20 min | TAP, GCG, and Atkgen — automated attack generation |
+| — | [LLM Jailbreaks](./labs/llms/red-teaming/jailbreaks/README.md) | Ollama / Groq / OpenAI | ~5 h (full track) | Alignment, datasets, PyRIT benchmarks, converters, TAP; optional **pyrit-cli** terminal track |
 
 ### Agent Red Teaming
 
@@ -205,6 +264,7 @@ Begin with the [Explore Garak Probes](./labs/llms/red-teaming/garak/01_explore_g
 | [DTX](https://github.com/detoxio-ai) | AI security testing | `uv tool install "dtx[torch]"` |
 | [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) | Multi-agent framework (CS Agent lab) | Python package install |
 | [PyRIT](https://github.com/Azure/PyRIT) | Prompt attack and risk identification testing | Docker devcontainer build |
+| [pyrit-cli](https://github.com/emulateai-dev/pyrit_cli) (submodule) | Terminal wrapper for setup, dataset inspect, single-turn / multi-turn / TAP attacks | After `make submodules-init`: `pip install -e ".[hf]"` or `uv tool install --editable ".[hf]"` from `labs/setup/pyrit/pyrit_cli` (see [pyrit-cli](#pyrit-cli-optional-terminal-tool) above) |
 | [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/main/en/guides/cli) | Model and dataset access from terminal | `uv tool install "huggingface_hub[cli,torch]"` |
 | [LLM CLI](https://github.com/simonw/llm) | Command-line LLM interaction and key management | `uv tool install llm` |
 | [Metasploit Framework](https://github.com/rapid7/metasploit-framework) | Exploitation framework for security labs | `msfinstall` |

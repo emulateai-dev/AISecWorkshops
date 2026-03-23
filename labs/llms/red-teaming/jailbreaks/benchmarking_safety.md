@@ -45,6 +45,41 @@ Upload these to Jupyter at `localhost:8888` or follow the cells below to build t
 
 ---
 
+## Alternative: pyrit-cli (HF batch benchmark, terminal)
+
+Use this if you want a **shell-only** run against **Hugging Face** objectives without Jupyter. It does **not** replace the notebook’s **SelfAskTrueFalseScorer** pipeline: the CLI’s `prompt-sending-attack` prints each run’s result but does **not** aggregate **attack success rate (ASR)** the same way as Part 2. For **graded ASR** and reports, complete **Part 2** below.
+
+**Prerequisites:** From **AISecWorkshops** root, `make submodules-init`. Then:
+
+```bash
+cd labs/setup/pyrit/pyrit_cli
+pip install -e ".[hf]"
+export GROQ_API_KEY="gsk_..."   # for --target groq:...
+```
+
+Preview BeaverTails rows (column **`prompt`**, split **`test`**):
+
+```bash
+pyrit-cli datasets inspect hf:PKU-Alignment/BeaverTails-Evaluation --hf-split test --hf-column prompt --limit 3
+```
+
+Batch single-turn sends (cap cost with **`--limit`**):
+
+```bash
+pyrit-cli redteam prompt-sending-attack \
+  --target groq:qwen/qwen3-32b \
+  --dataset hf:PKU-Alignment/BeaverTails-Evaluation \
+  --hf-split test \
+  --hf-column prompt \
+  --limit 10
+```
+
+**Caveats:** No notebook **prepended system** message; no built-in **jailbreak compliance scorer** in this CLI path — interpret transcripts manually or use the notebook for ASR. For **AIR-Bench**, run **`pyrit-cli datasets inspect hf:stanford-crfm/air-bench-2024 …`** first to confirm split/column names, then reuse the same **`--dataset` / `--hf-*`** pattern.
+
+Docs: [HELP.md](../../../setup/pyrit/pyrit_cli/src/pyrit_cli/HELP.md) (`prompt-sending-attack`, `datasets inspect`).
+
+---
+
 ## Part 2 — Create the Benchmark Notebook
 
 Once Jupyter is running at `localhost:8888`:

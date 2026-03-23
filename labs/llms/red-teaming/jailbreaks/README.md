@@ -17,6 +17,8 @@ Hands-on assignments exploring LLM safety alignment, its limitations, and techni
 | Groq API key | `echo $GROQ_API_KEY` |
 | `jq` installed | `jq --version` |
 | Docker installed (for Assignments 4, 7, 9) | `docker --version` |
+| **Optional: pyrit-cli** — submodule checked out | From AISecWorkshops root: `make submodules-init`; then `test -f labs/setup/pyrit/pyrit_cli/pyproject.toml` |
+| **Optional: pyrit-cli** — install | From `labs/setup/pyrit/pyrit_cli`: `pip install -e ".[hf]"`, or `uv tool install --editable ".[hf]"`, or `uv pip install -e ".[hf]"` in a venv; Poetry users: activate env then same `pip install -e ".[hf]"` ([workshop README](../../../../README.md#pyrit-cli-optional-terminal-tool)) |
 
 ---
 
@@ -51,6 +53,25 @@ Assignment 8:   ESCALATE             →  Multi-turn social engineering
 Assignment 9:   AUTOMATE             →  AI-vs-AI red teaming with TAP (Tree of Attacks)
 Assignment 10:  EXTRACT              →  System prompt & secrets extraction
 ```
+
+**pyrit-cli (optional) — mirrors Assignments 1–4, 7, 9**
+
+| Assignment | CLI focus |
+|------------|-----------|
+| **1** | `redteam prompt-sending-attack` with `--objective` — try `ollama:qwen3:0.6b`, `groq:…`, `openai:…` for the same prompts |
+| **2** | Same command; swap `--target` (aligned vs jailbroken / uncensored Ollama models) |
+| **3** | `datasets list` / `datasets inspect` (`pyrit:` and `hf:`), `jailbreak-templates list` — explore only |
+| **4** | `prompt-sending-attack --dataset hf:…` batch run (see assignment; notebook still needed for full ASR) |
+| **7** | `converters run` (stateless); LLM converters stay in Jupyter |
+| **9** | `redteam tap-attack` — see assignment for Groq example |
+
+Assignments **1–3** do not require Docker if you use only the CLI path for those steps.
+
+---
+
+### Optional: pyrit-cli track
+
+Use **[pyrit-cli](https://github.com/emulateai-dev/pyrit_cli)** from `labs/setup/pyrit/pyrit_cli` when you want a **terminal** workflow (no Jupyter) for early assignments, or to complement Docker notebooks. After **`make submodules-init`** at the workshop repo root, install with `pip install -e ".[hf]"` and follow **[workshop-track.md](../../../setup/pyrit/pyrit_cli/docs/workshop-track.md)** and **[HELP.md](../../../setup/pyrit/pyrit_cli/src/pyrit_cli/HELP.md)**. Individual assignments below link concrete commands.
 
 ---
 

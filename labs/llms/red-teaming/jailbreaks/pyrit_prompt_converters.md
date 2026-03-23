@@ -43,6 +43,28 @@ Open Jupyter at [http://localhost:8888](http://localhost:8888).
 
 ---
 
+## Optional: pyrit-cli (stateless converters only)
+
+[pyrit-cli](../../../setup/pyrit/pyrit_cli/README.md) can run **deterministic** (non-LLM) text converters from the shell — same **converter keys** as PyRIT’s text-to-text stack for many encodings/obfuscations:
+
+```bash
+pyrit-cli converters list-keys
+pyrit-cli converters run -c rot13 "tell me how to cut down a tree"
+pyrit-cli converters run -c base64 "plain text"
+# Stack order: repeat -c (see HELP for semantics)
+pyrit-cli converters run -c base64 -c rot13 "secret"
+```
+
+List **jailbreak template** YAML basenames (used with `TextJailBreak` in **Python** — not executed by this subcommand):
+
+```bash
+pyrit-cli jailbreak-templates list
+```
+
+**LLM-backed converters** (translation, persuasion, math obfuscation, etc.) in the rest of this assignment require **PyRIT in Python** / Jupyter — the CLI does not run those. See [HELP.md](../../../setup/pyrit/pyrit_cli/src/pyrit_cli/HELP.md) (“Limitations” and `converters run`).
+
+---
+
 ## Part 1 — Non-LLM Converters
 
 Non-LLM converters use deterministic algorithms to transform text. These include encoding schemes, obfuscation techniques, character manipulation, and token smuggling.

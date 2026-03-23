@@ -157,6 +157,42 @@ EOF
 If Python/datasets isn't available, browse the dataset directly on HuggingFace:
 - [AIR-Bench Data Viewer](https://huggingface.co/datasets/stanford-crfm/air-bench-2024/viewer)
 
+### Optional: pyrit-cli (list and inspect)
+
+From the workshop repo root, **`make submodules-init`**, then:
+
+```bash
+cd labs/setup/pyrit/pyrit_cli
+pip install -e ".[hf]"
+```
+
+Explore **PyRIT seed paths** and **registered names** (same roots as PyRIT’s dataset loader):
+
+```bash
+pyrit-cli datasets list
+pyrit-cli datasets list --glob '*airt*'
+```
+
+Preview rows **without** running attacks (`pyrit:` and `hf:` specs). **BeaverTails-Evaluation** uses split **`test`** and column **`prompt`** (matches [Assignment 4 notebook](./notebooks/01_benchmark_beavertails.py)):
+
+```bash
+pyrit-cli datasets inspect hf:PKU-Alignment/BeaverTails-Evaluation --hf-split test --hf-column prompt --limit 3
+```
+
+For **AIR-Bench 2024**, run inspect first to confirm **split** and **column** names on your install, then adjust flags (the Python snippet above uses split `test` and columns like `prompt`, `l3-name`):
+
+```bash
+pyrit-cli datasets inspect hf:stanford-crfm/air-bench-2024 --hf-split test --hf-column prompt --limit 2
+```
+
+List **jailbreak YAML** basenames (for `TextJailBreak` in Python later):
+
+```bash
+pyrit-cli jailbreak-templates list
+```
+
+Reference: [workshop-track.md](../../../setup/pyrit/pyrit_cli/docs/workshop-track.md) (Level 3), [HELP.md](../../../setup/pyrit/pyrit_cli/src/pyrit_cli/HELP.md) (`datasets inspect`).
+
 ### Questions
 
 1. **Which harm categories have the most prompts?** Is the dataset balanced?

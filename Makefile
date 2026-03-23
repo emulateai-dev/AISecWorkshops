@@ -4,6 +4,7 @@
 # To pull upstream changes with merge: `make submodules-update`
 
 PYRIT_SUBMODULE := labs/setup/pyrit/PyRIT
+PYRIT_CLI_SUBMODULE := labs/setup/pyrit/pyrit_cli
 
 .PHONY: help submodules-init submodules-update all
 
@@ -13,7 +14,7 @@ help:
 	@echo "  make / make submodules-init   Initialize and checkout git submodules (PyRIT, pyrit_cli)"
 	@echo "  make submodules-update        Update tracked-branch submodules from remote with merge"
 	@echo ""
-	@echo "Submodule paths: $(PYRIT_SUBMODULE), labs/setup/pyrit/pyrit_cli"
+	@echo "Submodule paths: $(PYRIT_SUBMODULE), $(PYRIT_CLI_SUBMODULE)"
 
 # Default: same as submodules-init
 all: submodules-init
