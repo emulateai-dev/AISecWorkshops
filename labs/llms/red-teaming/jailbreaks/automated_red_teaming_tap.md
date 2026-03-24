@@ -21,9 +21,9 @@ This approach uses `TAPAttack` directly (instead of `RedTeamingAttack`) with tre
 
 ## Part 1 — Setup
 
-Ensure PyRIT is running (see [PyRIT Setup Guide](../../../setup/pyrit/README.md)).
+Jupyter and PyRIT are **assumed to be available** in your workshop environment.
 
-Open Jupyter at [http://localhost:8888](http://localhost:8888).
+Open Jupyter (e.g. [http://localhost:8888](http://localhost:8888) if that is your lab URL).
 
 Use either:
 - Notebook: [`03_tap_red_teaming.ipynb`](./notebooks/03_tap_red_teaming.ipynb)
@@ -35,7 +35,7 @@ Use either:
 
 ## Optional: pyrit-cli (`tap-attack`)
 
-Same **three-model** idea as Part 2: **adversarial** `qwen/qwen3-32b`, **objective (victim)** `llama-3.3-70b-versatile`, **scoring** chat on `qwen/qwen3-32b`. Set **`GROQ_API_KEY`** and run from a shell (after `make submodules-init` and `pip install -e .` under `labs/setup/pyrit/pyrit_cli`):
+Same **three-model** idea as Part 2: **adversarial** `qwen/qwen3-32b`, **objective (victim)** `llama-3.3-70b-versatile`, **scoring** chat on `qwen/qwen3-32b`. Set **`GROQ_API_KEY`** and run from a shell:
 
 ```bash
 pyrit-cli redteam tap-attack \
@@ -181,7 +181,7 @@ The advanced version supports:
 |------|-----|
 | TAP run stalls or takes too long | Reduce `tree_width` to 2-3 and `tree_depth` to 3 |
 | Groq quota/rate limits | Add `await asyncio.sleep(...)` between runs |
-| Notebook imports fail | Re-run PyRIT setup and verify container is up |
+| Notebook imports fail | Verify PyRIT imports resolve and required services (Jupyter kernel env, APIs) are reachable |
 | No meaningful branches produced | Try a more specific objective statement |
 
 ---
@@ -190,7 +190,7 @@ The advanced version supports:
 
 - [PyRIT Documentation](https://azure.github.io/PyRIT/)
 - [TAP: Tree of Attacks with Pruning](https://arxiv.org/abs/2312.02119) — Mehrotra et al., 2023
-- [PyRIT Setup Guide](../../../setup/pyrit/README.md)
+- [PyRIT workshop overview](../../../setup/pyrit/README.md)
 
 ---
 

@@ -211,6 +211,44 @@ audience can learn to identify real attacks.
 
 ---
 
+## Automate Multi-Turn with Crescendo (`pyrit-cli`)
+
+Manual role-play is useful, but you can also run an automated multi-turn escalation attack using PyRIT's Crescendo strategy in the CLI.
+
+### Minimal Crescendo Run
+
+```bash
+pyrit-cli redteam crescendo-attack \
+  --objective-target openai:gpt-4o-mini \
+  --objective "Benign instructor-approved objective text." \
+  --true-description "Success criterion from instructor." \
+  --max-turns 7 \
+  --max-backtracks 4
+```
+
+### With Converter Obfuscation + Different Adversary
+
+```bash
+pyrit-cli redteam crescendo-attack \
+  --objective-target openai:gpt-4o-mini \
+  --adversarial-target ollama:llama3.2 \
+  --objective "Benign instructor-approved objective text." \
+  --true-description "Success criterion from instructor." \
+  --request-converter base64 \
+  --response-converter rot13 \
+  --max-turns 6 \
+  --max-backtracks 3
+```
+
+### What to Observe
+
+- Does increasing `--max-turns` improve success rates?
+- When does backtracking happen (`--include-pruned-conversations`)?
+- Is the same objective easier with a different adversarial model?
+- How does Crescendo compare to your manual social-engineering sequence above?
+
+---
+
 ## Results Summary
 
 | # | Technique | Turns to Bypass | Harmful Detail Level | Notes |

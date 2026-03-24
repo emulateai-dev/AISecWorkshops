@@ -1,6 +1,6 @@
 # PyRIT Notebooks
 
-Pre-built Jupyter notebooks and Python scripts for the PyRIT-based jailbreak assignments. Upload notebooks to the PyRIT Jupyter server at [http://localhost:8888](http://localhost:8888), or copy-paste code from the `.py` files.
+Pre-built Jupyter notebooks and Python scripts for the PyRIT-based jailbreak assignments. Upload notebooks to your workshop Jupyter server, or copy-paste code from the `.py` files.
 
 ## Notebooks & Scripts
 
@@ -17,15 +17,13 @@ The `.py` files contain the same code as the notebooks — flat, top-level `awai
 
 ## Prerequisites
 
-- PyRIT Docker containers running (`docker compose -f docker/docker-compose.yaml --profile jupyter up -d`)
-- Groq API key configured in `~/.pyrit/.env.local`
-- For notebooks 00 & 02: Ollama running on the host with `qwen3:0.6b` pulled
+Workshop environment is **assumed configured**: Jupyter with PyRIT, **Groq API key** where needed (e.g. in `~/.pyrit/.env.local`), and for notebooks **00** & **02** **Ollama** with **`qwen3:0.6b`** available if you run local targets.
 
 ## How to Use
 
 **Option A — Upload notebook to Jupyter:**
 
-1. Open [http://localhost:8888](http://localhost:8888)
+1. Open your Jupyter UI (e.g. `http://localhost:8888` if that is your lab URL)
 2. Click **Upload** and select the `.ipynb` file
 3. Run cells sequentially
 
@@ -33,13 +31,7 @@ The `.py` files contain the same code as the notebooks — flat, top-level `awai
 
 1. Open the `.py` file in your editor
 2. Copy the code
-3. Paste into a new Jupyter notebook cell at `localhost:8888`
-
-**Option C — Copy into the container:**
-
-```bash
-docker cp notebooks/00_prompt_sending.ipynb pyrit-jupyter:/home/user/
-```
+3. Paste into a new Jupyter notebook cell
 
 ---
 

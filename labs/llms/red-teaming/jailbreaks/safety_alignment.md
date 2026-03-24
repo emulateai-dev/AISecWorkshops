@@ -14,14 +14,7 @@ Understand **why LLMs refuse harmful requests**, then systematically test **9 es
 
 ## Optional: pyrit-cli (single-turn, terminal)
 
-From the **AISecWorkshops** root, run **`make submodules-init`**, then install [pyrit-cli](../../../setup/pyrit/pyrit_cli/README.md):
-
-```bash
-cd labs/setup/pyrit/pyrit_cli
-pip install -e .
-```
-
-Configure credentials: **`pyrit-cli setup configure`** (writes `~/.pyrit/.env` and `.env.local` for **`openai:`** targets), or set **`export GROQ_API_KEY=…`** for **`groq:<model>`**. Full flag and env reference: [HELP.md](../../../setup/pyrit/pyrit_cli/src/pyrit_cli/HELP.md).
+With [pyrit-cli](../../../setup/pyrit/pyrit_cli/README.md) available, configure credentials as needed: **`pyrit-cli setup configure`** (writes `~/.pyrit/.env` and `.env.local` for **`openai:`** targets), or set **`export GROQ_API_KEY=…`** for **`groq:<model>`**. Full flag and env reference: [HELP.md](../../../setup/pyrit/pyrit_cli/src/pyrit_cli/HELP.md).
 
 Run the **same harmful strings** as in Part 1 with **`prompt-sending-attack`** (one `--objective` per command). Examples:
 

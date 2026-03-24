@@ -159,13 +159,6 @@ If Python/datasets isn't available, browse the dataset directly on HuggingFace:
 
 ### Optional: pyrit-cli (list and inspect)
 
-From the workshop repo root, **`make submodules-init`**, then:
-
-```bash
-cd labs/setup/pyrit/pyrit_cli
-pip install -e ".[hf]"
-```
-
 Explore **PyRIT seed paths** and **registered names** (same roots as PyRIT’s dataset loader):
 
 ```bash

@@ -12,32 +12,18 @@
 In Assignment 3 you learned about harm categories and safety benchmark datasets. Now you'll put that knowledge into practice by **programmatically benchmarking** a live model against real harmful prompts using [PyRIT](https://github.com/Azure/PyRIT) (Python Risk Identification Toolkit for generative AI), Microsoft's open-source red teaming framework.
 
 By the end of this assignment you will:
-- Set up PyRIT + `pyrit-cli`
+- Use PyRIT + `pyrit-cli` (assumed installed)
 - Benchmark `qwen/qwen3-32b` on Groq against the **BeaverTails** harmful prompt dataset
 - Review transcript-level outcomes from terminal runs
 - Optionally benchmark against the **AIR-Bench 2024** dataset
 
 ---
 
-## Part 1 — PyRIT + pyrit-cli Setup
+## Part 1 — Environment
 
-Before starting this assignment, complete setup by following:
+PyRIT, **`pyrit-cli`**, and the workshop Jupyter environment are **assumed to be available**. For Groq-backed runs, ensure **`GROQ_API_KEY`** is set in your shell or `~/.pyrit/.env.local`.
 
-> **[PyRIT Setup Guide](../../../setup/pyrit/README.md)** (`labs/setup/pyrit/README.md`)  
-> **[pyrit-cli README](../../../setup/pyrit/pyrit_cli/README.md)** (`labs/setup/pyrit/pyrit_cli/README.md`)
-
-These guides cover submodule init, install options (`pip` / `uv`), credential setup, and command usage for terminal-based benchmarking.
-
-From the workshop root:
-
-```bash
-make submodules-init
-cd labs/setup/pyrit/pyrit_cli
-pip install -e ".[hf]"
-# or: uv tool install --editable ".[hf]"
-# or: uv venv && source .venv/bin/activate && uv pip install -e ".[hf]"
-export GROQ_API_KEY="gsk_..."
-```
+Command syntax, targets, and scoring flags: **[HELP.md](../../../setup/pyrit/pyrit_cli/src/pyrit_cli/HELP.md)** and **[pyrit-cli README](../../../setup/pyrit/pyrit_cli/README.md)**. Workshop layout for PyRIT lives under **[`labs/setup/pyrit/`](../../../setup/pyrit/README.md)**.
 
 ---
 
@@ -45,13 +31,7 @@ export GROQ_API_KEY="gsk_..."
 
 Use this if you want a **shell-only** run against **Hugging Face** objectives without Jupyter. The CLI now supports built-in objective scoring for `prompt-sending-attack`; it still prints per-run results (you compute aggregate ASR from output/logs).
 
-**Prerequisites:** From **AISecWorkshops** root, `make submodules-init`. Then:
-
-```bash
-cd labs/setup/pyrit/pyrit_cli
-pip install -e ".[hf]"
-export GROQ_API_KEY="gsk_..."   # for --target groq:...
-```
+Set **`GROQ_API_KEY`** when using **`--target groq:...`**.
 
 Preview BeaverTails rows (column **`prompt`**, split **`test`**):
 
@@ -113,11 +93,13 @@ For **AIR-Bench**, run **`pyrit-cli datasets inspect hf:stanford-crfm/air-bench-
 
 Docs: [HELP.md](../../../setup/pyrit/pyrit_cli/src/pyrit_cli/HELP.md) (`prompt-sending-attack`, `datasets inspect`).
 
+**Debug a scorer on one assistant string:** use **`pyrit-cli scorers eval`** with **`--preset self-ask-tf`** or **`self-ask-refusal`**, **`--text`** / **`--text-file`**, and optional **`--objective`** (see HELP.md § **`scorers eval`**).
+
 ---
 
 ## Part 2 — Create the Benchmark Notebook
 
-Once Jupyter is running at `localhost:8888`:
+In Jupyter (your workshop notebook UI, e.g. `http://localhost:8888`):
 
 1. Click **New → Python 3** to create a new notebook (or upload `01_benchmark_beavertails.ipynb` from the `notebooks/` folder)
 2. Name it `benchmark_beavertails.ipynb`
@@ -494,7 +476,7 @@ This shows how different governments prioritize different harm categories — a 
 - [PyRIT Documentation](https://azure.github.io/PyRIT/) — Full API reference and tutorials
 - [BeaverTails](https://huggingface.co/datasets/PKU-Alignment/BeaverTails-Evaluation) — PKU harmful prompt dataset (14 categories)
 - [AIR-Bench 2024](https://huggingface.co/datasets/stanford-crfm/air-bench-2024) — Stanford CRFM regulation-aligned benchmark
-- [PyRIT Setup Guide](../../../setup/pyrit/README.md) — Docker setup instructions for this workshop
+- [PyRIT workshop overview](../../../setup/pyrit/README.md) — repo layout and configuration reference
 
 ---
 

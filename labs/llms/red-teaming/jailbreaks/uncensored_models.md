@@ -92,7 +92,7 @@ This larger model produces coherent, directly harmful responses — no refusal, 
 
 ## Optional: pyrit-cli (compare targets)
 
-With [pyrit-cli](../../../setup/pyrit/pyrit_cli/README.md) installed (`make submodules-init` from the workshop root, then `pip install -e .` under `labs/setup/pyrit/pyrit_cli`), you can send the **same** prompt with **`redteam prompt-sending-attack`** and only change **`--target`** — no need to juggle multiple `ollama run` sessions for a quick A/B.
+With [pyrit-cli](../../../setup/pyrit/pyrit_cli/README.md), you can send the **same** prompt with **`redteam prompt-sending-attack`** and only change **`--target`** — no need to juggle multiple `ollama run` sessions for a quick A/B.
 
 Use the **exact Ollama model tags** from this assignment (check `ollama list` / `ollama pull` if a tag fails):
 

@@ -35,9 +35,9 @@ Non-LLM converters are predictable and repeatable — the same input always prod
 
 ## Setup
 
-Ensure PyRIT is running (see [PyRIT Setup Guide](../../../setup/pyrit/README.md)).
+Jupyter and PyRIT are **assumed to be available** in your workshop environment.
 
-Open Jupyter at [http://localhost:8888](http://localhost:8888).
+Open Jupyter (e.g. [http://localhost:8888](http://localhost:8888) if that is your lab URL).
 
 > **Quick option:** Upload the pre-built notebook [`04_prompt_converters.ipynb`](./notebooks/04_prompt_converters.ipynb) from the `notebooks/` directory, or create a new one and follow the cells below.
 
