@@ -9,7 +9,7 @@ Scripts to install, start, and stop the Salesforce Enterprise Deep Research (EDR
 > ```bash
 > cd ~/AISecWorkshops
 > git stash
-> git pull
+> git pull origin/main
 > ```
 
 ---
@@ -32,7 +32,7 @@ Scripts to install, start, and stop the Salesforce Enterprise Deep Research (EDR
 Clones the EDR repository from `SalesforceAIResearch/enterprise-deep-research`. Sets up a Python virtual environment, installs dependencies, builds the Node.js frontend, configures environment variables, generating the `.env` file along with the `start_service.sh` and `stop_service.sh` companion scripts.
 
 ```bash
-AISecWorkshops/labs/setup/scripts/tools/install-edr.sh
+~/labs/AISecWorkshops/labs/setup/scripts/tools/install-edr.sh
 ```
 
 By default, the framework is installed to `~/labs/agents/red-teaming/edr` (configurable via `BASE_DIR`).

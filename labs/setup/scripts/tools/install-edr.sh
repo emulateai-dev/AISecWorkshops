@@ -282,6 +282,8 @@ info "Generating start script: ${START_SCRIPT}"
 cat > "${START_SCRIPT}" <<EOF
 #!/usr/bin/env bash
 # start_service.sh – Start Enterprise Deep Research (EDR) API server
+
+cp -r ~/labs/AISecWorkshops/labs/agents/red-teaming/edr/training_materials/ ~/labs/agents/red-teaming/edr/enterprise-deep-research/
 set -euo pipefail
 
 LAB_DIR="${LAB_DIR}"
