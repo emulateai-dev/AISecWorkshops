@@ -16,16 +16,13 @@ if [[ -z "${TARGET_HOME}" || ! -d "${TARGET_HOME}" ]]; then
   echo "❌ Could not resolve home for '$TARGET_USER'."; exit 1
 fi
 
-# Pinned so the 4 Go-based recon tools below build reproducibly instead of
-# silently triggering Go's auto-toolchain-download (each tool's own go.mod
-# can require a newer Go than this at any time — check before bumping any
-# tool version below). Verified 2026-08-26: nuclei v3.11.1, httpx v1.10.0,
-# and amass v5.1.1 all require go 1.26; subfinder v2.16.0 requires go 1.25.0.
+# Go toolchain version. This installs the toolchain only — the Go-based recon
+# tools (httpx, nuclei, subfinder, amass) are built by Tool_Setup.sh, which
+# holds their own version pins. Keep this at or above what those pins need,
+# otherwise Go silently auto-downloads a newer toolchain at build time.
+# Verified 2026-08-26: nuclei v3.11.1, httpx v1.10.0 and amass v5.1.1 all
+# require go 1.26; subfinder v2.16.0 requires go 1.25.0.
 GO_VERSION="1.26.7"
-HTTPX_VERSION="v1.10.0"
-NUCLEI_VERSION="v3.11.1"
-SUBFINDER_VERSION="v2.16.0"
-AMASS_VERSION="v5.1.1"
 
 echo "🚀 Running setup for user: $TARGET_USER (home: $TARGET_HOME)"
 echo "--------------------------------------"
@@ -48,18 +45,43 @@ systemctl restart ssh || true
 # ============================================================
 # 2) Base packages (install curl/git before using them)
 # ============================================================
-# software-properties-common first (add-apt-repository needs it), then the
-# deadsnakes PPA, BEFORE the big install below. This matters on Ubuntu
-# 22.04: python3.12 does not exist in 22.04's own repos (main or universe)
-# at all, only via this PPA — so the PPA must be active before we ask apt
-# for python3.12-venv, or the whole script aborts here (set -euo pipefail)
-# and nothing after this line ever runs. On 24.04, python3.12 is native
-# (in universe) and python3.10 comes from the PPA instead — either way,
-# having the PPA active first covers both supported Ubuntu versions.
+# The Python story differs per Ubuntu release, and getting it wrong is fatal:
+# `set -euo pipefail` turns any apt failure into an abort, so a single
+# unavailable python3.X package here means NOTHING below this section ever
+# runs (no Docker, no uv, no Ollama, no models, no nginx).
+#
+#   22.04 (jammy)  — python3.12 only via the deadsnakes PPA
+#   24.04 (noble)  — python3.12 native (universe); python3.10 via deadsnakes
+#   25.04 (plucky) — python3.13 native; python3.10/3.11/3.12 are in NO repo,
+#                    and deadsnakes publishes nothing for plucky. Adding the
+#                    PPA anyway leaves a source that breaks every subsequent
+#                    `apt-get update` with "does not have a Release file".
+#
+# So: add deadsnakes only on releases it actually supports, and install the
+# extra interpreters opportunistically. Gaps are filled by uv in section 4,
+# which ships standalone builds for every version the labs need.
+. /etc/os-release
+RELEASE_CODENAME="${UBUNTU_CODENAME:-${VERSION_CODENAME:-unknown}}"
+echo "➡️  Detected ${PRETTY_NAME:-Ubuntu ${VERSION_ID:-?}} (codename: ${RELEASE_CODENAME})"
+
 apt-get install -y ca-certificates gnupg software-properties-common
-add-apt-repository -y ppa:deadsnakes/ppa
+
+# Releases for which the deadsnakes PPA actually publishes packages.
+DEADSNAKES_RELEASES="jammy noble"
+if grep -qw -- "$RELEASE_CODENAME" <<<"$DEADSNAKES_RELEASES"; then
+  add-apt-repository -y ppa:deadsnakes/ppa
+else
+  echo "ℹ️  Skipping deadsnakes PPA — it publishes nothing for '${RELEASE_CODENAME}'."
+  # Remove it if an earlier run of this script (or an older VM image) added
+  # it, otherwise every apt-get update from here on fails on the missing
+  # Release file and takes the rest of this script down with it.
+  rm -f /etc/apt/sources.list.d/deadsnakes-ubuntu-ppa-*.sources \
+        /etc/apt/sources.list.d/deadsnakes-ubuntu-ppa-*.list
+  sed -i '/deadsnakes/d' /etc/apt/sources.list
+fi
 apt-get update
 
+# Packages present on every supported release.
 apt-get install -y \
   apt-transport-https \
   gcc \
@@ -79,21 +101,36 @@ apt-get install -y \
   python3 \
   python3-pip \
   python3-venv \
-  python3.10 \
-  python3.10-dev \
-  python3.10-venv \
-  python3.12-venv \
-  python3.13 \
-  python3.13-dev \
-  python3.13-venv \
   python-is-python3 \
   build-essential \
   nginx
 
+# Extra Python interpreters — install the ones this release offers and
+# report (never abort on) the ones it doesn't.
+apt_install_optional() {
+  local pkg
+  for pkg in "$@"; do
+    if apt-cache show "$pkg" >/dev/null 2>&1; then
+      if apt-get install -y "$pkg" >/dev/null 2>&1; then
+        echo "  ✅ $pkg"
+      else
+        echo "  ⚠️  $pkg is available but failed to install"
+      fi
+    else
+      echo "  ℹ️  $pkg not in any repo for ${RELEASE_CODENAME} — uv provides it instead (section 4)"
+    fi
+  done
+}
+echo "➡️  Installing additional Python interpreters available on this release..."
+apt_install_optional \
+  python3.10 python3.10-dev python3.10-venv \
+  python3.12 python3.12-dev python3.12-venv \
+  python3.13 python3.13-dev python3.13-venv
+
 # Validate Python is accessible
 python3 --version >/dev/null 2>&1 || { echo "❌ python3 not found after install. Check apt output above."; exit 1; }
 python  --version >/dev/null 2>&1 && echo "✅ 'python' alias works." || echo "⚠️  'python' alias not set — install python-is-python3 manually if needed."
-echo "✅ Python checks passed."
+echo "✅ Python checks passed ($(python3 --version))."
 
 # ============================================================
 # 3) Docker
@@ -114,7 +151,8 @@ usermod -aG docker "$TARGET_USER"
 echo "⚠️  '$TARGET_USER' was added to the 'docker' group — log out and back in (or run 'newgrp docker') before using docker without sudo in an existing terminal."
 
 # ============================================================
-# 4) USER-SCOPE installs (asdf, uv, node, go tools, tmux conf, tools)
+# 4) USER-SCOPE runtimes (asdf, uv, python, node, go toolchain, tmux conf)
+#    Runtimes only — the tools built on top of them are in Tool_Setup.sh.
 # ============================================================
 sudo -u "$TARGET_USER" bash -lc "
   set -euo pipefail
@@ -132,8 +170,11 @@ sudo -u "$TARGET_USER" bash -lc "
   grep -qxF 'source \$HOME/.local/bin/env' \"$TARGET_HOME/.bashrc\" || echo 'source \$HOME/.local/bin/env' >> \"$TARGET_HOME/.bashrc\"
   source \"$TARGET_HOME/.local/bin/env\"
 
-  # Python via uv
-  uv python install 3.12
+  # Python via uv — 3.12 is the interpreter the lab venvs target, and on
+  # releases where apt has no python3.10/3.12 (25.04+) these standalone
+  # builds are the ONLY source for them. Installing all three keeps every
+  # lab's interpreter available regardless of the host release.
+  uv python install 3.10 3.12 3.13
 
   # --- Node.js via asdf (+ keyring) ---
   asdf plugin list | grep -qx nodejs || asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
@@ -144,19 +185,17 @@ sudo -u "$TARGET_USER" bash -lc "
   fi
   asdf install nodejs lts
   asdf global nodejs lts
-  npm install -g promptfoo
+  # promptfoo (npm) is installed by Tool_Setup.sh — see its "Node tools" step.
 
-  # --- Go via asdf + tools ---
+  # --- Go toolchain via asdf ---
+  # Toolchain only. The recon tools built with it (httpx, nuclei, subfinder,
+  # amass) are installed by Tool_Setup.sh so they can be re-pinned and
+  # refreshed without re-running this whole system-level script.
   asdf plugin list | grep -qx golang || asdf plugin add golang https://github.com/asdf-community/asdf-golang.git
   asdf install golang $GO_VERSION
   asdf global golang $GO_VERSION
-  export GOBIN=\"$TARGET_HOME/.local/bin\"
-  mkdir -p \"\$GOBIN\"
-  export PATH=\"\$GOBIN:\$PATH\"
-  go install -v github.com/projectdiscovery/httpx/cmd/httpx@$HTTPX_VERSION
-  go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@$NUCLEI_VERSION
-  go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@$SUBFINDER_VERSION
-  CGO_ENABLED=0 go install -v github.com/owasp-amass/amass/v5/cmd/amass@$AMASS_VERSION
+  # GOBIN target that Tool_Setup.sh installs into; also on PATH via uv's env.
+  mkdir -p \"$TARGET_HOME/.local/bin\"
 
   # --- tmux config ---
   cat > \"$TARGET_HOME/.tmux.conf\" <<'TMUXRC'
@@ -180,11 +219,11 @@ set -g history-limit 100000
 TMUXRC
   tmux has-session 2>/dev/null && tmux source-file \"$TARGET_HOME/.tmux.conf\" || true
 
-  # --- Tools via uv ---
-  uv tool install cai-framework
-  uv tool install autogenstudio
+  # Lab tools installed via uv (cai-framework, autogenstudio, dtx, garak,
+  # huggingface_hub, llm) all live in Tool_Setup.sh — this script only
+  # provisions the runtimes they need.
 
-  echo '✅ User-scope installs complete.'
+  echo '✅ User-scope runtimes complete (asdf, uv, python, node, go).'
 "
 
 # Ensure ownership of user home (avoid fragile globs like /home/$USER/.*)
@@ -389,9 +428,22 @@ check_model "ollama: SmolLM-Jailbroken"    "SmolLM-135M-Instruct-Jailbroken"
 check_model "ollama: jailbroken-llama"     "^jailbroken-llama"
 check_model "ollama: vulnerable-llama"     "^vulnerable-llama"
 
-check "python3.10"                   command -v python3.10
-check "python3.12"                   command -v python3.12
-check "python3.13"                   command -v python3.13
+# Python interpreters may come from apt OR from uv's standalone builds
+# (see section 2/4), so check both sources before calling one missing.
+check_python() {
+  local ver="$1"
+  if command -v "python${ver}" >/dev/null 2>&1; then
+    echo "  ✅ python${ver} (apt)"
+  elif sudo -u "$TARGET_USER" bash -lc "source \"\$HOME/.local/bin/env\" 2>/dev/null; uv python find ${ver}" >/dev/null 2>&1; then
+    echo "  ✅ python${ver} (uv)"
+  else
+    echo "  ❌ python${ver}"
+    FAILED=1
+  fi
+}
+check_python 3.10
+check_python 3.12
+check_python 3.13
 
 if [[ "$FAILED" -eq 1 ]]; then
   echo ""

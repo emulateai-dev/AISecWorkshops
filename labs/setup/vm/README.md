@@ -19,7 +19,7 @@ This guide sets up the **DTX demo lab** using a **Simple Plug and Play VM** (no 
 
 # Prerequisites
 
-* **OS:** Ubuntu Server 22.04 or 24.04 (x86\_64)
+* **OS:** Ubuntu Server 22.04, 24.04 or 25.04 (x86\_64)
 * **Hardware (minimum):** **16 GB RAM**, **250+ GB disk**, **4+ vCPU**
 * **Tool:** `VirtualBox`
 * **Image:** [Kalki.ova](https://huggingface.co/datasets/detoxioai/dtx-ai-sec-lab/blob/main/kalki.ova)
@@ -56,13 +56,22 @@ sudo ./Tool_Setup.sh
 
 ---
 
-## Option B — Fresh Ubuntu Install (22.04 / 24.04)
+## Option B — Fresh Ubuntu Install (22.04 / 24.04 / 25.04)
 
 Use this path if you are setting up on a clean Ubuntu machine instead of the pre-built OVA.
 
 **Step 1 — Run Pre_Installation.sh** (requires sudo, ~10–15 min)
 
-This installs system dependencies: SSH, Python 3.10/3.12/3.13, Docker, Node.js, Go, Ollama, NGINX, and base tooling. It also pulls the base Ollama models and registers the jailbroken/vulnerable LLM (`jailbroken-llama` / `vulnerable-llama`) — this is the single place those models are set up, so it's worth watching this step's output for `⚠️` warnings.
+This installs the **system layer**: SSH, Docker, NGINX, base packages, and the user-scope *runtimes* (asdf, uv, Python, Node.js, Go toolchain). It also pulls the base Ollama models and registers the jailbroken/vulnerable LLM (`jailbroken-llama` / `vulnerable-llama`) — this is the single place those models are set up, so it's worth watching this step's output for `⚠️` warnings.
+
+> **Python across Ubuntu releases.** The script detects your release and adapts:
+> on **22.04/24.04** it adds the deadsnakes PPA for the interpreters apt is missing;
+> on **25.04 (plucky)** it *skips* deadsnakes entirely — that PPA publishes nothing
+> for plucky, and adding it leaves a broken source that makes every later
+> `apt-get update` fail with *"does not have a Release file"*. Any interpreter apt
+> can't provide (`python3.10`, `python3.12` on 25.04) is installed by **uv** instead,
+> so all three versions the labs need are always available. If an older run of this
+> script already added deadsnakes on 25.04, re-running it removes the broken source.
 
 ```bash
 cd $HOME/labs/AISecWorkshops/labs/setup/vm
@@ -79,7 +88,23 @@ echo '< GROQ_API_KEY >' > ~/.secrets/GROQ_API_KEY.txt
 
 **Step 3 — Run Tool_Setup.sh** (requires sudo, ~20–40 min depending on downloads)
 
-This installs core lab tooling (`dtx`, `garak`, `huggingface_hub`, `llm`), builds the PyRIT devcontainer image, and installs Metasploit and BurpSuite. It does **not** install the individual challenge labs (Folly, EDR, CS Agent, DVMCP, PentAGI, AI Red Teaming Labs) — each of those has its own `install-*.sh` script under `labs/setup/scripts/tools/`, run manually per that lab's own README, so you only install the labs you're actually running today. Ollama models are already pulled by `Pre_Installation.sh` in Step 1 — this step does not touch them.
+This installs the **tool layer** — everything you actually run in the labs:
+
+| Group | Tools |
+|-------|-------|
+| Python (uv) | `dtx`, `garak`, `huggingface_hub`, `llm`, `cai-framework`, `autogenstudio` |
+| Node (npm) | `promptfoo` |
+| Go (recon) | `httpx`, `nuclei`, `subfinder`, `amass` (version-pinned) |
+| PyRIT | repo clone, devcontainer image, and `pyrit-cli` installed editable from the `pyrit_cli` submodule |
+| Other | Metasploit, BurpSuite Community, `~/.aisecurity` venv (CPU-only PyTorch, nltk, transformers, datasets) |
+
+`promptfoo`, the four Go recon tools, `cai-framework` and `autogenstudio` used to be
+installed by `Pre_Installation.sh`. They now live here so tool versions can be bumped
+and refreshed by re-running this one script, without redoing the whole system setup.
+`Pre_Installation.sh` still provides the runtimes they build on (Node, the Go
+toolchain, uv), so **run Step 1 before this step on a fresh machine**.
+
+It does **not** install the individual challenge labs (Folly, EDR, CS Agent, DVMCP, PentAGI, AI Red Teaming Labs) — each of those has its own `install-*.sh` script under `labs/setup/scripts/tools/`, run manually per that lab's own README, so you only install the labs you're actually running today. Ollama models are already pulled by `Pre_Installation.sh` in Step 1 — this step does not touch them.
 
 ```bash
 sudo ./Tool_Setup.sh
@@ -100,9 +125,21 @@ Reference screenshot:
 `Tool_Setup.sh` is idempotent — you can re-run it at any time to install missing
 components or refresh the environment. It will skip steps that are already complete.
 
+**Always refresh the repo first.** The lab scripts and challenge files change between
+sessions, so pull the latest before re-running any setup step:
+
 ```bash
-cd $HOME/labs/AISecWorkshops
-git pull origin main
+cd ~/labs/AISecWorkshops/
+git stash && git fetch && git pull
+```
+
+`git stash` shelves any local edits you made to lab files (they would otherwise block
+the pull with a "local changes would be overwritten" error). Recover them later with
+`git stash pop`, or drop them for good with `git stash drop`.
+
+Then re-run the tool setup:
+
+```bash
 sudo ./labs/setup/vm/Tool_Setup.sh
 ```
 
@@ -143,7 +180,7 @@ Successful completion ends with:
 ##### **Enable ports inside the VM Instance**
 
 ```
-cd $HOME/labs/AISecWorkshops/ && git pull origin main && cd $HOME
+cd ~/labs/AISecWorkshops/ && git stash && git fetch && git pull && cd $HOME
 sudo $HOME/labs/AISecWorkshops/labs/setup/scripts/tools/open_ufw_ports.sh
 ```
 

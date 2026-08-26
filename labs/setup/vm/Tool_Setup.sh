@@ -21,6 +21,17 @@ fi
 
 echo "➡️  Using TARGET_USER=$TARGET_USER  TARGET_HOME=$TARGET_HOME"
 
+# Pins for the Go-based recon tools built in section 2c. Pinned so builds are
+# reproducible instead of silently triggering Go's auto-toolchain-download
+# (each tool's own go.mod can require a newer Go than the toolchain that
+# Pre_Installation.sh installed — check GO_VERSION there before bumping any
+# of these). Verified 2026-08-26: nuclei v3.11.1, httpx v1.10.0 and amass
+# v5.1.1 all require go 1.26; subfinder v2.16.0 requires go 1.25.0.
+HTTPX_VERSION="v1.10.0"
+NUCLEI_VERSION="v3.11.1"
+SUBFINDER_VERSION="v2.16.0"
+AMASS_VERSION="v5.1.1"
+
 # --- Ensure we're root for system actions
 if [[ $EUID -ne 0 ]]; then
   echo "❌ Please run with sudo/root."; exit 1
@@ -47,7 +58,7 @@ sudo -u "$TARGET_USER" bash -lc '
 '
 
 # ============================================================
-# 2) Python tools via uv (user-scope)
+# 2a) Python tools via uv (user-scope)
 # ============================================================
 sudo -u "$TARGET_USER" bash -lc '
   set -e
@@ -56,7 +67,52 @@ sudo -u "$TARGET_USER" bash -lc '
   uv tool install --upgrade "dtx[torch]>=0.26.0"
   uv tool install --upgrade "garak"
   uv tool install --upgrade "huggingface_hub[cli,torch]"
+  # Moved here from Pre_Installation.sh — these are lab tools, not runtimes,
+  # so they belong in the re-runnable tool layer.
+  uv tool install --upgrade "cai-framework"
+  uv tool install --upgrade "autogenstudio"
 '
+
+# ============================================================
+# 2b) Node tools (user-scope) — promptfoo, used in the day-1 LLM labs.
+#     Moved here from Pre_Installation.sh; Node itself is installed there
+#     via asdf, so this only fails if that step never ran.
+# ============================================================
+sudo -u "$TARGET_USER" bash -lc '
+  set -e
+  # `&& .` alone would return 1 when the file is absent and `set -e` would
+  # kill this block before the friendlier check below can report why.
+  [ -f "$HOME/.asdf/asdf.sh" ] && . "$HOME/.asdf/asdf.sh" || true
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "⚠️  npm not found — run Pre_Installation.sh first (it installs Node via asdf). Skipping promptfoo."
+    exit 0
+  fi
+  npm install -g promptfoo
+  command -v asdf >/dev/null 2>&1 && asdf reshim nodejs || true
+  echo "✅ promptfoo installed: $(promptfoo --version 2>/dev/null || echo unknown)"
+'
+
+# ============================================================
+# 2c) Go recon tools (user-scope) — httpx, nuclei, subfinder, amass.
+#     Moved here from Pre_Installation.sh so they can be re-pinned and
+#     refreshed without re-running the whole system-level script.
+# ============================================================
+sudo -u "$TARGET_USER" bash -lc "
+  set -e
+  [ -f \"\$HOME/.asdf/asdf.sh\" ] && . \"\$HOME/.asdf/asdf.sh\" || true
+  if ! command -v go >/dev/null 2>&1; then
+    echo '⚠️  go not found — run Pre_Installation.sh first (it installs the Go toolchain via asdf). Skipping recon tools.'
+    exit 0
+  fi
+  export GOBIN=\"\$HOME/.local/bin\"
+  mkdir -p \"\$GOBIN\"
+  export PATH=\"\$GOBIN:\$PATH\"
+  go install -v github.com/projectdiscovery/httpx/cmd/httpx@$HTTPX_VERSION
+  go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@$NUCLEI_VERSION
+  go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@$SUBFINDER_VERSION
+  CGO_ENABLED=0 go install -v github.com/owasp-amass/amass/v5/cmd/amass@$AMASS_VERSION
+  echo '✅ Recon tools installed into '\"\$GOBIN\"
+"
 
 # ============================================================
 # 3) Ollama models
@@ -98,6 +154,11 @@ sudo -u "$TARGET_USER" bash -lc "
   mkdir -p '$LABS_DIR'
   cd '$LABS_DIR'
   [ -d AISecWorkshops ] || git clone https://github.com/emulateai-dev/AISecWorkshops.git
+  # PyRIT and pyrit_cli are git submodules — a plain clone leaves both
+  # directories empty, which silently breaks the day-1 PyRIT labs. Init them
+  # here so a fresh clone is immediately usable. Safe to re-run.
+  cd AISecWorkshops
+  git submodule update --init --recursive
 "
 
 # ============================================================
@@ -148,7 +209,10 @@ sudo -u "$TARGET_USER" bash -lc '
 
   source "$HOME/.aisecurity/bin/activate"
   python -m pip install --upgrade pip
-  pip install --upgrade torch nltk transformers datasets
+  # CPU-only PyTorch. The default index pulls ~2.5GB of CUDA wheels that are
+  # dead weight on a VM with no GPU — keep the CPU index pinned here.
+  pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision torchaudio
+  pip install --upgrade nltk transformers datasets
   deactivate
 '
 
@@ -218,6 +282,28 @@ fi
 echo "✅ PyRIT setup complete — repo: $PYRIT_DIR/PyRIT"
 
 # ============================================================
+# 13b) pyrit-cli (user-scope) — the terminal tool used in the day-1
+#      jailbreak labs. Installed editable from the repo submodule so
+#      `git pull` + `make submodules-update` refreshes it in place.
+#      The [hf] extra pulls HuggingFace datasets, needed by the
+#      `--dataset hf:…` benchmark labs.
+# ============================================================
+PYRIT_CLI_DIR="$TARGET_HOME/labs/AISecWorkshops/labs/setup/pyrit/pyrit_cli"
+if [ -f "$PYRIT_CLI_DIR/pyproject.toml" ]; then
+  sudo -u "$TARGET_USER" bash -lc "
+    set -e
+    source \"\$HOME/.local/bin/env\"
+    cd '$PYRIT_CLI_DIR'
+    uv tool install --editable --force '.[hf]'
+    mkdir -p \"\$HOME/.pyrit\"
+    touch \"\$HOME/.pyrit/.env\" \"\$HOME/.pyrit/.env.local\"
+  " && echo "✅ pyrit-cli installed (editable from submodule)." \
+    || echo "⚠️  pyrit-cli install failed — check output above."
+else
+  echo "⚠️  pyrit_cli submodule is empty at $PYRIT_CLI_DIR — run 'git submodule update --init --recursive' in the repo, then re-run this script."
+fi
+
+# ============================================================
 # 14) Vulnerable / jailbroken Llama model
 # ============================================================
 # The vulnerable_llama_model dataset clone plus the jailbroken-llama /
@@ -276,7 +362,13 @@ install_lab() {
 # install_lab install-ai-red-teaming-playground-labs.sh "AI Red Teaming Labs"
 # install_lab install-dtx-demo-agents.sh               "DTX Demo Agents"
 
-echo '127.0.0.1 emulateai-mcp.local' | sudo tee -a /etc/hosts
+# Idempotent — a bare append would add a duplicate line on every re-run.
+if grep -qE '^127\.0\.0\.1[[:space:]]+emulateai-mcp\.local$' /etc/hosts; then
+  echo "ℹ️  /etc/hosts entry for emulateai-mcp.local already present — skipping."
+else
+  echo '127.0.0.1 emulateai-mcp.local' >> /etc/hosts
+  echo "✅ Added emulateai-mcp.local to /etc/hosts"
+fi
 
 # ============================================================
 # Done
