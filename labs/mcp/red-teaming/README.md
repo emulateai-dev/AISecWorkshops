@@ -6,11 +6,11 @@ These labs focus on exploiting the **Model Context Protocol (MCP)** — the open
 
 ## Labs
 
-| Lab | Tool | Status |
-|-----|------|--------|
-| _MCP Server Impersonation_ | — | Coming soon |
-| _Tool Poisoning Attacks_ | — | Coming soon |
-| _Rug Pull via Tool Description Mutation_ | — | Coming soon |
+| Lab | Tool | Challenges | Status |
+|-----|------|------------|--------|
+| [Damn Vulnerable MCP Server](./dv_mcp_labs/readme.md) | DVMS | 10 | ✅ Available |
+
+`dv_mcp_labs` already covers tool poisoning, rug-pull attacks, and tool-name shadowing — see challenges [4](./dv_mcp_labs/challenges/mcp_challenge_4.md) (Rug Pull / Tool Poisoning) and [5](./dv_mcp_labs/challenges/mcp_challenge_5.md) (Tool Shadowing — a malicious tool with a similar name sitting alongside a legitimate one on the *same* server) specifically, plus injection, SSRF, auth, and permission-scope challenges across the rest of the set. Note challenge 5 is tool-level shadowing, not the *server*-level impersonation described below (a rogue server spoofing a trusted one) — that specific attack isn't covered by a challenge yet.
 
 ---
 
@@ -30,4 +30,4 @@ MCP defines how AI clients (Claude, Cursor, custom agents) discover and invoke s
 
 - DTX Lab VM with tools installed
 - Familiarity with MCP protocol basics
-- Familiarity with the [LLM Red Teaming labs](../llms/red-teaming/) (recommended)
+- Familiarity with the [LLM Red Teaming labs](../../llms/red-teaming/) (recommended)

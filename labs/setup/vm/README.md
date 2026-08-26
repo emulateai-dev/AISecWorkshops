@@ -62,7 +62,7 @@ Use this path if you are setting up on a clean Ubuntu machine instead of the pre
 
 **Step 1 — Run Pre_Installation.sh** (requires sudo, ~10–15 min)
 
-This installs system dependencies: SSH, Python 3.10/3.12/3.13, Docker, Node.js, Go, Ollama, NGINX, and base tooling.
+This installs system dependencies: SSH, Python 3.10/3.12/3.13, Docker, Node.js, Go, Ollama, NGINX, and base tooling. It also pulls the base Ollama models and registers the jailbroken/vulnerable LLM (`jailbroken-llama` / `vulnerable-llama`) — this is the single place those models are set up, so it's worth watching this step's output for `⚠️` warnings.
 
 ```bash
 cd $HOME/labs/AISecWorkshops/labs/setup/vm
@@ -79,7 +79,7 @@ echo '< GROQ_API_KEY >' > ~/.secrets/GROQ_API_KEY.txt
 
 **Step 3 — Run Tool_Setup.sh** (requires sudo, ~20–40 min depending on downloads)
 
-This installs all lab tools, pulls Ollama models, registers the vulnerable LLM, installs Metasploit, BurpSuite, and sets up all 7 labs (Folly, PyRIT, EDR, CS Agent, DVMCP, PentAGI, AI Red Teaming Labs).
+This installs core lab tooling (`dtx`, `garak`, `huggingface_hub`, `llm`), builds the PyRIT devcontainer image, and installs Metasploit and BurpSuite. It does **not** install the individual challenge labs (Folly, EDR, CS Agent, DVMCP, PentAGI, AI Red Teaming Labs) — each of those has its own `install-*.sh` script under `labs/setup/scripts/tools/`, run manually per that lab's own README, so you only install the labs you're actually running today. Ollama models are already pulled by `Pre_Installation.sh` in Step 1 — this step does not touch them.
 
 ```bash
 sudo ./Tool_Setup.sh
@@ -199,7 +199,7 @@ This method is much faster as it uses a single command to add all the rules at o
 2.  **Copy and paste the entire command block below** into your terminal. This command contains your specific VM name and the complete list of ports.
 
     ```bash
-    for port in 11436 17860 17861 17862 17863 18000 18081 28080 8080 3389 10001 3000 15000 14000 14001 14002 14003 14004 14005 14006 14007 14008 14009 14010 14011 14012 18567 18568 18569 18570 18571 18572 18573 18574 18575 18576; do echo "Adding rule for port $port..."; VBoxManage modifyvm "DTX AI Security Labs GUI" --natpf1 "tcp-$port,tcp,,$port,,$port"; done; echo "All rules added successfully."
+    for port in 11434 11436 17860 17861 17862 17863 18000 18001 18081 28080 8080 3389 10001 3000 15000 14000 14001 14002 14003 14004 14005 14006 14007 14008 14009 14010 14011 14012 18567 18568 18569 18570 18571 18572 18573 18574 18575 18576; do echo "Adding rule for port $port..."; VBoxManage modifyvm "DTX AI Security Labs GUI" --natpf1 "tcp-$port,tcp,,$port,,$port"; done; echo "All rules added successfully."
     ```
 
 3.  **Press Enter to run the command.** It will loop through each port and apply the forwarding rule automatically.
