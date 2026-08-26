@@ -186,7 +186,11 @@ sudo -u "$TARGET_USER" bash -lc "
   fi
   asdf install nodejs lts
   asdf global nodejs lts
-  # promptfoo (npm) is installed by Tool_Setup.sh — see its "Node tools" step.
+  # promptfoo (npm) is installed by Tool_Setup.sh, in its Node tools step.
+  # NOTE: this whole block is a double-quoted bash -lc string — an unescaped
+  # double quote anywhere in here (even inside a comment) silently ends the
+  # string early, and everything below it never runs while the block still
+  # exits 0. Use single quotes or none.
 
   # --- Go toolchain via asdf ---
   # Toolchain only. The recon tools built with it (httpx, nuclei, subfinder,

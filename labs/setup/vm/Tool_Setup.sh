@@ -124,11 +124,31 @@ sudo -u "$TARGET_USER" bash -lc "
   export GOBIN=\"\$HOME/.local/bin\"
   mkdir -p \"\$GOBIN\"
   export PATH=\"\$GOBIN:\$PATH\"
-  go install -v github.com/projectdiscovery/httpx/cmd/httpx@$HTTPX_VERSION
-  go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@$NUCLEI_VERSION
-  go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@$SUBFINDER_VERSION
-  CGO_ENABLED=0 go install -v github.com/owasp-amass/amass/v5/cmd/amass@$AMASS_VERSION
-  echo '✅ Recon tools installed into '\"\$GOBIN\"
+
+  # Each go install recompiles from source — amass alone takes minutes — so
+  # skip any tool already built at the pinned version. go version -m reads
+  # the version stamped into the binary, which is authoritative even when
+  # the tool's own --version output is formatted differently.
+  install_go_tool() {
+    local bin=\"\$1\" want=\"\$2\" pkg=\"\$3\"
+    local have=''
+    if [ -x \"\$GOBIN/\$bin\" ]; then
+      have=\"\$(go version -m \"\$GOBIN/\$bin\" 2>/dev/null | awk '/	mod	/{print \$3; exit}')\"
+    fi
+    if [ \"\$have\" = \"\$want\" ]; then
+      echo \"ℹ️  \$bin already at \$want — skipping build.\"
+      return 0
+    fi
+    echo \"➡️  Building \$bin \$want (found: \${have:-none})...\"
+    shift 3
+    env \"\$@\" go install -v \"\$pkg@\$want\"
+  }
+
+  install_go_tool httpx     $HTTPX_VERSION     github.com/projectdiscovery/httpx/cmd/httpx
+  install_go_tool nuclei    $NUCLEI_VERSION    github.com/projectdiscovery/nuclei/v3/cmd/nuclei
+  install_go_tool subfinder $SUBFINDER_VERSION github.com/projectdiscovery/subfinder/v2/cmd/subfinder
+  install_go_tool amass     $AMASS_VERSION     github.com/owasp-amass/amass/v5/cmd/amass CGO_ENABLED=0
+  echo '✅ Recon tools present in '\"\$GOBIN\"
 "
 
 # ============================================================
@@ -345,10 +365,26 @@ sudo -u "$TARGET_USER" bash -lc "
 if docker image inspect pyrit-devcontainer >/dev/null 2>&1; then
   echo "ℹ️  pyrit-devcontainer image already exists — skipping build."
 else
-  docker build \
-    -f "$PYRIT_DIR/PyRIT/.devcontainer/Dockerfile" \
-    -t pyrit-devcontainer \
-    "$PYRIT_DIR/PyRIT/.devcontainer" || echo "⚠️  PyRIT devcontainer build failed (Docker may not be available)."
+  # NOTE: this image is NOT required for the day-1 PyRIT labs — those use
+  # pyrit-cli (section 13b). Only the PyRIT notebook/devcontainer workflow
+  # needs it, so a failure here is a warning, not a blocker.
+  if docker build \
+       -f "$PYRIT_DIR/PyRIT/.devcontainer/Dockerfile" \
+       -t pyrit-devcontainer \
+       "$PYRIT_DIR/PyRIT/.devcontainer" > /tmp/pyrit-devcontainer-build.log 2>&1; then
+    echo "✅ pyrit-devcontainer image built."
+  else
+    echo "⚠️  PyRIT devcontainer build FAILED — full log: /tmp/pyrit-devcontainer-build.log"
+    if grep -q "EBADENGINE\|notsup" /tmp/pyrit-devcontainer-build.log 2>/dev/null; then
+      echo "   Cause: the PyRIT Dockerfile installs Node 20 and then 'npm install -g npm@latest'."
+      echo "   npm 12 dropped Node 20 support, so that line now fails for everyone."
+      echo "   Fix belongs upstream in jitendra-eai/PyRIT (.devcontainer/Dockerfile): pin"
+      echo "   'npm@10' or move the base image to Node 22+."
+    else
+      echo "   Check whether docker is running: systemctl status docker"
+    fi
+    echo "   This does NOT block the day-1 labs — those use pyrit-cli, not this image."
+  fi
 fi
 echo "✅ PyRIT setup complete — repo: $PYRIT_DIR/PyRIT"
 
@@ -365,7 +401,15 @@ if [ -f "$PYRIT_CLI_DIR/pyproject.toml" ]; then
     set -e
     source \"\$HOME/.local/bin/env\"
     cd '$PYRIT_CLI_DIR'
-    uv tool install --editable --force '.'
+    # Editable install: the code is linked live from the submodule, so a
+    # `git pull` there is picked up without reinstalling. Only install when
+    # missing; re-run with --force by hand if the submodule's dependencies
+    # change (uv tool install --editable --force '.').
+    if command -v pyrit-cli >/dev/null 2>&1; then
+      echo \"ℹ️  pyrit-cli already installed — skipping (editable install tracks the submodule).\"
+    else
+      uv tool install --editable '.'
+    fi
     mkdir -p \"\$HOME/.pyrit\"
     touch \"\$HOME/.pyrit/.env\" \"\$HOME/.pyrit/.env.local\"
   " && echo "✅ pyrit-cli installed (editable from submodule)." \
