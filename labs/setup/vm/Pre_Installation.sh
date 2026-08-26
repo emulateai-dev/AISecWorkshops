@@ -92,6 +92,7 @@ apt-get install -y \
   git \
   git-lfs \
   acl \
+  aria2 \
   sudo \
   nano \
   vim \
@@ -304,16 +305,33 @@ pull_if_missing hf.co/detoxio-test/SmolLM-135M-Instruct-Jailbroken_GGUF
 # aliased as 'vulnerable-llama' (the name the DVMCP lab challenges expect;
 # see labs/setup/scripts/tools/install-dvmcp.sh, which checks for this
 # local copy before falling back to its own HF pull).
-# Fetched with curl, NOT `git clone`. The repo holds a single 4.92GB GGUF in
-# Git LFS, and cloning it pulls that object through the LFS endpoint on one
-# stream — measured at ~394 KB/s on the lab VM (a ~2.5 hour download) while
-# the same box pulls 130 MB/s from a general CDN and 8.5 MB/s from the plain
-# HF file URL. curl also resumes (-C -), so an interrupted setup continues
-# instead of restarting, and needs no git-lfs installed at this point.
+# Fetched with aria2c, NOT `git clone`. The repo holds a single 4.92GB GGUF
+# in Git LFS, and cloning it pulls that object through the LFS endpoint on
+# one stream — measured at ~394 KB/s on the lab VM (a ~2.5 hour download)
+# while the same box pulls 130 MB/s from a general CDN and only ~8.5 MB/s
+# from a single HF file stream. Two independent levers on that 8.5 MB/s:
+#   1. HF's own server flags anonymous requests as rate-limited (confirmed
+#      via `x-hf-warning: unauthenticated ... set a HF_TOKEN to enable
+#      higher rate limits and faster downloads` on the real response headers)
+#      — use $TARGET_HOME/.secrets/HF_TOKEN.txt if it's been filled in
+#      (see labs/setup/vm/README.md §A4), same token the docs already tell
+#      users to add but this download never actually used until now.
+#   2. The CDN behind this URL advertises `accept-ranges: bytes` on both the
+#      redirect and the final object, so a single stream isn't a hard cap —
+#      splitting into parallel range requests (aria2c -x16) measured ~3x
+#      throughput over one stream in testing. Falls back to curl (still
+#      resumable, still auth-aware) if aria2c is somehow unavailable.
 VULN_MODEL_DIR="$TARGET_HOME/labs/datasets"
 VULN_MODEL_REPO="$VULN_MODEL_DIR/vulnerable_llama_model"
 VULN_GGUF_URL="https://huggingface.co/eai-sec-workshop/vulnerable_llama_model/resolve/main/jailbroken-llama.gguf"
 VULN_GGUF_SHA256="e7c71d50417b8ad42c7aafdc5074fb471822514f97fec25e14d84700e9e89b33"
+HF_TOKEN_FILE="$TARGET_HOME/.secrets/HF_TOKEN.txt"
+# The download+verify below can legitimately fail on its own (network flake,
+# HF throttling an anonymous transfer hard enough that aria2c gives up, a
+# truncated file failing checksum) — none of that should take down the rest
+# of setup (registration below, secrets dir, nginx). So, unlike a plain
+# top-level command, this is allowed to fail without aborting the script.
+VULN_MODEL_OK=1
 sudo -u "$TARGET_USER" bash -lc "
   set -e
   mkdir -p '$VULN_MODEL_REPO'
@@ -324,31 +342,55 @@ sudo -u "$TARGET_USER" bash -lc "
      echo '$VULN_GGUF_SHA256  jailbroken-llama.gguf' | sha256sum -c - >/dev/null 2>&1; then
     echo 'ℹ️  jailbroken-llama.gguf already present and verified; skipping download.'
   else
-    echo '➡️  Downloading jailbroken-llama.gguf (4.9GB) — this takes a few minutes...'
-    curl -fL --retry 5 --retry-delay 3 -C - -o jailbroken-llama.gguf '$VULN_GGUF_URL'
+    HF_HEADER=''
+    if [ -s '$HF_TOKEN_FILE' ]; then
+      HF_HEADER=\"Authorization: Bearer \$(cat '$HF_TOKEN_FILE')\"
+      echo 'ℹ️  Using HF_TOKEN for an authenticated download (higher rate limit).'
+    else
+      echo '⚠️  No HF_TOKEN at $HF_TOKEN_FILE — downloading anonymously, which HuggingFace rate-limits heavily. Add one (labs/setup/vm/README.md §A4) and re-run for a much faster download.'
+    fi
+
+    echo '➡️  Downloading jailbroken-llama.gguf (4.9GB)...'
+    if command -v aria2c >/dev/null 2>&1; then
+      if [ -n \"\$HF_HEADER\" ]; then
+        aria2c -x 16 -s 16 -k 1M --file-allocation=none --continue=true --header=\"\$HF_HEADER\" -d . -o jailbroken-llama.gguf '$VULN_GGUF_URL'
+      else
+        aria2c -x 16 -s 16 -k 1M --file-allocation=none --continue=true -d . -o jailbroken-llama.gguf '$VULN_GGUF_URL'
+      fi
+    else
+      echo '⚠️  aria2c not found — falling back to a single curl stream (slower).'
+      if [ -n \"\$HF_HEADER\" ]; then
+        curl -fL --retry 5 --retry-delay 3 -C - -H \"\$HF_HEADER\" -o jailbroken-llama.gguf '$VULN_GGUF_URL'
+      else
+        curl -fL --retry 5 --retry-delay 3 -C - -o jailbroken-llama.gguf '$VULN_GGUF_URL'
+      fi
+    fi
     # A truncated or HTML-error download still produces a file, and
     # \`ollama create\` would then fail with the unhelpful 'supplied file was
     # not in GGUF format'. Verify before handing it to ollama.
     echo '$VULN_GGUF_SHA256  jailbroken-llama.gguf' | sha256sum -c -
   fi
-"
-echo "✅ Vulnerable model ready: $VULN_MODEL_REPO/jailbroken-llama.gguf"
+" || { echo "⚠️  Failed to download/verify jailbroken-llama.gguf — skipping jailbroken-llama/vulnerable-llama registration below. Everything else in this script still runs. Re-run this script (it's idempotent) after checking your network and HF_TOKEN."; VULN_MODEL_OK=0; }
 
-if ollama list 2>/dev/null | grep -q "^jailbroken-llama"; then
-  echo "ℹ️  jailbroken-llama already registered in Ollama — skipping."
-else
-  echo "➡️  Registering jailbroken-llama with Ollama..."
-  (cd "$VULN_MODEL_REPO" && ollama create jailbroken-llama -f Modelfile) \
-    && echo "✅ jailbroken-llama registered in Ollama." \
-    || echo "⚠️  Failed to register jailbroken-llama in Ollama."
-fi
+if [[ "$VULN_MODEL_OK" -eq 1 ]]; then
+  echo "✅ Vulnerable model ready: $VULN_MODEL_REPO/jailbroken-llama.gguf"
 
-if ollama list 2>/dev/null | grep -q "^vulnerable-llama"; then
-  echo "ℹ️  vulnerable-llama alias already exists — skipping."
-else
-  ollama cp jailbroken-llama vulnerable-llama \
-    && echo "✅ vulnerable-llama alias created from jailbroken-llama." \
-    || echo "⚠️  Failed to create vulnerable-llama alias."
+  if ollama list 2>/dev/null | grep -q "^jailbroken-llama"; then
+    echo "ℹ️  jailbroken-llama already registered in Ollama — skipping."
+  else
+    echo "➡️  Registering jailbroken-llama with Ollama..."
+    (cd "$VULN_MODEL_REPO" && ollama create jailbroken-llama -f Modelfile) \
+      && echo "✅ jailbroken-llama registered in Ollama." \
+      || echo "⚠️  Failed to register jailbroken-llama in Ollama."
+  fi
+
+  if ollama list 2>/dev/null | grep -q "^vulnerable-llama"; then
+    echo "ℹ️  vulnerable-llama alias already exists — skipping."
+  else
+    ollama cp jailbroken-llama vulnerable-llama \
+      && echo "✅ vulnerable-llama alias created from jailbroken-llama." \
+      || echo "⚠️  Failed to create vulnerable-llama alias."
+  fi
 fi
 
 # ============================================================

@@ -181,7 +181,10 @@ Once the VM is running, log in with the default credentials `dtx : dtx` and perf
 mkdir -p ~/.secrets/
 echo 'your-openai-key' > ~/.secrets/OPENAI_API_KEY.txt
 echo 'your-groq-key' > ~/.secrets/GROQ_API_KEY.txt
+echo 'your-hf-token'  > ~/.secrets/HF_TOKEN.txt
 ```
+
+> **Do not skip `HF_TOKEN`** (get one at <https://huggingface.co/settings/tokens>, a **read** token is enough). Without it, model/dataset downloads — including the ~4.9GB vulnerable-llama model `Pre_Installation.sh` fetches — run anonymously and HuggingFace rate-limits those heavily; a download that should take a few minutes can take hours.
 
 **B. Run Final Setup**
 ```bash
