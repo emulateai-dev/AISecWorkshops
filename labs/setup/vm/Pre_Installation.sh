@@ -294,26 +294,42 @@ pull_if_missing hf.co/detoxio-test/SmolLM-135M-Instruct-Jailbroken_GGUF
 # Vulnerable/jailbroken Llama model — registered as 'jailbroken-llama',
 # aliased as 'vulnerable-llama' (the name the DVMCP lab challenges expect;
 # see labs/setup/scripts/tools/install-dvmcp.sh, which checks for this
-# local clone before falling back to its own HF pull).
+# local copy before falling back to its own HF pull).
+# Fetched with curl, NOT `git clone`. The repo holds a single 4.92GB GGUF in
+# Git LFS, and cloning it pulls that object through the LFS endpoint on one
+# stream — measured at ~394 KB/s on the lab VM (a ~2.5 hour download) while
+# the same box pulls 130 MB/s from a general CDN and 8.5 MB/s from the plain
+# HF file URL. curl also resumes (-C -), so an interrupted setup continues
+# instead of restarting, and needs no git-lfs installed at this point.
 VULN_MODEL_DIR="$TARGET_HOME/labs/datasets"
+VULN_MODEL_REPO="$VULN_MODEL_DIR/vulnerable_llama_model"
+VULN_GGUF_URL="https://huggingface.co/eai-sec-workshop/vulnerable_llama_model/resolve/main/jailbroken-llama.gguf"
+VULN_GGUF_SHA256="e7c71d50417b8ad42c7aafdc5074fb471822514f97fec25e14d84700e9e89b33"
 sudo -u "$TARGET_USER" bash -lc "
   set -e
-  git lfs install --skip-repo || true
-  mkdir -p '$VULN_MODEL_DIR'
-  cd '$VULN_MODEL_DIR'
-  if [ ! -d vulnerable_llama_model ]; then
-    git clone https://huggingface.co/eai-sec-workshop/vulnerable_llama_model
+  mkdir -p '$VULN_MODEL_REPO'
+  cd '$VULN_MODEL_REPO'
+  [ -f Modelfile ] || echo 'FROM ./jailbroken-llama.gguf' > Modelfile
+
+  if [ -f jailbroken-llama.gguf ] && \
+     echo '$VULN_GGUF_SHA256  jailbroken-llama.gguf' | sha256sum -c - >/dev/null 2>&1; then
+    echo 'ℹ️  jailbroken-llama.gguf already present and verified; skipping download.'
   else
-    echo 'ℹ️  vulnerable_llama_model dataset already exists; skipping clone.'
+    echo '➡️  Downloading jailbroken-llama.gguf (4.9GB) — this takes a few minutes...'
+    curl -fL --retry 5 --retry-delay 3 -C - -o jailbroken-llama.gguf '$VULN_GGUF_URL'
+    # A truncated or HTML-error download still produces a file, and
+    # \`ollama create\` would then fail with the unhelpful 'supplied file was
+    # not in GGUF format'. Verify before handing it to ollama.
+    echo '$VULN_GGUF_SHA256  jailbroken-llama.gguf' | sha256sum -c -
   fi
 "
-echo "✅ Vulnerable model dataset ready: $VULN_MODEL_DIR/vulnerable_llama_model"
+echo "✅ Vulnerable model ready: $VULN_MODEL_REPO/jailbroken-llama.gguf"
 
 if ollama list 2>/dev/null | grep -q "^jailbroken-llama"; then
   echo "ℹ️  jailbroken-llama already registered in Ollama — skipping."
 else
   echo "➡️  Registering jailbroken-llama with Ollama..."
-  (cd "$VULN_MODEL_DIR/vulnerable_llama_model" && ollama create jailbroken-llama -f Modelfile) \
+  (cd "$VULN_MODEL_REPO" && ollama create jailbroken-llama -f Modelfile) \
     && echo "✅ jailbroken-llama registered in Ollama." \
     || echo "⚠️  Failed to register jailbroken-llama in Ollama."
 fi
