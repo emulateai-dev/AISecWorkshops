@@ -21,6 +21,17 @@ fi
 
 echo "➡️  Using TARGET_USER=$TARGET_USER  TARGET_HOME=$TARGET_HOME"
 
+# Pins for the Go-based recon tools built in section 2c. Pinned so builds are
+# reproducible instead of silently triggering Go's auto-toolchain-download
+# (each tool's own go.mod can require a newer Go than the toolchain that
+# Pre_Installation.sh installed — check GO_VERSION there before bumping any
+# of these). Verified 2026-08-26: nuclei v3.11.1, httpx v1.10.0 and amass
+# v5.1.1 all require go 1.26; subfinder v2.16.0 requires go 1.25.0.
+HTTPX_VERSION="v1.10.0"
+NUCLEI_VERSION="v3.11.1"
+SUBFINDER_VERSION="v2.16.0"
+AMASS_VERSION="v5.1.1"
+
 # --- Ensure we're root for system actions
 if [[ $EUID -ne 0 ]]; then
   echo "❌ Please run with sudo/root."; exit 1
@@ -47,32 +58,168 @@ sudo -u "$TARGET_USER" bash -lc '
 '
 
 # ============================================================
-# 2) Python tools via uv (user-scope)
+# 2a) Python tools via uv (user-scope)
 # ============================================================
 sudo -u "$TARGET_USER" bash -lc '
   set -e
   source "$HOME/.local/bin/env"
+
+  # Prune dangling symlinks in ~/.local/bin first. VM images built from an
+  # older uv tools directory leave broken links behind (e.g. cai, cai-gif,
+  # autogenstudio pointing into a ~/.local/share/uv/tools tree that no
+  # longer exists). uv refuses to overwrite an existing executable path
+  # even when the link is broken, and --upgrade does NOT imply --force, so
+  # every install below would fail with "Executable already exists" and the
+  # tool would stay permanently missing. Removing only broken links is
+  # safe: a working tool never has one.
+  pruned=0
+  for link in "$HOME/.local/bin"/*; do
+    if [ -L "$link" ] && [ ! -e "$link" ]; then
+      rm -f "$link"; pruned=$((pruned+1))
+    fi
+  done
+  [ "$pruned" -gt 0 ] && echo "ℹ️  Removed $pruned dangling symlink(s) from ~/.local/bin." || true
+
   # uv tool install is idempotent — upgrades if already installed
   uv tool install --upgrade "dtx[torch]>=0.26.0"
   uv tool install --upgrade "garak"
   uv tool install --upgrade "huggingface_hub[cli,torch]"
+  # Moved here from Pre_Installation.sh — these are lab tools, not runtimes,
+  # so they belong in the re-runnable tool layer.
+  uv tool install --upgrade "cai-framework"
+  uv tool install --upgrade "autogenstudio"
 '
 
 # ============================================================
-# 3) Ollama models
+# 2b) Node tools (user-scope) — promptfoo, used in the day-1 LLM labs.
+#     Moved here from Pre_Installation.sh; Node itself is installed there
+#     via asdf, so this only fails if that step never ran.
 # ============================================================
-# Base models + the jailbroken/vulnerable-llama models are pulled and
-# registered in Pre_Installation.sh (single source of truth — see that
-# script's "Ollama models" section). They are NOT repeated here; if a
-# model is missing, re-run Pre_Installation.sh rather than adding pulls
-# back into this file. Just make sure the service is up, in case this
-# script is ever re-run on its own.
+sudo -u "$TARGET_USER" bash -lc '
+  set -e
+  # `&& .` alone would return 1 when the file is absent and `set -e` would
+  # kill this block before the friendlier check below can report why.
+  [ -f "$HOME/.asdf/asdf.sh" ] && . "$HOME/.asdf/asdf.sh" || true
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "⚠️  npm not found — run Pre_Installation.sh first (it installs Node via asdf). Skipping promptfoo."
+    exit 0
+  fi
+  npm install -g promptfoo
+  command -v asdf >/dev/null 2>&1 && asdf reshim nodejs || true
+  echo "✅ promptfoo installed: $(promptfoo --version 2>/dev/null || echo unknown)"
+'
+
+# ============================================================
+# 2c) Go recon tools (user-scope) — httpx, nuclei, subfinder, amass.
+#     Moved here from Pre_Installation.sh so they can be re-pinned and
+#     refreshed without re-running the whole system-level script.
+# ============================================================
+sudo -u "$TARGET_USER" bash -lc "
+  set -e
+  [ -f \"\$HOME/.asdf/asdf.sh\" ] && . \"\$HOME/.asdf/asdf.sh\" || true
+  if ! command -v go >/dev/null 2>&1; then
+    echo '⚠️  go not found — run Pre_Installation.sh first (it installs the Go toolchain via asdf). Skipping recon tools.'
+    exit 0
+  fi
+  export GOBIN=\"\$HOME/.local/bin\"
+  mkdir -p \"\$GOBIN\"
+  export PATH=\"\$GOBIN:\$PATH\"
+
+  # Each go install recompiles from source — amass alone takes minutes — so
+  # skip any tool already built at the pinned version. go version -m reads
+  # the version stamped into the binary, which is authoritative even when
+  # the tool's own --version output is formatted differently.
+  install_go_tool() {
+    local bin=\"\$1\" want=\"\$2\" pkg=\"\$3\"
+    local have=''
+    if [ -x \"\$GOBIN/\$bin\" ]; then
+      have=\"\$(go version -m \"\$GOBIN/\$bin\" 2>/dev/null | awk '/	mod	/{print \$3; exit}')\"
+    fi
+    if [ \"\$have\" = \"\$want\" ]; then
+      echo \"ℹ️  \$bin already at \$want — skipping build.\"
+      return 0
+    fi
+    echo \"➡️  Building \$bin \$want (found: \${have:-none})...\"
+    shift 3
+    env \"\$@\" go install -v \"\$pkg@\$want\"
+  }
+
+  install_go_tool httpx     $HTTPX_VERSION     github.com/projectdiscovery/httpx/cmd/httpx
+  install_go_tool nuclei    $NUCLEI_VERSION    github.com/projectdiscovery/nuclei/v3/cmd/nuclei
+  install_go_tool subfinder $SUBFINDER_VERSION github.com/projectdiscovery/subfinder/v2/cmd/subfinder
+  install_go_tool amass     $AMASS_VERSION     github.com/owasp-amass/amass/v5/cmd/amass CGO_ENABLED=0
+  echo '✅ Recon tools present in '\"\$GOBIN\"
+"
+
+# ============================================================
+# 3) Ollama service + base models
+# ============================================================
+# Pre_Installation.sh owns the full model set (including the 4.9GB
+# jailbroken-llama GGUF and its vulnerable-llama alias). But the pre-built
+# VM path — Option A in README.md — runs ONLY this script, never
+# Pre_Installation.sh, so a model set that lives exclusively there leaves
+# every Option A attendee without the models the day-1 labs need.
+#
+# The pulls below are therefore repeated here, but guarded: each is a
+# no-op when the model is already present, so on the Option B path (where
+# Pre_Installation.sh ran first) this section costs nothing. The two large
+# derived models stay in Pre_Installation.sh only — see the note further
+# down in section 14.
 systemctl enable ollama || true
 systemctl start  ollama || true
 
+if command -v ollama >/dev/null 2>&1; then
+  pull_if_missing() {
+    local model="$1"
+    if ollama list 2>/dev/null | grep -q "^${model}"; then
+      echo "ℹ️  Model '${model}' already present — skipping pull."
+    else
+      echo "➡️  Pulling '${model}'..."
+      ollama pull "${model}" || echo "⚠️  Failed to pull '${model}' — skipping."
+    fi
+  }
+  pull_if_missing smollm2
+  pull_if_missing qwen3:0.6b
+  pull_if_missing llama-guard3:1b-q3_K_S
+  pull_if_missing llama3.1
+  # Jailbroken SmolLM (135M, HF-hosted GGUF) used by the uncensored_models
+  # and safety_alignment labs. NOTE: a DIFFERENT model from the
+  # jailbroken-llama / vulnerable-llama pair — same word "jailbroken" in
+  # the docs, two unrelated models. Do not conflate them.
+  pull_if_missing hf.co/detoxio-test/SmolLM-135M-Instruct-Jailbroken_GGUF
+else
+  echo "⚠️  ollama not installed — skipping model pulls. Run Pre_Installation.sh first."
+fi
+
 # ============================================================
-# 4) Export API keys from secrets via user's .bashrc
+# 4) Secrets dir + export API keys via user's .bashrc
 # ============================================================
+# Created here as well as in Pre_Installation.sh, for the same reason as
+# the models above: the Option A (pre-built VM) path runs only this
+# script, and without these files the export block below silently exports
+# nothing — which is how a VM ends up with no OPENAI_API_KEY, no
+# GROQ_API_KEY and rate-limited HuggingFace pulls. mkdir/touch are no-ops
+# when the files already exist, so real keys are never overwritten.
+SECRETS_DIR="$TARGET_HOME/.secrets"
+mkdir -p "$SECRETS_DIR"
+touch "$SECRETS_DIR/OPENAI_API_KEY.txt"
+touch "$SECRETS_DIR/GROQ_API_KEY.txt"
+touch "$SECRETS_DIR/HF_TOKEN.txt"
+# These hold API keys and the VM ships with default creds (dtx:dtx).
+chmod 700 "$SECRETS_DIR"
+chmod 600 "$SECRETS_DIR"/*.txt
+chown -R "$TARGET_USER:$TARGET_USER" "$SECRETS_DIR"
+
+# Tell the user which keys are still blank, rather than letting the labs
+# fail later with an opaque auth error.
+for KEYFILE in OPENAI_API_KEY GROQ_API_KEY HF_TOKEN; do
+  if [ -s "$SECRETS_DIR/$KEYFILE.txt" ]; then
+    echo "  ✅ $KEYFILE is set"
+  else
+    echo "  ⚠️  $KEYFILE is EMPTY — add it with:  echo '<your key>' > ~/.secrets/$KEYFILE.txt"
+  fi
+done
+
 API_MARKER="# === Export API keys from secrets directory ==="
 API_BLOCK=$(cat <<'EOF'
 # === Export API keys from secrets directory ===
@@ -98,6 +245,11 @@ sudo -u "$TARGET_USER" bash -lc "
   mkdir -p '$LABS_DIR'
   cd '$LABS_DIR'
   [ -d AISecWorkshops ] || git clone https://github.com/emulateai-dev/AISecWorkshops.git
+  # PyRIT and pyrit_cli are git submodules — a plain clone leaves both
+  # directories empty, which silently breaks the day-1 PyRIT labs. Init them
+  # here so a fresh clone is immediately usable. Safe to re-run.
+  cd AISecWorkshops
+  git submodule update --init --recursive
 "
 
 # ============================================================
@@ -148,7 +300,10 @@ sudo -u "$TARGET_USER" bash -lc '
 
   source "$HOME/.aisecurity/bin/activate"
   python -m pip install --upgrade pip
-  pip install --upgrade torch nltk transformers datasets
+  # CPU-only PyTorch. The default index pulls ~2.5GB of CUDA wheels that are
+  # dead weight on a VM with no GPU — keep the CPU index pinned here.
+  pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision torchaudio
+  pip install --upgrade nltk transformers datasets
   deactivate
 '
 
@@ -210,12 +365,58 @@ sudo -u "$TARGET_USER" bash -lc "
 if docker image inspect pyrit-devcontainer >/dev/null 2>&1; then
   echo "ℹ️  pyrit-devcontainer image already exists — skipping build."
 else
-  docker build \
-    -f "$PYRIT_DIR/PyRIT/.devcontainer/Dockerfile" \
-    -t pyrit-devcontainer \
-    "$PYRIT_DIR/PyRIT/.devcontainer" || echo "⚠️  PyRIT devcontainer build failed (Docker may not be available)."
+  # NOTE: this image is NOT required for the day-1 PyRIT labs — those use
+  # pyrit-cli (section 13b). Only the PyRIT notebook/devcontainer workflow
+  # needs it, so a failure here is a warning, not a blocker.
+  if docker build \
+       -f "$PYRIT_DIR/PyRIT/.devcontainer/Dockerfile" \
+       -t pyrit-devcontainer \
+       "$PYRIT_DIR/PyRIT/.devcontainer" > /tmp/pyrit-devcontainer-build.log 2>&1; then
+    echo "✅ pyrit-devcontainer image built."
+  else
+    echo "⚠️  PyRIT devcontainer build FAILED — full log: /tmp/pyrit-devcontainer-build.log"
+    if grep -q "EBADENGINE\|notsup" /tmp/pyrit-devcontainer-build.log 2>/dev/null; then
+      echo "   Cause: the PyRIT Dockerfile installs Node 20 and then 'npm install -g npm@latest'."
+      echo "   npm 12 dropped Node 20 support, so that line now fails for everyone."
+      echo "   Fix belongs upstream in jitendra-eai/PyRIT (.devcontainer/Dockerfile): pin"
+      echo "   'npm@10' or move the base image to Node 22+."
+    else
+      echo "   Check whether docker is running: systemctl status docker"
+    fi
+    echo "   This does NOT block the day-1 labs — those use pyrit-cli, not this image."
+  fi
 fi
 echo "✅ PyRIT setup complete — repo: $PYRIT_DIR/PyRIT"
+
+# ============================================================
+# 13b) pyrit-cli (user-scope) — the terminal tool used in the day-1
+#      jailbreak labs. Installed editable from the repo submodule so
+#      `git pull` + `make submodules-update` refreshes it in place.
+#      HuggingFace `datasets` (needed by the `--dataset hf:…` benchmark
+#      labs) is a core dependency of pyrit_cli — there is no [hf] extra.
+# ============================================================
+PYRIT_CLI_DIR="$TARGET_HOME/labs/AISecWorkshops/labs/setup/pyrit/pyrit_cli"
+if [ -f "$PYRIT_CLI_DIR/pyproject.toml" ]; then
+  sudo -u "$TARGET_USER" bash -lc "
+    set -e
+    source \"\$HOME/.local/bin/env\"
+    cd '$PYRIT_CLI_DIR'
+    # Editable install: the code is linked live from the submodule, so a
+    # `git pull` there is picked up without reinstalling. Only install when
+    # missing; re-run with --force by hand if the submodule's dependencies
+    # change (uv tool install --editable --force '.').
+    if command -v pyrit-cli >/dev/null 2>&1; then
+      echo \"ℹ️  pyrit-cli already installed — skipping (editable install tracks the submodule).\"
+    else
+      uv tool install --editable '.'
+    fi
+    mkdir -p \"\$HOME/.pyrit\"
+    touch \"\$HOME/.pyrit/.env\" \"\$HOME/.pyrit/.env.local\"
+  " && echo "✅ pyrit-cli installed (editable from submodule)." \
+    || echo "⚠️  pyrit-cli install failed — check output above."
+else
+  echo "⚠️  pyrit_cli submodule is empty at $PYRIT_CLI_DIR — run 'git submodule update --init --recursive' in the repo, then re-run this script."
+fi
 
 # ============================================================
 # 14) Vulnerable / jailbroken Llama model
@@ -247,6 +448,19 @@ else
   echo "✅ BurpSuite Community installation attempted."
 fi
 
+# The installer drops BurpSuite in /opt/BurpSuiteCommunity but puts nothing on
+# PATH, so `burpsuite` from a terminal just says "command not found" even
+# though it is installed. Link the launcher so the name works.
+BURP_LAUNCHER="$(find /opt -maxdepth 2 -type f -executable -name 'BurpSuite*' 2>/dev/null | head -1)"
+if [ -n "$BURP_LAUNCHER" ] && [ ! -e /usr/local/bin/burpsuite ]; then
+  ln -sf "$BURP_LAUNCHER" /usr/local/bin/burpsuite
+  echo "✅ Linked 'burpsuite' -> $BURP_LAUNCHER"
+elif [ -e /usr/local/bin/burpsuite ]; then
+  echo "ℹ️  'burpsuite' command already linked."
+else
+  echo "⚠️  BurpSuite launcher not found under /opt — 'burpsuite' will not be on PATH."
+fi
+
 
 
 # ============================================================
@@ -276,7 +490,13 @@ install_lab() {
 # install_lab install-ai-red-teaming-playground-labs.sh "AI Red Teaming Labs"
 # install_lab install-dtx-demo-agents.sh               "DTX Demo Agents"
 
-echo '127.0.0.1 emulateai-mcp.local' | sudo tee -a /etc/hosts
+# Idempotent — a bare append would add a duplicate line on every re-run.
+if grep -qE '^127\.0\.0\.1[[:space:]]+emulateai-mcp\.local$' /etc/hosts; then
+  echo "ℹ️  /etc/hosts entry for emulateai-mcp.local already present — skipping."
+else
+  echo '127.0.0.1 emulateai-mcp.local' >> /etc/hosts
+  echo "✅ Added emulateai-mcp.local to /etc/hosts"
+fi
 
 # ============================================================
 # Done
