@@ -84,7 +84,7 @@ Use **[pyrit-cli](https://github.com/emulateai-dev/pyrit_cli)** from `labs/setup
 
 ## Reference Prompts
 
-The file `../prompts/example_prompts_via_metaprompts.txt` contains **900+ adversarial prompts** across categories:
+The file `../prompts/example_prompts_via_metaprompts.txt` contains **~470 adversarial prompts** across categories:
 
 - Hate speech, harassment, bullying
 - Threats, violence, self-harm

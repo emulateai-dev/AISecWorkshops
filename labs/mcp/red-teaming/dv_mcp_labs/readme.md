@@ -156,6 +156,6 @@ A complex chain where you must extract a master password, read secrets via path 
 
 ## 🔗 Related Labs
 
-- [Enterprise Deep Research (EDR)](../../agents/red-teaming/edr/readme.md) — Attack a RAG-based agent system.
-- [OpenAI CS Agent](../../agents/red-teaming/open-ai-cs-agent/readme.md) — Exploiting multi-agent orchestration.
-- [Prompt Injection (Folly)](../../agents/red-teaming/folly/README.md) — Interactive injection challenges.
+- [Enterprise Deep Research (EDR)](../../../agents/red-teaming/edr/readme.md) — Attack a RAG-based agent system.
+- [OpenAI CS Agent](../../../agents/red-teaming/open-ai-cs-agent/readme.md) — Exploiting multi-agent orchestration.
+- [Prompt Injection (Folly)](../../../agents/red-teaming/folly/README.md) — Interactive injection challenges.
