@@ -63,6 +63,23 @@ sudo -u "$TARGET_USER" bash -lc '
 sudo -u "$TARGET_USER" bash -lc '
   set -e
   source "$HOME/.local/bin/env"
+
+  # Prune dangling symlinks in ~/.local/bin first. VM images built from an
+  # older uv tools directory leave broken links behind (e.g. cai, cai-gif,
+  # autogenstudio pointing into a ~/.local/share/uv/tools tree that no
+  # longer exists). uv refuses to overwrite an existing executable path
+  # even when the link is broken, and --upgrade does NOT imply --force, so
+  # every install below would fail with "Executable already exists" and the
+  # tool would stay permanently missing. Removing only broken links is
+  # safe: a working tool never has one.
+  pruned=0
+  for link in "$HOME/.local/bin"/*; do
+    if [ -L "$link" ] && [ ! -e "$link" ]; then
+      rm -f "$link"; pruned=$((pruned+1))
+    fi
+  done
+  [ "$pruned" -gt 0 ] && echo "ℹ️  Removed $pruned dangling symlink(s) from ~/.local/bin." || true
+
   # uv tool install is idempotent — upgrades if already installed
   uv tool install --upgrade "dtx[torch]>=0.26.0"
   uv tool install --upgrade "garak"
