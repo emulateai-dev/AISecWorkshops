@@ -51,7 +51,13 @@ check_tool() {
   local cmd="$2"
   if command -v "$cmd" &>/dev/null; then
     local version
-    version="$($cmd --version 2>&1 | head -n 1 || echo 'Unknown version')"
+    # `go` rejects --version ("flag provided but not defined"), and a few
+    # tools block on stdin, so redirect it and cap how long a probe may take.
+    if [[ "$cmd" == "go" ]]; then
+      version="$(timeout 20 go version 2>&1 </dev/null | head -n 1 || echo 'Unknown version')"
+    else
+      version="$(timeout 20 "$cmd" --version 2>&1 </dev/null | head -n 1 || echo 'Unknown version')"
+    fi
     log "✅ $name is installed: $version"
   else
     log "❌ $name is NOT installed"
@@ -64,7 +70,7 @@ check_tool() {
 check_python() {
   local ver="$1"
   if command -v "python${ver}" &>/dev/null; then
-    log "✅ python${ver} (apt)"
+    log "✅ python${ver} (on PATH)"
   elif uv python find "${ver}" &>/dev/null; then
     log "✅ python${ver} (uv)"
   else
@@ -93,19 +99,49 @@ check_model() {
   fi
 }
 
+# Is anything listening on this URL's host:port at all?
+# Without this, a service that was never installed still costs a full retry
+# loop of sleeps. Nothing listening means it is not running — no point
+# retrying, and it is not a failure if that lab was never installed.
+tcp_open() {
+  local url="$1" host port
+  host="$(sed -E 's#^[a-z]+://##; s#/.*$##; s#:.*$##' <<<"$url")"
+  port="$(sed -E 's#^[a-z]+://##; s#/.*$##' <<<"$url" | sed -nE 's#^.*:([0-9]+)$#\1#p')"
+  if [[ -z "$port" ]]; then
+    case "$url" in https://*) port=443 ;; *) port=80 ;; esac
+  fi
+  timeout 2 bash -c "exec 3<>/dev/tcp/$host/$port" 2>/dev/null
+}
+
+# $3 (optional): "optional" — a service that is only running if its lab was
+# installed. Those report ℹ️ rather than ❌ so an intentionally minimal
+# install does not look broken.
 check_url() {
   local name="$1"
   local url="$2"
+  local mode="${3:-required}"
   log "🌐 $name [$url]..."
-  for i in {1..5}; do
-    if curl -sk --head --fail "$url" >/dev/null; then
+
+  if ! tcp_open "$url"; then
+    if [[ "$mode" == "optional" ]]; then
+      log "ℹ️  $name not running (lab not installed) — skipping."
+    else
+      log "❌ $name not reachable — nothing is listening on $url"
+      FAILED=$((FAILED+1))
+    fi
+    return 1
+  fi
+
+  # Something is listening, so it is worth waiting briefly for it to serve.
+  for i in {1..3}; do
+    if curl -sk --head --fail --max-time 5 "$url" >/dev/null; then
       log "✅ $name reachable at $url"
       return 0
-    else
-      sleep 10
     fi
+    sleep 3
   done
-  log "❌ $name not reachable after 5 tries ($url)"
+  log "❌ $name is listening but not serving after 3 tries ($url)"
+  FAILED=$((FAILED+1))
   return 1
 }
 
@@ -271,7 +307,11 @@ log ""
 log "🧪 Testing PentestGPT OpenAI API connectivity..."
 
 OPENAI_KEY_FILE="$HOME/.secrets/OPENAI_API_KEY.txt"
-if [[ -f "$OPENAI_KEY_FILE" ]]; then
+if ! command -v pentestgpt-connection >/dev/null 2>&1; then
+  log "ℹ️  PentestGPT not installed — skipping (optional lab)."
+elif [[ ! -s "$OPENAI_KEY_FILE" ]]; then
+  log "ℹ️  Skipping PentestGPT check — OPENAI_API_KEY is not set."
+elif [[ -f "$OPENAI_KEY_FILE" ]]; then
   export OPENAI_API_KEY="$(cat "$OPENAI_KEY_FILE")"
   CONNECTION_OUTPUT="$(pentestgpt-connection 2>&1 || true)"
 
@@ -305,13 +345,19 @@ PORTS=(
 
 for entry in "${PORTS[@]}"; do
   IFS="|" read -r name url <<< "$entry"
-  if check_url "$name (localhost)" "$url"; then
+  # These all belong to optional challenge labs, so a missing one is info.
+  if check_url "$name (localhost)" "$url" optional; then
     if [[ "$EXTERNAL_IP" != "Unavailable" ]]; then
       external_url="${url/localhost/$EXTERNAL_IP}"
-      check_url "$name (external)" "$external_url"
+      # Purely informational: a VM behind NAT (the normal setup) is not
+      # reachable on its external IP unless ports were forwarded, and that
+      # is not a broken install.
+      if curl -sk --head --fail --max-time 5 "$external_url" >/dev/null 2>&1; then
+        log "✅ $name also reachable externally at $external_url"
+      else
+        log "ℹ️  $name not reachable externally — normal behind NAT unless you set up port forwarding."
+      fi
     fi
-  else
-    log "⚠️ Skipping external check for $name since internal is not reachable."
   fi
 done
 
