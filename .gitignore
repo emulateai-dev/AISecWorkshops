@@ -5,3 +5,11 @@ __pycache__/
 .venv/
 venv/
 .env
+
+# CAI framework writes a session log into the current working directory.
+# validate_installation.sh probes `cai --version` from the repo root, so
+# without this the repo is left dirty after every validation run.
+logs/
+
+# Validation script default log location, if run from the repo root.
+dtx-validate.log
