@@ -29,39 +29,39 @@ make submodules-update
 
 ### pyrit-cli (optional terminal tool)
 
-From the repo root after submodules are initialized, install **pyrit-cli** using any of the options below. The **`[hf]`** extra pulls in Hugging Face **datasets** (needed for jailbreak benchmark labs that use `--dataset hf:…`).
+From the repo root after submodules are initialized, install **pyrit-cli** using any of the options below. Hugging Face **datasets** (needed for jailbreak benchmark labs that use `--dataset hf:…`) is a **core dependency** — no extra is required. Older instructions used an `[hf]` extra; that extra no longer exists and passing it now only produces a warning.
 
 **pip** (default)
 
 ```bash
 cd labs/setup/pyrit/pyrit_cli
-pip install -e ".[hf]"
+pip install -e "."
 ```
 
 **uv** — global tool ([install uv](https://docs.astral.sh/uv/getting-started/installation/)), similar to pipx:
 
 ```bash
 cd labs/setup/pyrit/pyrit_cli
-uv tool install --editable ".[hf]"
+uv tool install --editable "."
 ```
 
-Reinstall after pulling submodule updates: `uv tool install --editable --force ".[hf]"` from the same directory. Uninstall: `uv tool uninstall pyrit-cli`.
+Reinstall after pulling submodule updates: `uv tool install --editable --force "."` from the same directory. Uninstall: `uv tool uninstall pyrit-cli`.
 
 **uv** — virtualenv in the submodule (good for development):
 
 ```bash
 cd labs/setup/pyrit/pyrit_cli
 uv venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-uv pip install -e ".[hf]"
+uv pip install -e "."
 ```
 
-Or, using the submodule lockfile: `uv sync --extra hf` (same directory; installs into `.venv` if present).
+Or, using the submodule lockfile: `uv sync` (same directory; installs into `.venv` if present).
 
 **Poetry** — **pyrit-cli** uses Hatch, not a Poetry layout. Activate the virtualenv you use for workshops (for example `poetry shell` from **your** lab `pyproject.toml` directory), **then**:
 
 ```bash
 cd labs/setup/pyrit/pyrit_cli
-pip install -e ".[hf]"
+pip install -e "."
 ```
 
 The editable install must run from `labs/setup/pyrit/pyrit_cli` so pip resolves the package; the interpreter comes from your Poetry-managed (or other) venv.
@@ -269,7 +269,7 @@ Begin with the [Explore Garak Probes](./labs/llms/red-teaming/garak/01_explore_g
 | [DTX](https://github.com/detoxio-ai) | AI security testing | `uv tool install "dtx[torch]"` |
 | [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) | Multi-agent framework (CS Agent lab) | Python package install |
 | [PyRIT](https://github.com/Azure/PyRIT) | Prompt attack and risk identification testing | Docker devcontainer build |
-| [pyrit-cli](https://github.com/emulateai-dev/pyrit_cli) (submodule) | Terminal wrapper for setup, dataset inspect, single-turn / multi-turn / TAP attacks | After `make submodules-init`: `pip install -e ".[hf]"` or `uv tool install --editable ".[hf]"` from `labs/setup/pyrit/pyrit_cli` (see [pyrit-cli](#pyrit-cli-optional-terminal-tool) above) |
+| [pyrit-cli](https://github.com/emulateai-dev/pyrit_cli) (submodule) | Terminal wrapper for setup, dataset inspect, single-turn / multi-turn / TAP attacks | After `make submodules-init`: `pip install -e "."` or `uv tool install --editable "."` from `labs/setup/pyrit/pyrit_cli` (see [pyrit-cli](#pyrit-cli-optional-terminal-tool) above) |
 | [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/main/en/guides/cli) | Model and dataset access from terminal | `uv tool install "huggingface_hub[cli,torch]"` |
 | [LLM CLI](https://github.com/simonw/llm) | Command-line LLM interaction and key management | `uv tool install llm` |
 | [Metasploit Framework](https://github.com/rapid7/metasploit-framework) | Exploitation framework for security labs | `msfinstall` |
