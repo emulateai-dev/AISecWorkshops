@@ -47,6 +47,7 @@ This guide sets up the **DTX demo lab** using a **Simple Plug and Play VM** (no 
  mkdir -p ~/.secrets/
  echo '< OPENAI_API_KEY >' > ~/.secrets/OPENAI_API_KEY.txt
  echo '< GROQ_API_KEY >' > ~/.secrets/GROQ_API_KEY.txt
+ echo '< HF_TOKEN >' > ~/.secrets/HF_TOKEN.txt
 ```
 - Run the Tool_Setup.sh file
 ``` bash
@@ -84,7 +85,13 @@ sudo ./Pre_Installation.sh
 mkdir -p ~/.secrets/
 echo '< OPENAI_API_KEY >' > ~/.secrets/OPENAI_API_KEY.txt
 echo '< GROQ_API_KEY >' > ~/.secrets/GROQ_API_KEY.txt
+echo '< HF_TOKEN >' > ~/.secrets/HF_TOKEN.txt
 ```
+
+> **`HF_TOKEN` is not optional in practice.** Without it, HuggingFace pulls run
+> unauthenticated and are heavily rate-limited — the model and dataset downloads
+> used by the garak HF-model lab and the jailbreak dataset labs will crawl. Get a
+> read token from <https://huggingface.co/settings/tokens>.
 
 **Step 3 — Run Tool_Setup.sh** (requires sudo, ~20–40 min depending on downloads)
 

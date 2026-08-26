@@ -345,10 +345,20 @@ fi
 # ============================================================
 # 7) Secrets dir
 # ============================================================
+# Placeholders only — the workshop attendee pastes real keys in. Tool_Setup.sh
+# adds a .bashrc block that exports each of these IF the file is non-empty, so
+# every key it can export needs a file created here. HF_TOKEN was missing:
+# without it, HuggingFace model and dataset pulls run unauthenticated and get
+# rate-limited ("You are sending unauthenticated requests to the HF Hub"),
+# which the garak HF-model lab and the jailbreak dataset labs both hit.
 SECRETS_DIR="$TARGET_HOME/.secrets"
 mkdir -p "$SECRETS_DIR"
 touch "$SECRETS_DIR/OPENAI_API_KEY.txt"
 touch "$SECRETS_DIR/GROQ_API_KEY.txt"
+touch "$SECRETS_DIR/HF_TOKEN.txt"
+# Keys, not world-readable.
+chmod 700 "$SECRETS_DIR"
+chmod 600 "$SECRETS_DIR"/*.txt
 chown -R "$TARGET_USER:$TARGET_USER" "$SECRETS_DIR"
 
 # ============================================================
