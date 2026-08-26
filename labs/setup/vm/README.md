@@ -282,33 +282,36 @@ sudo ./labs/setup/vm/Tool_Setup.sh
 
 ### Validate Labs After Installation
 
-Run the validation script to verify installed tools, running services, exposed ports, and API connectivity:
-
-> Note: This validation can take a couple of minutes to complete.
-
-```bash
-cd $HOME
-./validate_installation.sh
-```
-
-If the script is missing in `$HOME`, run it directly from the repo:
+This is the single command that tells you whether your machine is ready. Run it
+after finishing either setup option:
 
 ```bash
-cd $HOME/labs/AISecWorkshops/labs/setup/scripts
-./validate_installation.sh
+bash $HOME/labs/AISecWorkshops/labs/setup/scripts/validate_installation.sh
 ```
 
-Expected output starts with:
+> Takes a couple of minutes — it starts and stops some services to test them.
 
-`🔍 DTX Validation Log - <date>`
+It checks every part of the setup: the command-line tools, Python 3.10/3.12/3.13,
+the Docker/Ollama/NGINX services, all 7 AI models, whether your API keys are
+actually filled in, and whether the PyRIT submodules downloaded.
 
-`🌍 External Network Info`
+**Reading the result.** The last line is your verdict:
 
-`🌐 External IP: <your-ip>`
+| Last line | Meaning | What to do |
+|---|---|---|
+| `✅ DTX Validation complete — all checks passed.` | Everything is ready | Start the labs |
+| `✅ ... all checks passed, N warning(s)` | Ready, but some API keys are blank | Fine for labs that use local models; fill the keys in for cloud labs — see **[step A4](#a4-add-your-api-keys)** |
+| `❌ DTX Validation complete — N check(s) FAILED` | Something is missing | Scroll up to the ❌ lines, then re-run the setup scripts as it suggests |
 
-Successful completion ends with:
+Every ❌ line names the exact thing that is missing, so you can fix one item
+rather than starting over. Most failures are fixed by re-running:
 
-`✅ DTX Validation complete.`
+```bash
+sudo $HOME/labs/AISecWorkshops/labs/setup/vm/Pre_Installation.sh
+sudo $HOME/labs/AISecWorkshops/labs/setup/vm/Tool_Setup.sh
+```
+
+A full log is saved to `$HOME/dtx-validate.log` — useful if you need to ask for help.
 
 ### Installing Individual Challenge Labs
 

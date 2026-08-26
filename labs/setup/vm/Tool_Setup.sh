@@ -448,6 +448,19 @@ else
   echo "✅ BurpSuite Community installation attempted."
 fi
 
+# The installer drops BurpSuite in /opt/BurpSuiteCommunity but puts nothing on
+# PATH, so `burpsuite` from a terminal just says "command not found" even
+# though it is installed. Link the launcher so the name works.
+BURP_LAUNCHER="$(find /opt -maxdepth 2 -type f -executable -name 'BurpSuite*' 2>/dev/null | head -1)"
+if [ -n "$BURP_LAUNCHER" ] && [ ! -e /usr/local/bin/burpsuite ]; then
+  ln -sf "$BURP_LAUNCHER" /usr/local/bin/burpsuite
+  echo "✅ Linked 'burpsuite' -> $BURP_LAUNCHER"
+elif [ -e /usr/local/bin/burpsuite ]; then
+  echo "ℹ️  'burpsuite' command already linked."
+else
+  echo "⚠️  BurpSuite launcher not found under /opt — 'burpsuite' will not be on PATH."
+fi
+
 
 
 # ============================================================
