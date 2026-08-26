@@ -119,10 +119,10 @@ else
   log "❌ Pentagi directory not found"
 fi
 
-if cd "$HOME/labs/ai-red-teaming-training/lab/vuln_apps/dtx_vuln_app_lab"; then
-  log "$(docker compose up -d 2>&1)" && log "✅ AI Demo Agents started" || log "❌ AI Demo Agents failed"
+if cd "$HOME/labs/AISecWorkshops/labs/agents/red-teaming/dtx-demo-agents"; then
+  log "$(docker compose up -d 2>&1)" && log "✅ DTX Demo Agents started" || log "❌ DTX Demo Agents failed"
 else
-  log "❌ DTX vuln lab directory not found"
+  log "❌ DTX Demo Agents directory not found"
 fi
 
 # === AI Red Teaming Playground Labs ===
@@ -216,8 +216,8 @@ if cd "$HOME/labs/pentagi"; then
   log "$(docker compose down 2>&1)" && log "✅ Pentagi stopped"
 fi
 
-if cd "$HOME/labs/ai-red-teaming-training/lab/vuln_apps/dtx_vuln_app_lab"; then
-  log "$(docker compose down 2>&1)" && log "✅ AI Demo Agents stopped"
+if cd "$HOME/labs/AISecWorkshops/labs/agents/red-teaming/dtx-demo-agents"; then
+  log "$(docker compose down 2>&1)" && log "✅ DTX Demo Agents stopped"
 fi
 
 # === Stop Background UIs ===

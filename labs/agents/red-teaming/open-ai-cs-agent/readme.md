@@ -29,7 +29,7 @@ The **OpenAI Customer Support Agent Demo** is a multi-agent system for handling 
 
 ## 🚀 Setup Instructions
 
-> **Prerequisites:** Make sure you have completed the [VM Setup](../../../../setup/vm/README.md) and have the required API keys configured.
+> **Prerequisites:** Make sure you have completed the [VM Setup](../../../setup/vm/README.md) and have the required API keys configured.
 
 1. **Install the demo**
 

@@ -59,25 +59,16 @@ sudo -u "$TARGET_USER" bash -lc '
 '
 
 # ============================================================
-# 3) Ollama models (system-level, tolerate absence)
+# 3) Ollama models
 # ============================================================
-# Start/enable service if present (don’t fail hard on minimal envs)
+# Base models + the jailbroken/vulnerable-llama models are pulled and
+# registered in Pre_Installation.sh (single source of truth — see that
+# script's "Ollama models" section). They are NOT repeated here; if a
+# model is missing, re-run Pre_Installation.sh rather than adding pulls
+# back into this file. Just make sure the service is up, in case this
+# script is ever re-run on its own.
 systemctl enable ollama || true
 systemctl start  ollama || true
-
-# Pull models only if not already present
-pull_if_missing() {
-  local model="$1"
-  if ollama list 2>/dev/null | grep -q "^${model}"; then
-    echo "ℹ️  Model '${model}' already present — skipping pull."
-  else
-    ollama pull "${model}" || echo "⚠️  Failed to pull '${model}' — skipping."
-  fi
-}
-pull_if_missing smollm2
-pull_if_missing qwen3:0.6b
-pull_if_missing llama-guard3:1b-q3_K_S
-pull_if_missing llama3.1
 
 # ============================================================
 # 4) Export API keys from secrets via user's .bashrc
@@ -189,7 +180,15 @@ Environment="OLLAMA_HOST=0.0.0.0"
 EOF
 systemctl daemon-reload
 systemctl restart ollama || true
-echo "✅ Ollama configured to listen on 0.0.0.0"
+
+# Listening on 0.0.0.0 is pointless if the firewall never opens the port —
+# open it here so this step is self-sufficient (labs/setup/scripts/tools/
+# open_ufw_ports.sh and the VirtualBox NAT list in labs/setup/vm/README.md
+# also include 11434 for VMs that configure the firewall separately).
+if command -v ufw >/dev/null 2>&1; then
+  ufw allow 11434/tcp || true
+fi
+echo "✅ Ollama configured to listen on 0.0.0.0 (port 11434 opened in ufw if present)"
 
 # ============================================================
 # 13) PyRIT Docker Setup (clone, build devcontainer image)
@@ -219,47 +218,14 @@ fi
 echo "✅ PyRIT setup complete — repo: $PYRIT_DIR/PyRIT"
 
 # ============================================================
-# 14) Vulnerable Model Dataset (git-lfs clone, user-scope)
+# 14) Vulnerable / jailbroken Llama model
 # ============================================================
-if ! git lfs version >/dev/null 2>&1; then
-  echo "ℹ️  git-lfs not found. Installing git-lfs..."
-  apt-get update || true
-  apt-get install -y git-lfs
-fi
-
-VULN_MODEL_DIR="$TARGET_HOME/labs/datasets"
-sudo -u "$TARGET_USER" bash -lc "
-  set -e
-  git lfs install --skip-repo || true
-  mkdir -p '$VULN_MODEL_DIR'
-  cd '$VULN_MODEL_DIR'
-  if [ ! -d vulnerable_llama_model ]; then
-    git clone https://huggingface.co/eai-sec-workshop/vulnerable_llama_model
-  else
-    echo 'ℹ️  vulnerable_model dataset already exists; skipping clone.'
-  fi
-"
-echo "✅ Vulnerable model dataset ready: $VULN_MODEL_DIR/vulnerable_llama_model"
-
-# Register the vulnerable model with Ollama (single source of truth)
-# Both jailbroken-llama and vulnerable-llama point to the same GGUF
-if ollama list 2>/dev/null | grep -q "^jailbroken-llama"; then
-  echo "ℹ️  jailbroken-llama already registered in Ollama — skipping."
-else
-  echo "➡️  Registering jailbroken-llama with Ollama..."
-  (cd "$VULN_MODEL_DIR/vulnerable_llama_model" && ollama create jailbroken-llama -f Modelfile) \
-    && echo "✅ jailbroken-llama registered in Ollama." \
-    || echo "⚠️  Failed to register jailbroken-llama in Ollama."
-fi
-
-# Create vulnerable-llama alias (used by DVMCP lab) — same model, no re-download
-if ollama list 2>/dev/null | grep -q "^vulnerable-llama"; then
-  echo "ℹ️  vulnerable-llama alias already exists — skipping."
-else
-  ollama cp jailbroken-llama vulnerable-llama \
-    && echo "✅ vulnerable-llama alias created from jailbroken-llama." \
-    || echo "⚠️  Failed to create vulnerable-llama alias."
-fi
+# The vulnerable_llama_model dataset clone plus the jailbroken-llama /
+# vulnerable-llama Ollama registration now happen in Pre_Installation.sh
+# (single source of truth — see that script's "Ollama models" section).
+# Nothing to do here. install-dvmcp.sh still checks for the local clone
+# at $TARGET_HOME/labs/datasets/vulnerable_llama_model and falls back to
+# its own HF pull if it isn't there, so it works either way.
 
 # ============================================================
 # 15) BurpSuite Community Edition (silent / non-interactive)
@@ -308,6 +274,7 @@ install_lab() {
 # install_lab install-dvmcp.sh                        "DVMCP"
 # install_lab install-pentagi.sh                      "PentAGI"
 # install_lab install-ai-red-teaming-playground-labs.sh "AI Red Teaming Labs"
+# install_lab install-dtx-demo-agents.sh               "DTX Demo Agents"
 
 echo '127.0.0.1 emulateai-mcp.local' | sudo tee -a /etc/hosts
 

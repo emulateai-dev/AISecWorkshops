@@ -110,8 +110,11 @@ AISecWorkshops/
     │       ├── folly/                     # Prompt injection challenges with Folly
     │       ├── edr/                       # Enterprise Deep Research agent red teaming
     │       │   └── challenges/            # 7 challenges: RAG poisoning, Text2SQL, injection
-    │       └── open-ai-cs-agent/          # Airline multi-agent system red teaming
-    │           └── challenges/            # 10 challenges: BOLA, social engineering, jailbreak
+    │       ├── open-ai-cs-agent/          # Airline multi-agent system red teaming
+    │       │   └── challenges/            # 10 challenges: BOLA, social engineering, jailbreak
+    │       ├── ai-red-teaming-labs/       # Microsoft AI Red Teaming Playground Labs
+    │       │   └── challenges/            # 12 challenges: exfiltration, Crescendo, injection, safety bypass
+    │       └── dtx-demo-agents/           # Target sandbox: chat/RAG/tool/text2sql demo apps
     └── mcp/
         └── red-teaming/
             └── dv_mcp_labs/               # Damn Vulnerable MCP Server challenges
@@ -143,6 +146,8 @@ Attacking and evaluating autonomous AI agents — prompt injection, system promp
 | 1 | [Prompt Injection Challenges](./labs/agents/red-teaming/folly/README.md) | Folly | 15+ | ~30 min | Interactive prompt injection and system prompt extraction via web UI |
 | 2 | [Enterprise Deep Research (EDR)](./labs/agents/red-teaming/edr/readme.md) | EDR Agent | 7 | ~45 min | RAG poisoning, indirect prompt injection, Text-to-SQL abuse, hallucination |
 | 3 | [Airline Customer Support Agent](./labs/agents/red-teaming/open-ai-cs-agent/readme.md) | OpenAI Agents SDK | 10 | ~60 min | Guardrail bypass, BOLA, social engineering, multi-turn PII attacks |
+| 4 | [AI Red Teaming Playground Labs](./labs/agents/red-teaming/ai-red-teaming-labs/readme.md) | Microsoft AI Red Teaming Playground | 12 | ~90 min | Credential exfiltration, metaprompt secret extraction, Crescendo multi-turn escalation, indirect prompt injection, safety-filter bypass |
+| 5 | [DTX Demo Agents](./labs/agents/red-teaming/dtx-demo-agents/readme.md) | dtxguard demo stack | — (sandbox) | ~30 min | Target sandbox — chat, RAG, tool-use, and text2sql demo apps behind a prompt-guard proxy |
 
 ### MCP Red Teaming
 
