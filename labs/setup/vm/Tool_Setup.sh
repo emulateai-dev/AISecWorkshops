@@ -132,20 +132,74 @@ sudo -u "$TARGET_USER" bash -lc "
 "
 
 # ============================================================
-# 3) Ollama models
+# 3) Ollama service + base models
 # ============================================================
-# Base models + the jailbroken/vulnerable-llama models are pulled and
-# registered in Pre_Installation.sh (single source of truth — see that
-# script's "Ollama models" section). They are NOT repeated here; if a
-# model is missing, re-run Pre_Installation.sh rather than adding pulls
-# back into this file. Just make sure the service is up, in case this
-# script is ever re-run on its own.
+# Pre_Installation.sh owns the full model set (including the 4.9GB
+# jailbroken-llama GGUF and its vulnerable-llama alias). But the pre-built
+# VM path — Option A in README.md — runs ONLY this script, never
+# Pre_Installation.sh, so a model set that lives exclusively there leaves
+# every Option A attendee without the models the day-1 labs need.
+#
+# The pulls below are therefore repeated here, but guarded: each is a
+# no-op when the model is already present, so on the Option B path (where
+# Pre_Installation.sh ran first) this section costs nothing. The two large
+# derived models stay in Pre_Installation.sh only — see the note further
+# down in section 14.
 systemctl enable ollama || true
 systemctl start  ollama || true
 
+if command -v ollama >/dev/null 2>&1; then
+  pull_if_missing() {
+    local model="$1"
+    if ollama list 2>/dev/null | grep -q "^${model}"; then
+      echo "ℹ️  Model '${model}' already present — skipping pull."
+    else
+      echo "➡️  Pulling '${model}'..."
+      ollama pull "${model}" || echo "⚠️  Failed to pull '${model}' — skipping."
+    fi
+  }
+  pull_if_missing smollm2
+  pull_if_missing qwen3:0.6b
+  pull_if_missing llama-guard3:1b-q3_K_S
+  pull_if_missing llama3.1
+  # Jailbroken SmolLM (135M, HF-hosted GGUF) used by the uncensored_models
+  # and safety_alignment labs. NOTE: a DIFFERENT model from the
+  # jailbroken-llama / vulnerable-llama pair — same word "jailbroken" in
+  # the docs, two unrelated models. Do not conflate them.
+  pull_if_missing hf.co/detoxio-test/SmolLM-135M-Instruct-Jailbroken_GGUF
+else
+  echo "⚠️  ollama not installed — skipping model pulls. Run Pre_Installation.sh first."
+fi
+
 # ============================================================
-# 4) Export API keys from secrets via user's .bashrc
+# 4) Secrets dir + export API keys via user's .bashrc
 # ============================================================
+# Created here as well as in Pre_Installation.sh, for the same reason as
+# the models above: the Option A (pre-built VM) path runs only this
+# script, and without these files the export block below silently exports
+# nothing — which is how a VM ends up with no OPENAI_API_KEY, no
+# GROQ_API_KEY and rate-limited HuggingFace pulls. mkdir/touch are no-ops
+# when the files already exist, so real keys are never overwritten.
+SECRETS_DIR="$TARGET_HOME/.secrets"
+mkdir -p "$SECRETS_DIR"
+touch "$SECRETS_DIR/OPENAI_API_KEY.txt"
+touch "$SECRETS_DIR/GROQ_API_KEY.txt"
+touch "$SECRETS_DIR/HF_TOKEN.txt"
+# These hold API keys and the VM ships with default creds (dtx:dtx).
+chmod 700 "$SECRETS_DIR"
+chmod 600 "$SECRETS_DIR"/*.txt
+chown -R "$TARGET_USER:$TARGET_USER" "$SECRETS_DIR"
+
+# Tell the user which keys are still blank, rather than letting the labs
+# fail later with an opaque auth error.
+for KEYFILE in OPENAI_API_KEY GROQ_API_KEY HF_TOKEN; do
+  if [ -s "$SECRETS_DIR/$KEYFILE.txt" ]; then
+    echo "  ✅ $KEYFILE is set"
+  else
+    echo "  ⚠️  $KEYFILE is EMPTY — add it with:  echo '<your key>' > ~/.secrets/$KEYFILE.txt"
+  fi
+done
+
 API_MARKER="# === Export API keys from secrets directory ==="
 API_BLOCK=$(cat <<'EOF'
 # === Export API keys from secrets directory ===

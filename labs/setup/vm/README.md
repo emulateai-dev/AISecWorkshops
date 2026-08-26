@@ -180,6 +180,57 @@ Successful completion ends with:
 
 `✅ DTX Validation complete.`
 
+### Installing Individual Challenge Labs
+
+`Tool_Setup.sh` deliberately does **not** install the challenge labs — you install
+only the ones you're running that day. Each has its own installer under
+`labs/setup/scripts/tools/`. Run them with the **absolute path** so it works from
+any directory:
+
+```bash
+bash $HOME/labs/AISecWorkshops/labs/setup/scripts/tools/install-folly.sh
+```
+
+| Lab | Installer |
+|-----|-----------|
+| Folly (prompt injection) | `$HOME/labs/AISecWorkshops/labs/setup/scripts/tools/install-folly.sh` |
+| Enterprise Deep Research (EDR) | `$HOME/labs/AISecWorkshops/labs/setup/scripts/tools/install-edr.sh` |
+| OpenAI CS Agents demo | `$HOME/labs/AISecWorkshops/labs/setup/scripts/tools/install-openai-cs-agents-demo.sh` |
+| Damn Vulnerable MCP (DVMCP) | `$HOME/labs/AISecWorkshops/labs/setup/scripts/tools/install-dvmcp.sh` |
+| PentAGI | `$HOME/labs/AISecWorkshops/labs/setup/scripts/tools/install-pentagi.sh` |
+| AI Red Teaming Playground Labs | `$HOME/labs/AISecWorkshops/labs/setup/scripts/tools/install-ai-red-teaming-playground-labs.sh` |
+| DTX Demo Agents | `$HOME/labs/AISecWorkshops/labs/setup/scripts/tools/install-dtx-demo-agents.sh` |
+| PyRIT | `$HOME/labs/AISecWorkshops/labs/setup/scripts/tools/install-pyrit.sh` |
+
+Each installer is idempotent — re-running it updates the lab rather than
+duplicating it. Run them as your normal user (**not** with `sudo`); they use
+`sudo` internally only where they need it.
+
+### Using Python 3.12 (or another version)
+
+Ubuntu 25.04 ships **Python 3.13** as the system interpreter and carries no
+`python3.10` / `python3.12` packages in any repo, so `apt install python3.12`
+cannot work there. The setup scripts install those versions through **uv**
+instead, which ships standalone builds.
+
+To get a 3.12 interpreter path, or a 3.12 virtualenv:
+
+```bash
+# where is uv's 3.12?
+uv python find 3.12
+
+# install it if the command above finds nothing
+uv python install 3.12
+
+# create a 3.12 venv for a lab that needs it
+uv venv --python 3.12 ~/.venv-py312
+source ~/.venv-py312/bin/activate
+```
+
+The default `~/.aisecurity` venv is built against whichever interpreter is
+current (3.13 on 25.04). That is fine for every day-1 lab; only switch if a
+specific lab pins 3.12.
+
 ### Enable Ports Forwarding to Host
 
 #### Assuming NAT Interface
