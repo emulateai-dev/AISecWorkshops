@@ -179,8 +179,13 @@ sudo -u "$TARGET_USER" bash -lc "
 
   # --- Node.js via asdf (+ keyring) ---
   asdf plugin list | grep -qx nodejs || asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
-  if [ ! -x \"$TARGET_HOME/.asdf/plugins/nodejs/bin/import-release-team-keyring\" ]; then
-    echo '⚠️ nodejs plugin keyring script missing; re-adding plugin...'
+  # Health-check the plugin by asking it to do real work. The previous check
+  # looked for bin/import-release-team-keyring, which upstream asdf-nodejs
+  # DELETED — so it was always missing, and every run removed and re-added
+  # the plugin. 'asdf plugin remove' also deletes that plugin's installed
+  # versions, so Node was being fully reinstalled on every single run.
+  if ! asdf list all nodejs >/dev/null 2>&1; then
+    echo '⚠️ nodejs plugin is not working; re-adding it...'
     asdf plugin remove nodejs || true
     asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
   fi

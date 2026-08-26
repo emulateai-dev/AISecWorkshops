@@ -27,95 +27,225 @@ This guide sets up the **DTX demo lab** using a **Simple Plug and Play VM** (no 
 ---
 
 
-# Steps to Setup Labs:
+# Steps to Setup Labs
 
 [![Setup Tutorial](./thumbnail.png)](https://www.youtube.com/watch?v=rKCMBK2kqGM)
 
+## Before you start — read this once
+
+**How to use the commands below.** Every grey box is a command you type into the
+**Terminal** inside the VM (open it with `Ctrl` + `Alt` + `T`). Copy one line,
+paste it, press `Enter`, and **wait for it to finish** before pasting the next
+one. A command is finished when your prompt (`dtx@dtx-labs:~$`) comes back.
+
+**About `sudo`.** Some commands start with `sudo`, which means "run this as the
+administrator". The first time you use it, Ubuntu asks for your password — type
+`dtx` and press Enter. **You will not see anything appear as you type the
+password.** That is normal, not a frozen screen. Just type it and press Enter.
+
+**About the paths.** Every path below is written out in full and starts with
+`$HOME` (which means `/home/dtx`, your own folder). That way the command works no
+matter which folder you are currently in — you never have to `cd` first.
+
+**These scripts are safe to run more than once.** If something fails halfway, or
+you are not sure whether a step worked, just run the same command again. Anything
+already installed is detected and skipped, and only the missing pieces get
+installed. Nothing is duplicated or broken by a second run.
+
+**Two ways to set up.** Pick **one**:
+
+| | Use this if | Time |
+|---|---|---|
+| **Option A** | You downloaded the ready-made `Kalki.ova` VM image (most people) | ~30–60 min |
+| **Option B** | You are installing onto your own fresh Ubuntu machine | ~60–90 min |
+
+---
+
 ## Option A — Pre-built VM (Kalki.ova) — Recommended
 
-- Install Oracle Virtualbox
-- Download the [Kalki.ova](https://huggingface.co/datasets/detoxioai/dtx-ai-sec-lab/blob/main/kalki.ova)
-- Open the ```Kalki.ova``` with Oracle VirtualBox ( It will started to import the labs )
-- Once Import is done, Set the configuration by press the setting
-- - **RAM:** 16GB RAM ( Min 8GB of RAM recommended )
-- - **HDD:** 250GB HDD ( Min 50GB of HDD recommended )
-- - **CPU :** 8 Core
-- Then Start the machine
-- Enter the Username & Password: ``` dtx : dtx ```
-- Paste API keys in .secrets directory
-``` bash
- mkdir -p ~/.secrets/
- echo '< OPENAI_API_KEY >' > ~/.secrets/OPENAI_API_KEY.txt
- echo '< GROQ_API_KEY >' > ~/.secrets/GROQ_API_KEY.txt
- echo '< HF_TOKEN >' > ~/.secrets/HF_TOKEN.txt
+### A1. Install VirtualBox and import the VM
+
+1. Install **Oracle VirtualBox** on your own computer.
+2. Download [Kalki.ova](https://huggingface.co/datasets/detoxioai/dtx-ai-sec-lab/blob/main/kalki.ova).
+3. Double-click `Kalki.ova`. VirtualBox opens and begins importing — this takes a while.
+4. When the import finishes, select the VM, click **Settings**, and set:
+   - **RAM:** 16 GB (8 GB minimum)
+   - **Disk:** 250 GB (50 GB minimum)
+   - **CPU:** 8 cores
+5. Click **Start** to boot the VM.
+6. Log in with username `dtx` and password `dtx`.
+
+### A2. Open a terminal inside the VM
+
+Press `Ctrl` + `Alt` + `T`. Everything from here on is typed in this terminal.
+
+### A3. Get the latest lab files
+
+The labs change between sessions, so always refresh before setting up:
+
+```bash
+cd $HOME/labs/AISecWorkshops/ && git stash && git fetch && git pull
 ```
-- Run the Tool_Setup.sh file
-``` bash
-cd $HOME/labs/AISecWorkshops/labs/setup/vm
-sudo ./Tool_Setup.sh
+
+`git stash` puts aside any changes you made to lab files, so they cannot block
+the update. If you want those changes back later, run `git stash pop`.
+
+### A4. Add your API keys
+
+Some labs talk to cloud AI services, which need keys. Run these three commands,
+**replacing the text inside the quotes with your real key**:
+
+```bash
+mkdir -p $HOME/.secrets
+echo 'sk-your-real-openai-key-here' > $HOME/.secrets/OPENAI_API_KEY.txt
+echo 'gsk-your-real-groq-key-here'  > $HOME/.secrets/GROQ_API_KEY.txt
+echo 'hf-your-real-hf-token-here'   > $HOME/.secrets/HF_TOKEN.txt
 ```
+
+Where to get each one:
+
+| Key | Get it from | Needed for |
+|---|---|---|
+| `OPENAI_API_KEY` | <https://platform.openai.com/api-keys> | PyRIT labs, Folly, CS Agent labs |
+| `GROQ_API_KEY` | <https://console.groq.com/keys> | Garak Exercise 2, jailbreak labs |
+| `HF_TOKEN` | <https://huggingface.co/settings/tokens> (a **read** token is enough) | Downloading models and datasets |
+
+> **Do not skip `HF_TOKEN`.** Without it, model downloads run as an anonymous user
+> and HuggingFace throttles them heavily — a download that should take 10 minutes
+> can take hours.
+
+**Check it worked** — this should print three lines, none of them `0`:
+
+```bash
+wc -c $HOME/.secrets/*.txt
+```
+
+If a file shows `0`, the key did not save. Run that `echo` command again.
+
+### A5. Run the tool setup script
+
+This installs the lab tools. It takes **20–40 minutes** and prints a lot of text —
+that is normal. Leave it running and do not close the terminal.
+
+```bash
+sudo $HOME/labs/AISecWorkshops/labs/setup/vm/Tool_Setup.sh
+```
+
+**Check it worked** — the last line should be:
+
+```
+✅ Post-setup complete for dtx
+```
+
+Now skip ahead to **[Validate Labs After Installation](#validate-labs-after-installation)**.
 
 ---
 
 ## Option B — Fresh Ubuntu Install (22.04 / 24.04 / 25.04)
 
-Use this path if you are setting up on a clean Ubuntu machine instead of the pre-built OVA.
+Use this only if you are setting up your own Ubuntu machine instead of the
+ready-made VM. Do the steps **in order** — B2 needs things that B1 installs.
 
-**Step 1 — Run Pre_Installation.sh** (requires sudo, ~10–15 min)
-
-This installs the **system layer**: SSH, Docker, NGINX, base packages, and the user-scope *runtimes* (asdf, uv, Python, Node.js, Go toolchain). It also pulls the base Ollama models and registers the jailbroken/vulnerable LLM (`jailbroken-llama` / `vulnerable-llama`) — this is the single place those models are set up, so it's worth watching this step's output for `⚠️` warnings.
-
-> **Python across Ubuntu releases.** The script detects your release and adapts:
-> on **22.04/24.04** it adds the deadsnakes PPA for the interpreters apt is missing;
-> on **25.04 (plucky)** it *skips* deadsnakes entirely — that PPA publishes nothing
-> for plucky, and adding it leaves a broken source that makes every later
-> `apt-get update` fail with *"does not have a Release file"*. Any interpreter apt
-> can't provide (`python3.10`, `python3.12` on 25.04) is installed by **uv** instead,
-> so all three versions the labs need are always available. If an older run of this
-> script already added deadsnakes on 25.04, re-running it removes the broken source.
+### B1. Download the lab files
 
 ```bash
-cd $HOME/labs/AISecWorkshops/labs/setup/vm
-sudo ./Pre_Installation.sh
+sudo apt-get update && sudo apt-get install -y git
+mkdir -p $HOME/labs
+cd $HOME/labs && git clone https://github.com/emulateai-dev/AISecWorkshops.git
 ```
 
-**Step 2 — Add your API keys**
+### B2. Run the system setup script
+
+This installs the base system: SSH, Docker, NGINX, and the programming languages
+the tools are built on (Python, Node.js, Go). It also downloads the local AI
+models, which are several gigabytes — so this step takes **20–40 minutes**.
 
 ```bash
-mkdir -p ~/.secrets/
-echo '< OPENAI_API_KEY >' > ~/.secrets/OPENAI_API_KEY.txt
-echo '< GROQ_API_KEY >' > ~/.secrets/GROQ_API_KEY.txt
-echo '< HF_TOKEN >' > ~/.secrets/HF_TOKEN.txt
+sudo $HOME/labs/AISecWorkshops/labs/setup/vm/Pre_Installation.sh
 ```
 
-> **`HF_TOKEN` is not optional in practice.** Without it, HuggingFace pulls run
-> unauthenticated and are heavily rate-limited — the model and dataset downloads
-> used by the garak HF-model lab and the jailbreak dataset labs will crawl. Get a
-> read token from <https://huggingface.co/settings/tokens>.
+**Check it worked** — the last lines should be a list of green ticks ending with:
 
-**Step 3 — Run Tool_Setup.sh** (requires sudo, ~20–40 min depending on downloads)
+```
+✅ Setup complete for user: dtx — all checks passed.
+```
 
-This installs the **tool layer** — everything you actually run in the labs:
+If you see any red ❌, read the message next to it, fix that one thing, and run
+the same command again. The script skips everything that already succeeded.
 
-| Group | Tools |
-|-------|-------|
-| Python (uv) | `dtx`, `garak`, `huggingface_hub`, `llm`, `cai-framework`, `autogenstudio` |
-| Node (npm) | `promptfoo` |
-| Go (recon) | `httpx`, `nuclei`, `subfinder`, `amass` (version-pinned) |
-| PyRIT | repo clone, devcontainer image, and `pyrit-cli` installed editable from the `pyrit_cli` submodule |
-| Other | Metasploit, BurpSuite Community, `~/.aisecurity` venv (CPU-only PyTorch, nltk, transformers, datasets) |
+> **Note for Ubuntu 25.04 users.** Older versions of this guide told you to add a
+> "deadsnakes" software source for extra Python versions. **Do not do that on
+> 25.04** — it publishes nothing for 25.04, and adding it breaks every future
+> `sudo apt-get update` with *"does not have a Release file"*. The script now
+> handles this for you: it skips that source on 25.04 and installs the extra
+> Python versions through `uv` instead. If a previous attempt already added it,
+> re-running the script removes it.
 
-`promptfoo`, the four Go recon tools, `cai-framework` and `autogenstudio` used to be
-installed by `Pre_Installation.sh`. They now live here so tool versions can be bumped
-and refreshed by re-running this one script, without redoing the whole system setup.
-`Pre_Installation.sh` still provides the runtimes they build on (Node, the Go
-toolchain, uv), so **run Step 1 before this step on a fresh machine**.
+### B3. Add your API keys
 
-It does **not** install the individual challenge labs (Folly, EDR, CS Agent, DVMCP, PentAGI, AI Red Teaming Labs) — each of those has its own `install-*.sh` script under `labs/setup/scripts/tools/`, run manually per that lab's own README, so you only install the labs you're actually running today. Ollama models are already pulled by `Pre_Installation.sh` in Step 1 — this step does not touch them.
+Same as Option A — follow **[step A4](#a4-add-your-api-keys)** above, then come back here.
+
+### B4. Run the tool setup script
+
+This installs the lab tools themselves. Takes **20–40 minutes**.
 
 ```bash
-sudo ./Tool_Setup.sh
+sudo $HOME/labs/AISecWorkshops/labs/setup/vm/Tool_Setup.sh
 ```
+
+**Check it worked** — the last line should be:
+
+```
+✅ Post-setup complete for dtx
+```
+
+---
+
+## What the two scripts install
+
+You do not need to memorise this — it is here so you know where to look when
+something is missing.
+
+**`Pre_Installation.sh`** — the *system* layer. Run once per machine.
+
+| Group | What |
+|---|---|
+| System | SSH, Docker, NGINX, `git`, `jq`, `curl`, build tools |
+| Languages | Python (3.10 / 3.12 / 3.13), Node.js, Go — installed via `asdf` and `uv` |
+| AI models | All 7 Ollama models, including the 4.9 GB `vulnerable-llama` |
+| Config | `$HOME/.secrets` folder, tmux config, NGINX shared folder |
+
+**`Tool_Setup.sh`** — the *tools* layer. Re-run this whenever you want to update.
+
+| Group | What |
+|---|---|
+| Python tools | `dtx`, `garak`, `huggingface_hub`, `llm`, `cai-framework`, `autogenstudio` |
+| Node tools | `promptfoo` |
+| Recon tools | `httpx`, `nuclei`, `subfinder`, `amass` (fixed versions) |
+| PyRIT | the PyRIT repo, its devcontainer image, and `pyrit-cli` |
+| Other | Metasploit, BurpSuite Community, and the `$HOME/.aisecurity` Python environment |
+
+`Tool_Setup.sh` deliberately does **not** install the individual challenge labs
+(Folly, EDR, CS Agent, DVMCP, PentAGI, AI Red Teaming Labs). You install only the
+ones you need — see
+**[Installing Individual Challenge Labs](#installing-individual-challenge-labs)**.
+
+---
+
+## If something goes wrong
+
+| What you see | What it means | What to do |
+|---|---|---|
+| `Please run with sudo/root` | You forgot `sudo` at the start | Run the same command again with `sudo` in front |
+| `does not have a Release file` | A broken software source (usually deadsnakes on 25.04) | Re-run `sudo $HOME/labs/AISecWorkshops/labs/setup/vm/Pre_Installation.sh` — it removes the broken source |
+| `permission denied ... docker.sock` | Your account was just added to the `docker` group | Log out and log back in, or run `newgrp docker` |
+| `Executable already exists` | Leftover broken links from an older VM image | Re-run `sudo $HOME/labs/AISecWorkshops/labs/setup/vm/Tool_Setup.sh` — it cleans them up |
+| A download is extremely slow | `HF_TOKEN` is missing or empty | Do **[step A4](#a4-add-your-api-keys)**, then re-run the script |
+| `local changes would be overwritten` | You edited a lab file that the update wants to replace | `cd $HOME/labs/AISecWorkshops/ && git stash && git pull` |
+| The script stopped halfway | A download failed or you closed the terminal | Just run the same command again — it continues from where it stopped |
+
+Still stuck? Run the validation script below — it tells you exactly which pieces
+are missing.
 
 ### Validation: Successful Setup Output
 
