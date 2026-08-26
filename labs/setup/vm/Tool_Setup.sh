@@ -285,8 +285,8 @@ echo "✅ PyRIT setup complete — repo: $PYRIT_DIR/PyRIT"
 # 13b) pyrit-cli (user-scope) — the terminal tool used in the day-1
 #      jailbreak labs. Installed editable from the repo submodule so
 #      `git pull` + `make submodules-update` refreshes it in place.
-#      The [hf] extra pulls HuggingFace datasets, needed by the
-#      `--dataset hf:…` benchmark labs.
+#      HuggingFace `datasets` (needed by the `--dataset hf:…` benchmark
+#      labs) is a core dependency of pyrit_cli — there is no [hf] extra.
 # ============================================================
 PYRIT_CLI_DIR="$TARGET_HOME/labs/AISecWorkshops/labs/setup/pyrit/pyrit_cli"
 if [ -f "$PYRIT_CLI_DIR/pyproject.toml" ]; then
@@ -294,7 +294,7 @@ if [ -f "$PYRIT_CLI_DIR/pyproject.toml" ]; then
     set -e
     source \"\$HOME/.local/bin/env\"
     cd '$PYRIT_CLI_DIR'
-    uv tool install --editable --force '.[hf]'
+    uv tool install --editable --force '.'
     mkdir -p \"\$HOME/.pyrit\"
     touch \"\$HOME/.pyrit/.env\" \"\$HOME/.pyrit/.env.local\"
   " && echo "✅ pyrit-cli installed (editable from submodule)." \
