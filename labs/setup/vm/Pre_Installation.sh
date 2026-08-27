@@ -243,9 +243,22 @@ chown -R "$TARGET_USER:$TARGET_USER" "$TARGET_HOME"
 # ============================================================
 # 5) Ollama (system level)
 # ============================================================
-if command -v ollama >/dev/null 2>&1; then
-  echo "ℹ️  Ollama already installed — skipping."
+# `command -v ollama` alone isn't enough: some VM images have the ollama
+# binary pre-baked in without ever running the official installer, so the
+# binary exists but /etc/systemd/system/ollama.service does not — every
+# `systemctl enable/start ollama` below then fails with "Unit ollama.service
+# does not exist" and every model pull fails with it. Check for the service
+# too (skip that check entirely on systemd-less environments, where the
+# installer's own configure_systemd step also skips itself). Re-running the
+# installer when the binary exists is safe — it's what upstream itself does
+# for "existing user"/"existing service" on every run; verified by reading
+# https://ollama.com/install.sh before relying on this.
+if command -v ollama >/dev/null 2>&1 && { ! command -v systemctl >/dev/null 2>&1 || systemctl cat ollama.service >/dev/null 2>&1; }; then
+  echo "ℹ️  Ollama already installed — skipping installer."
 else
+  if command -v ollama >/dev/null 2>&1; then
+    echo "ℹ️  ollama binary present but its systemd service is missing — re-running the installer to create it."
+  fi
   curl -fsSL https://ollama.com/install.sh | sh
 fi
 # Don't fail hard here — some minimal/containerized envs don't have this
