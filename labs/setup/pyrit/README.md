@@ -106,20 +106,20 @@ Your local environment is now fully running and authenticated with your override
 
 The **pyrit_cli** package is a git submodule at `labs/setup/pyrit/pyrit_cli`. From the **AISecWorkshops repository root**, run **`make submodules-init`** so this directory is populated (empty folder means submodules were not checked out). To pull newer **pyrit_cli** or **PyRIT** commits from their remotes, run **`make submodules-update`** from the root.
 
-Install **pyrit-cli** from this submodule (always run **`make submodules-init`** from the AISecWorkshops root first). Use **`[hf]`** for Hugging Face dataset objectives (`--dataset hf:…`).
+Install **pyrit-cli** from this submodule (always run **`make submodules-init`** from the AISecWorkshops root first). Hugging Face `datasets` — needed for the benchmark labs that use `--dataset hf:…` — is a **core dependency**, so no extra is required. Older instructions used an `[hf]` extra; that extra no longer exists and passing it now only produces a warning.
 
 **pip**
 
 ```bash
 cd labs/setup/pyrit/pyrit_cli
-pip install -e ".[hf]"
+pip install -e "."
 ```
 
 **uv** — tool on your PATH
 
 ```bash
 cd labs/setup/pyrit/pyrit_cli
-uv tool install --editable ".[hf]"
+uv tool install --editable "."
 ```
 
 **uv** — local `.venv` + editable install
@@ -127,11 +127,11 @@ uv tool install --editable ".[hf]"
 ```bash
 cd labs/setup/pyrit/pyrit_cli
 uv venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-uv pip install -e ".[hf]"
-# or: uv sync --extra hf
+uv pip install -e "."
+# or, using the submodule lockfile: uv sync
 ```
 
-**Poetry** — activate your Poetry-managed environment, then from `labs/setup/pyrit/pyrit_cli` run `pip install -e ".[hf]"` (the project uses Hatch; pip into the venv is the supported path).
+**Poetry** — activate your Poetry-managed environment, then from `labs/setup/pyrit/pyrit_cli` run `pip install -e "."` (the project uses Hatch; pip into the venv is the supported path).
 
 Then:
 
