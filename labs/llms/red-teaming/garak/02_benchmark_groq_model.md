@@ -235,6 +235,29 @@ garak --model_type groq --model_name qwen/qwen3-32b --probes encoding
 garak --model_type groq --model_name qwen/qwen3-32b --probes malwaregen
 ```
 
+### Select by risk category instead of by name
+
+`--probes` is deprecated (you will see a notice on every run). `--spec` replaces it and
+can select by **tag**, so you can scan a whole risk category without naming classes:
+
+```bash
+# Training-data memorisation — 9 probes: divergence.Repeat + all 8 leakreplay classes
+garak --config lite.yaml --model_type groq --model_name qwen/qwen3-32b \
+      --spec 'tag:payload:leak:training' --report_prefix mem_
+
+# OWASP LLM06, sensitive information disclosure — 21 probes
+garak --config lite.yaml --model_type groq --model_name qwen/qwen3-32b \
+      --spec 'tag:owasp:llm06' --report_prefix llm06_
+
+# Highest-priority probes only — 41 probes
+garak --config lite.yaml --model_type groq --model_name qwen/qwen3-32b \
+      --spec 'tier:1' --report_prefix tier1_
+```
+
+Inactive probes — `propile.*`, every `leakreplay.*Full` — are invisible to `tag:` and
+`tier:`, and mixing them into a spec breaks the selection rather than extending it. List
+those on `--probes` instead. See [Selecting probes](./README.md#selecting-probes).
+
 After each run, repeat the Step 4 report extraction commands to review the results.
 
 ---

@@ -220,6 +220,80 @@ of them. Drop `--config` entirely when you want the real, full-size scan.
 > ⚠️ Smoke and lite results are **not** a safety assessment. Twenty prompts is far too
 > small a sample to judge a model. Use them to shape the run, then report on a full scan.
 
+### Selecting probes
+
+`--probes` is **deprecated** since 0.15.1 — it still works, but every run prints a
+deprecation notice. The replacement is `--spec`, which understands four kinds of selector:
+
+| Selector | Selects | Example |
+|----------|---------|---------|
+| `probes.<module>` | every active class in a probe module | `probes.dan` |
+| `probes.<module>.<Class>` | one specific probe class | `probes.dan.DanInTheWild` |
+| `tag:<prefix>` | every active probe whose tag starts with this | `tag:owasp:llm01` |
+| `tier:<N>` | tiers 1..N, inclusive | `tier:1` |
+| `-<selector>` | excludes | `probes.dan,-probes.dan.AutoDANCached` |
+
+Probes carry MISP-style tags, which makes it easy to scan one risk category rather than
+naming classes by hand. Useful ones:
+
+| Goal | Spec | Active probes |
+|------|------|---------------|
+| Training-data memorisation | `tag:payload:leak:training` | 9 |
+| Sensitive information disclosure | `tag:owasp:llm06` | 21 |
+| Extraction / inversion | `tag:quality:Security:ExtractionInversion` | 17 |
+| Highest-priority probes only | `tier:1` | 41 |
+
+**Example — the memorisation suite:**
+
+```bash
+garak --config lite.yaml -t groq -n qwen/qwen3.6-27b \
+      --spec 'tag:payload:leak:training' \
+      --parallel_attempts 16 --report_prefix mem_
+```
+
+That resolves to `divergence.Repeat` (repeated-token divergence, the Carlini-style
+extraction attack) plus all eight `leakreplay` classes — Guardian, Literature, NYT, and
+Potter, in both Cloze and Complete form.
+
+Of 191 probe classes shipped, **93 are active** by default: 41 in tier 1, 51 in tier 2,
+1 in tier 3.
+
+#### Inactive probes need naming by hand
+
+A probe class marked inactive is invisible to `tag:` and `tier:` selectors. `propile.*`
+(PII memorisation) and every `leakreplay.*Full` variant are inactive — they hold the
+larger datasets, or are noisy enough that the maintainers keep them opt-in.
+
+Two ways this bites:
+
+```bash
+# ✗ every class in the module is inactive → the whole selection is discarded
+garak --spec 'tag:payload:leak:training,probes.propile'
+   Unusable run.spec:
+   SKIP probes.propile
+   No probes, nothing to do
+
+# ✗ naming a class alongside a tag collapses the selection to just that class
+garak --spec 'tag:payload:leak:training,probes.propile.PIILeakQuadruplet'
+   🕵️  queue of probes: propile.PIILeakQuadruplet      # the 9 tagged probes are gone
+```
+
+`--skip_unknown` does not rescue either case. When you need inactive probes mixed with
+active ones, list every class explicitly on the deprecated `--probes` flag, which does
+accept inactive classes:
+
+```bash
+garak --config lite.yaml -t groq -n qwen/qwen3.6-27b \
+      --probes divergence.Repeat,leakreplay.GuardianComplete,leakreplay.NYTComplete,propile.PIILeakQuadruplet,apikey.CompleteKey \
+      --parallel_attempts 16 --report_prefix mem_
+```
+
+Check any probe's tags, tier, and active state before relying on a selector:
+
+```bash
+garak --plugin_info probes.divergence.Repeat
+```
+
 ### Probes that need a second model
 
 Some probes do not just replay a prompt list — they use a **red-team model** to generate
@@ -326,6 +400,9 @@ The same pattern works for `--generator_options`, `--detector_options`, and
 | Scan is going to take hours | Add `--config smoke.yaml` (5 prompts) or `--config lite.yaml` (20) — see [Three scan sizes](#three-scan-sizes) |
 | `No detectors, nothing to do` and the run stops early | A probe needs a NIM judge/red-team model. Point it at Groq — see [Probes that need a second model](#probes-that-need-a-second-model) |
 | Probes after the failing one never ran | Same cause: a zero-detector probe aborts the whole run, and probes execute in alphabetical order |
+| `DEPRECATION: --probes on CLI is deprecated` | Switch to `--spec` — see [Selecting probes](#selecting-probes) |
+| `Unusable run.spec` / `No probes, nothing to do` | The spec names a module whose classes are all inactive. Name the class on `--probes` instead |
+| A probe you selected by tag never ran | It is inactive, so `tag:` and `tier:` skip it. Check `garak --plugin_info probes.<module>.<Class>` |
 | Garak not found | Run `uv tool install garak` |
 
 ---
