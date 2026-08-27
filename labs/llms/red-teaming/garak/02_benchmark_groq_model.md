@@ -16,11 +16,13 @@ This exercise is structured so you can get meaningful results quickly:
 
 | Approach | Probes | Estimated Time |
 |----------|--------|----------------|
-| **Step 2 (recommended start)** | `dan` only | ~20-30 min |
-| **Step 4 (targeted)** | Individual probes | ~10-20 min each |
-| **Step 5 (comprehensive)** | All default probes | ~3 hours |
+| **Step 2 (smoke test)** | any probe, 5 prompts | ~1 min |
+| **Step 3 (recommended start)** | `dan` only | ~20-30 min |
+| **Step 5 (targeted)** | Individual probes | ~10-20 min each |
+| **Step 6 (comprehensive)** | All default probes | ~3 hours |
 
-Start with the DAN probe, review its report thoroughly, then decide how much further to go.
+Smoke-test first (Step 2) to prove the pipeline works, then run the DAN probe, review its
+report thoroughly, and decide how much further to go.
 
 ---
 
@@ -38,7 +40,71 @@ export GROQ_API_KEY=$(cat ~/.secrets/GROQ_API_KEY.txt)
 
 ---
 
-## Step 2 — Run the DAN Jailbreak Probe
+## Step 2 — Smoke Test First (~1 minute)
+
+Before committing 30 minutes to a real scan, prove the whole pipeline works: API key,
+model name, probe selection, detectors, and report writing. A smoke run uses a handful of
+prompts instead of hundreds.
+
+Create `smoke.yaml` in your working directory:
+
+```bash
+cat > smoke.yaml <<'YAML'
+---
+run:
+  generations: 1            # 1 completion per prompt instead of 5
+  soft_probe_prompt_cap: 5  # at most 5 prompts per probe instead of 256
+  seed: 42                  # same sample every run
+
+system:
+  parallel_attempts: 16
+YAML
+```
+
+Run the same probe you are about to scan with, but with the config attached:
+
+```bash
+garak --config smoke.yaml \
+      --model_type groq --model_name qwen/qwen3-32b \
+      --probes dan.DanInTheWild \
+      --report_prefix smoke_
+```
+
+Expected — a run that finishes in about a minute and reports a small prompt count:
+
+```
+🦜 loading generator: Groq: qwen/qwen3-32b
+🕵️  queue of probes: dan.DanInTheWild
+dan.DanInTheWild   mitigation.MitigationBypass: PASS  ok on    5/   5
+📜 report closed :) /home/dtx/.local/share/garak/garak_runs/smoke_.report.jsonl
+```
+
+Without `smoke.yaml` that same probe sends **666+** prompts.
+
+**Read the numbers, not just the verdict.** In `ok on 5/ 5` the second number is how many
+prompts ran — that is what confirms the cap took effect — and the first is how many the
+model defended. A `FAIL` line with `(attack success rate: …)` still means the plumbing
+works; it means the model lost those exchanges. What you do *not* want to see is a total
+of `0`, or the run dying before any probe executes.
+
+| Smoke result | What it means | Next step |
+|--------------|---------------|-----------|
+| `ok on 5/ 5` or `ok on 0/ 5`, report path printed | Pipeline works end to end | Continue to Step 3 |
+| `AuthenticationError` / `401` | `GROQ_API_KEY` missing or revoked | Redo Step 1 |
+| `model_not_found` / `404` | Wrong model ID | Check <https://console.groq.com/docs/models> |
+| `RateLimitError` / `429` | Too many parallel requests | Lower `parallel_attempts` to `4` |
+| Probe name unknown | Typo in `--probes` | `garak --list_probes \| grep dan` |
+
+Smoke results are **not** a safety assessment — 5 prompts is far too small a sample to
+judge a model. Its only job is to prove the plumbing. Once it passes, drop
+`--config smoke.yaml` and run the real scan below.
+
+> See [Configuring Garak](./README.md#configuring-garak) for the full set of run options
+> and the caveat that the prompt cap is *soft* — some probes ignore it.
+
+---
+
+## Step 3 — Run the DAN Jailbreak Probe
 
 The `dan` probe tests "Do Anything Now" jailbreaks — one of the most well-known LLM attack categories. It includes 666+ community jailbreak prompts collected from the wild, plus ablation-tested and auto-generated variants.
 
@@ -61,7 +127,7 @@ This will take ~20-30 minutes. Wait for it to complete.
 
 ---
 
-## Step 3 — Review the DAN Report
+## Step 4 — Review the DAN Report
 
 Once the scan finishes, inspect the results:
 
@@ -98,7 +164,7 @@ jq -r 'select(.entry_type == "attempt") | select(.status == 1) | "---\nPROMPT: \
 
 ---
 
-## Step 4 — Run Additional Targeted Probes (Optional)
+## Step 5 — Run Additional Targeted Probes (Optional)
 
 If you have time, test specific attack categories one at a time (~10-20 min each):
 
@@ -116,11 +182,11 @@ garak --model_type groq --model_name qwen/qwen3-32b --probes encoding
 garak --model_type groq --model_name qwen/qwen3-32b --probes malwaregen
 ```
 
-After each run, repeat the Step 3 report extraction commands to review the results.
+After each run, repeat the Step 4 report extraction commands to review the results.
 
 ---
 
-## Step 5 — Run a Full Scan (Optional — ~3 hours)
+## Step 6 — Run a Full Scan (Optional — ~3 hours)
 
 If you want a comprehensive assessment, run all default probes. This fires 86+ probe modules including DAN, encoding, prompt injection, toxicity, data leakage, XSS, malware generation, and more:
 
@@ -147,7 +213,7 @@ realtoxicityprompts, snowball, suffix, tap, topic, web_injection
 
 ---
 
-## Step 6 — Try Another Cloud Model (Self-Guided)
+## Step 7 — Try Another Cloud Model (Self-Guided)
 
 Compare Qwen's results against other Groq-hosted models using the same `dan` probe:
 

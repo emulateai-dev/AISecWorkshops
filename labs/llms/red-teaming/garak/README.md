@@ -128,6 +128,90 @@ Alternative: You can run this lab on Kaggle instead of local VM setup using
 
 ---
 
+## Configuring Garak
+
+Most of Garak's behaviour is set by a **run config**, not by CLI flags. Several of the
+most useful knobs — including the one that makes scans finish in minutes instead of hours
+— have **no command-line equivalent** and can only be set through a config file.
+
+### Where settings come from
+
+Later entries override earlier ones:
+
+```
+1. garak.core.yaml            # shipped defaults
+2. --config myconfig.yaml     # your run config
+3. CLI flags (-g, -t, -n, …)  # per-run overrides
+4. --probe_options / --generator_options   # per-plugin overrides (JSON)
+```
+
+Inspect the fully resolved configuration at any time:
+
+```bash
+garak --list_config
+```
+
+### Options that control scan size
+
+| Option | Where to set it | Default | What it does |
+|--------|-----------------|---------|--------------|
+| `generations` | `run:` in config, or `-g` / `--generations` | `5` | How many completions per prompt. Setting `1` cuts API calls 5× |
+| `soft_probe_prompt_cap` | `run:` in config **only — no CLI flag** | `256` | Max prompts each probe contributes. The single biggest lever on runtime |
+| `parallel_attempts` | `system:` in config, or `--parallel_attempts` | off | How many probe attempts run concurrently. Raise for cloud models |
+| `eval_threshold` | `run:` in config, or `--eval_threshold` | `0.5` | Score above which a response counts as a hit |
+| `seed` | `run:` in config, or `-s` / `--seed` | none | Makes prompt down-sampling reproducible |
+
+### Smoke-test config
+
+Create `smoke.yaml` once and reuse it across every exercise. It reduces a probe from
+hundreds of prompts to a handful, so you can verify credentials, model name, probe
+selection, and report output in about a minute before committing to a real scan:
+
+```yaml
+---
+run:
+  generations: 1            # 1 completion per prompt instead of 5
+  soft_probe_prompt_cap: 5  # at most 5 prompts per probe instead of 256
+  seed: 42                  # same sample every run, so results are comparable
+
+system:
+  parallel_attempts: 16     # safe for cloud targets; lower it for local Ollama
+```
+
+Use it with any run:
+
+```bash
+garak --config smoke.yaml -t groq -n qwen/qwen3.6-27b --probes dan.DanInTheWild
+```
+
+Verified effect — `packagehallucination.Python` against `test.Blank`:
+
+```
+without smoke.yaml   ok on  240/ 240
+with    smoke.yaml   ok on    5/   5
+```
+
+Drop `--config smoke.yaml` when you want the real, full-size scan.
+
+### Per-probe overrides
+
+To cap a single probe module rather than the whole run, pass JSON keyed by probe module:
+
+```bash
+garak -t groq -n qwen/qwen3.6-27b --probes packagehallucination.Python \
+  --probe_options '{"packagehallucination": {"soft_probe_prompt_cap": 3}}'
+```
+
+The same pattern works for `--generator_options`, `--detector_options`, and
+`--buff_options`. Use `--probe_option_file myopts.json` if the JSON gets long.
+
+> ⚠️ **The cap is *soft*.** Only probes that declare `follow_prompt_cap: True` honour it.
+> Probes that build prompts at runtime from a dataset — `propile`, for example — ignore
+> it and run full size. Check with `garak --plugin_info probes.<module>.<Class>` before
+> assuming a probe will shrink.
+
+---
+
 ## Exercises
 
 | # | Exercise | Target | Time | Description |
