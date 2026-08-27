@@ -147,11 +147,22 @@ fi
 # exist yet on PyPI — causing "No module named 'langchain_core.messages.content'"
 # (that module was never added to 0.3.x; it's a 1.0-era API).
 # Pinning to <0.2.0 keeps the 0.1.14 release which works cleanly with 0.3.x.
+#
+# langchain-mcp-adapters==0.1.x itself declares `mcp>=1.9.2` with NO upper
+# bound (confirmed via its own wheel METADATA), and `mcp` 2.x is now on PyPI.
+# mcp 2.x renamed FastMCP -> MCPServer and restructured server.fastmcp, so an
+# unpinned install resolves mcp 2.x and then fails at import time with:
+#   "No module named 'mcp.server.fastmcp'... this is mcp 2.x, where FastMCP
+#    was renamed to MCPServer" — thrown from langchain_mcp_adapters/tools.py,
+# which crashes app.py's router import and the whole EDR server on start.
+# Pin mcp<2 explicitly so this doesn't silently break again on a future
+# `pip install` pulling in whatever mcp happens to be newest that day.
 info "Pinning langchain-mcp-adapters to 0.1.x for langchain-core 0.3.x compatibility ..."
 "${LAB_DIR}/venv/bin/pip" install \
   "langchain-core>=0.3.78,<1.0.0" \
   "langchain>=0.3.9,<1.0.0" \
-  "langchain-mcp-adapters>=0.0.6,<0.2.0"
+  "langchain-mcp-adapters>=0.0.6,<0.2.0" \
+  "mcp>=1.9.2,<2.0.0"
 success "langchain ecosystem pinned to compatible versions."
 
 # Ensure uvicorn[standard] is present even if missing from requirements
