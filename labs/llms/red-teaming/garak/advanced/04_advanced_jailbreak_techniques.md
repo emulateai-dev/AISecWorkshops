@@ -72,6 +72,24 @@ jq -r 'select(.entry_type == "attempt") | select(.probe | startswith("tap.")) | 
 garak --model_type groq --model_name qwen/qwen3-32b --probes tap
 ```
 
+### Run live TAP with your own attacker and judge
+
+The full `tap.TAP` probe needs **three** models — an attacker to write the prompts, a
+judge to score them, and the target. The [**tap/**](./tap/README.md) lab wires all three
+up through Ollama (so no GPU is required), at three intensity levels:
+
+```bash
+cd tap
+./run-tap.sh smoke     # ~30s    does the wiring work?
+./run-tap.sh lite      # ~15 min shallow but real search
+./run-tap.sh full      # hours   garak defaults
+./tap_trace.py lite    # same attack, every exchange traced
+```
+
+It also covers the things that make a live TAP run confusing: the evaluator must be an
+`OpenAICompatible` generator, `tap.TAP` is inactive so tag selectors never find it, and a
+run that finds nothing reports `0it` with no eval line — a null result, not a crash.
+
 ---
 
 ## 2. GCG (Greedy Coordinate Gradient)

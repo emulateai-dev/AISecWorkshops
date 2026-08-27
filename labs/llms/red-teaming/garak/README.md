@@ -374,6 +374,7 @@ The same pattern works for `--generator_options`, `--detector_options`, and
 | # | Exercise | Techniques | Time | Description |
 |---|----------|------------|------|-------------|
 | 4 | [Advanced Jailbreak Techniques](./advanced/04_advanced_jailbreak_techniques.md) | TAP, GCG, Atkgen | ~20 min (explore) / ~1-3h (live) | Automated attack generation — tree search, gradient optimization, and adaptive red-teaming |
+| 5 | [TAP Lab](./advanced/tap/README.md) | Tree of Attacks with Pruning | ~30 s (smoke) / ~15 min (lite) / hours (full) | Live three-model TAP — attacker, judge, and target over Ollama, with full per-call tracing |
 
 > Advanced exercises assume you have completed Exercises 1-2 and understand Garak's probe/detector architecture.
 
