@@ -130,6 +130,18 @@ Full walkthrough, including both Groq mechanisms (`/connect` vs `GROQ_API_KEY`) 
 Ollama mechanisms (`ollama signin` vs `OLLAMA_API_KEY`):
 **[setup/opencode/](./labs/setup/opencode/README.md)**
 
+> **Using the DTX Lab VM instead of the online lab?** Log in with username `dtx` and
+> password `dtx`, then run:
+>
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/emulateai-dev/AISecWorkshops/refs/heads/main/labs/setup/vm/Pre_Installation.sh | sudo bash
+> curl -fsSL https://raw.githubusercontent.com/emulateai-dev/AISecWorkshops/refs/heads/main/labs/setup/vm/Tool_Setup.sh | sudo bash
+> ```
+>
+> This installs and configures everything the VM needs (Docker, Ollama + models, Python,
+> Go recon tools, PyRIT, etc.) — see [setup/vm/](./labs/setup/vm/README.md) for the full
+> walkthrough, prerequisites, and troubleshooting.
+
 ### Step 3 — Configure API keys
 
 Several labs call hosted models. Export the keys for the providers you plan to use:
