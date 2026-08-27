@@ -161,11 +161,18 @@ garak --list_config
 | `eval_threshold` | `run:` in config, or `--eval_threshold` | `0.5` | Score above which a response counts as a hit |
 | `seed` | `run:` in config, or `-s` / `--seed` | none | Makes prompt down-sampling reproducible |
 
-### Smoke-test config
+### Three scan sizes
 
-Create `smoke.yaml` once and reuse it across every exercise. It reduces a probe from
-hundreds of prompts to a handful, so you can verify credentials, model name, probe
-selection, and report output in about a minute before committing to a real scan:
+Rather than one config, keep three and pick per task. They differ only in how many prompts
+each probe contributes and how many completions are requested per prompt.
+
+| Config | `soft_probe_prompt_cap` | `generations` | Runtime | Use it to |
+|--------|------------------------|---------------|---------|-----------|
+| `smoke.yaml` | `5` | `1` | ~1 min | Prove the pipeline works — key, model ID, probes, reports |
+| `lite.yaml` | `20` | `1` | minutes | Get a rough signal across every probe you selected |
+| *(none)* | `256` (default) | `5` (default) | hours | The real assessment you report on |
+
+**`smoke.yaml`**
 
 ```yaml
 ---
@@ -178,20 +185,86 @@ system:
   parallel_attempts: 16     # safe for cloud targets; lower it for local Ollama
 ```
 
-Use it with any run:
+**`lite.yaml`** — identical but with a higher cap:
+
+```yaml
+---
+run:
+  generations: 1
+  soft_probe_prompt_cap: 20
+  seed: 42
+
+system:
+  parallel_attempts: 16
+```
+
+Use either with any run:
 
 ```bash
 garak --config smoke.yaml -t groq -n qwen/qwen3.6-27b --probes dan.DanInTheWild
+garak --config lite.yaml  -t groq -n qwen/qwen3.6-27b --probes dan.DanInTheWild
 ```
 
-Verified effect — `packagehallucination.Python` against `test.Blank`:
+Verified effect — same probes against `test.Blank`:
 
 ```
-without smoke.yaml   ok on  240/ 240
-with    smoke.yaml   ok on    5/   5
+no config     packagehallucination.Python   ok on  240/ 240
+smoke.yaml    packagehallucination.Python   ok on    5/   5
+lite.yaml     packagehallucination.Python   ok on   20/  20
+lite.yaml     leakreplay.GuardianComplete   ok on    9/   9   ← only has 9 prompts
 ```
 
-Drop `--config smoke.yaml` when you want the real, full-size scan.
+The cap is a **ceiling, not a target** — a probe with fewer prompts than the cap runs all
+of them. Drop `--config` entirely when you want the real, full-size scan.
+
+> ⚠️ Smoke and lite results are **not** a safety assessment. Twenty prompts is far too
+> small a sample to judge a model. Use them to shape the run, then report on a full scan.
+
+### Probes that need a second model
+
+Some probes do not just replay a prompt list — they use a **red-team model** to generate
+escalating attacks, and some detectors use a **judge model** to score responses. Both
+default to NVIDIA NIM, which needs its own `NIM_API_KEY`:
+
+| Plugin | Helper it needs | Default |
+|--------|-----------------|---------|
+| `probes.fitd` | red-team model | `nim` / `mistralai/mixtral-8x22b-instruct-v0.1` |
+| `probes.dan` (AutoDAN) | red-team model | `nim.NVOpenAIChat` |
+| `probes.agent_breaker` | red-team model | `nim` / `openai/gpt-oss-120b` |
+| `detectors.judge.*` | judge model | `nim` / `meta/llama3-70b-instruct` |
+| `probes.tap` | attack + evaluator models | `huggingface.Pipeline` + `openai` |
+| `probes.atkgen`, `probes.goat` | local red-team model | downloaded from HuggingFace |
+
+Without the key you get this, and it is worse than it looks:
+
+```
+ detector load failed: judge.RefusalOnlyAdversarial, skipping >>
+No detectors, nothing to do
+```
+
+**That aborts the entire run, not just the one probe.** Garak's probewise harness raises
+`ValueError` when a probe ends up with zero loadable detectors, and the exception escapes
+the probe loop — so every probe queued after the failing one is silently skipped. Probes
+run in alphabetical order, so one misconfigured probe early in the list can cost you the
+whole scan.
+
+Point the helpers at a provider you already have a key for, and one key covers everything:
+
+```yaml
+---
+plugins:
+  probes:
+    fitd:
+      red_team_model_type: groq
+      red_team_model_name: llama-3.3-70b-versatile
+  detectors:
+    judge:
+      detector_model_type: groq
+      detector_model_name: llama-3.3-70b-versatile
+```
+
+Add that `plugins:` block to `smoke.yaml` and `lite.yaml` too. If you would rather not run
+a second model at all, drop the probe from your `--probes` list.
 
 ### Per-probe overrides
 
@@ -249,7 +322,10 @@ The same pattern works for `--generator_options`, `--detector_options`, and
 | `Command 'python' not found` | Use `garak` directly (installed as a uv tool) |
 | `GROQ_API_KEY not set` | `export GROQ_API_KEY=$(cat ~/.secrets/GROQ_API_KEY.txt)` |
 | `model 'smollm:135m' not found` | Run `ollama pull smollm:135m` first |
-| Rate limit errors from Groq | Wait a few minutes or use `--generations 1` to reduce request volume |
+| Rate limit errors from Groq | Wait a few minutes, use `--generations 1`, or lower `parallel_attempts` |
+| Scan is going to take hours | Add `--config smoke.yaml` (5 prompts) or `--config lite.yaml` (20) — see [Three scan sizes](#three-scan-sizes) |
+| `No detectors, nothing to do` and the run stops early | A probe needs a NIM judge/red-team model. Point it at Groq — see [Probes that need a second model](#probes-that-need-a-second-model) |
+| Probes after the failing one never ran | Same cause: a zero-detector probe aborts the whole run, and probes execute in alphabetical order |
 | Garak not found | Run `uv tool install garak` |
 
 ---

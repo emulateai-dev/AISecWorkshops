@@ -17,6 +17,7 @@ This exercise is structured so you can get meaningful results quickly:
 | Approach | Probes | Estimated Time |
 |----------|--------|----------------|
 | **Step 2 (smoke test)** | any probe, 5 prompts | ~1 min |
+| **Step 2 (lite pass)** | any probe, 20 prompts | minutes |
 | **Step 3 (recommended start)** | `dan` only | ~20-30 min |
 | **Step 5 (targeted)** | Individual probes | ~10-20 min each |
 | **Step 6 (comprehensive)** | All default probes | ~3 hours |
@@ -95,9 +96,61 @@ of `0`, or the run dying before any probe executes.
 | `RateLimitError` / `429` | Too many parallel requests | Lower `parallel_attempts` to `4` |
 | Probe name unknown | Typo in `--probes` | `garak --list_probes \| grep dan` |
 
-Smoke results are **not** a safety assessment — 5 prompts is far too small a sample to
-judge a model. Its only job is to prove the plumbing. Once it passes, drop
-`--config smoke.yaml` and run the real scan below.
+### Want a bit more signal? Use a lite config
+
+Same idea with a higher cap — every probe you selected still runs, just with 20 prompts
+each instead of 5. Good for a rough read before committing to a full scan:
+
+```bash
+cat > lite.yaml <<'YAML'
+---
+run:
+  generations: 1
+  soft_probe_prompt_cap: 20
+  seed: 42
+
+system:
+  parallel_attempts: 16
+YAML
+
+garak --config lite.yaml --model_type groq --model_name qwen/qwen3-32b \
+      --probes dan.DanInTheWild --report_prefix lite_
+```
+
+The cap is a ceiling, not a target: a probe holding fewer prompts than the cap runs all of
+them (`leakreplay.GuardianComplete` has 9, so it reports `ok on 9/ 9`).
+
+### If the run dies on a probe that needs a second model
+
+Some probes generate attacks with a **red-team model**, and some detectors score with a
+**judge model**. Both default to NVIDIA NIM and need `NIM_API_KEY`:
+
+```
+ detector load failed: judge.RefusalOnlyAdversarial, skipping >>
+No detectors, nothing to do
+```
+
+**This aborts the whole run, not just that probe** — every probe queued after it is
+skipped. Point the helpers at Groq instead, so your existing key covers everything:
+
+```yaml
+# add to smoke.yaml / lite.yaml
+plugins:
+  probes:
+    fitd:
+      red_team_model_type: groq
+      red_team_model_name: llama-3.3-70b-versatile
+  detectors:
+    judge:
+      detector_model_type: groq
+      detector_model_name: llama-3.3-70b-versatile
+```
+
+See [Probes that need a second model](./README.md#probes-that-need-a-second-model).
+
+Smoke and lite results are **not** a safety assessment — 5 or 20 prompts is far too small
+a sample to judge a model. Their job is to prove the plumbing and shape the run. Once they
+pass, drop `--config` and run the real scan below.
 
 > See [Configuring Garak](./README.md#configuring-garak) for the full set of run options
 > and the caveat that the prompt cap is *soft* — some probes ignore it.
