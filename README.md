@@ -21,8 +21,10 @@ tooling that professional AI red teams use: **Garak**, **PyRIT**, **Folly**, and
 deliberately vulnerable applications. Every lab is a working system you break, observe, and
 then reason about.
 
-The labs run inside a pre-configured **DTX Lab VM**, so no time is lost on dependency
-management. Bring a laptop that can spare 16 GB of RAM and a willingness to read model
+You will be given an **online lab environment** with every tool, model, and target
+already installed, so no time is lost on dependency management — the only thing you set
+up yourself is OpenCode. A downloadable **DTX Lab VM** is available if you prefer to work
+offline or want to keep the environment afterwards. Bring a willingness to read model
 output carefully.
 
 ## Objectives
@@ -91,43 +93,42 @@ AISecWorkshops/
 
 ## Lab Setup
 
-Complete this before starting the labs below. The fastest path is the **DTX Lab VM**,
-which ships with every tool, model, and lab already installed — see
-[Lab Environment Setup](#lab-environment-setup) for the full VM walkthrough.
+**You will be given access to an online lab environment** with every tool, model, target
+application, and lab already installed. There is nothing to build. The only tool you set
+up yourself is **OpenCode** (Step 2) — everything else is ready to use.
 
-### Step 1 — Get the repository (with submodules)
+### Step 1 — Get into the lab
 
-PyRIT and `pyrit_cli` are git submodules; a plain `git clone` leaves those directories
-empty.
+| Option | When to use it | Guide |
+|--------|----------------|-------|
+| **Online lab** (default) | Provided to you — open the link, log in, start at Step 2 | — |
+| **DTX Lab VM** *(optional)* | Working offline, on a plane, or you want to keep the environment after the workshop | [setup/vm/](./labs/setup/vm/README.md) |
+
+The DTX Lab VM (`Kalki.ova`) is the same environment packaged for VirtualBox — 16 GB RAM,
+250 GB disk, 4+ vCPU. See [Lab Environment Setup](#lab-environment-setup-optional--offline-vm) for the full
+import and configuration walkthrough.
+
+### Step 2 — Install OpenCode (the one tool you set up)
+
+OpenCode is a terminal coding agent you drive against the lab targets. It is **not**
+pre-installed — set it up now:
 
 ```bash
-git clone --recurse-submodules https://github.com/emulateai-dev/AISecWorkshops.git
-cd AISecWorkshops
-
-# if you already cloned without --recurse-submodules:
-make submodules-init
-
-# later, to pull newer PyRIT / pyrit_cli from their remotes:
-make submodules-update
+curl -fsSL https://opencode.ai/install | bash
+export PATH="$HOME/.opencode/bin:$PATH"
+opencode --version
 ```
 
-### Step 2 — Set up the tools you need
+Then wire it to a model — Groq with an API key, or the Ollama already running in the lab:
 
-Each lab track names its prerequisites. Install only what that track needs.
+```bash
+export GROQ_API_KEY="gsk_..."                       # then: opencode --model groq/llama-3.3-70b-versatile
+ollama launch opencode --model qwen3:1.7b           # or use a local Ollama model
+```
 
-| Tool | What it gives you | Setup guide |
-|------|-------------------|-------------|
-| **DTX Lab VM** | Pre-built environment with everything below already installed | [setup/vm/](./labs/setup/vm/README.md) |
-| **Ollama** | Local models for offline labs, plus `:cloud` models with no GPU | [setup/ollama/SetupOllama.md](./labs/setup/ollama/SetupOllama.md) · [GGUF models](./labs/setup/ollama/running_gguf_models.md) · [DeepSeek](./labs/setup/ollama/running_deepseek_ollama.md) |
-| **OpenCode** | Terminal coding agent, wired to Groq (API key) and Ollama (signin or key) | [setup/opencode/](./labs/setup/opencode/README.md) |
-| **PyRIT + `pyrit-cli`** | Microsoft's red-teaming framework — jailbreak, benchmark, and TAP labs | [setup/pyrit/](./labs/setup/pyrit/README.md) |
-| **Folly** | Prompt-injection challenge server for the agent track | [setup/folly/](./labs/setup/folly/README.md) |
-| **EDR agent** | Enterprise Deep Research target — RAG poisoning and Text2SQL labs | [setup/edr/](./labs/setup/edr/README.md) |
-| **PentAGI** | Autonomous pentest agent used as a target and as tooling | [setup/pentagi/](./labs/setup/pentagi/readme.md) |
-| **Vulhub** | Vulnerable-service stack for agent-driven exploitation labs | [setup/vulhub/](./labs/setup/vulhub/readme.md) |
-
-**Garak** is installed by the VM tool script (`labs/setup/vm/Tool_Setup.sh`); on your own
-box, `pipx install garak` or `uv tool install garak`.
+Full walkthrough, including both Groq mechanisms (`/connect` vs `GROQ_API_KEY`) and both
+Ollama mechanisms (`ollama signin` vs `OLLAMA_API_KEY`):
+**[setup/opencode/](./labs/setup/opencode/README.md)**
 
 ### Step 3 — Configure API keys
 
@@ -156,9 +157,45 @@ pyrit-cli setup             # masked status check
 labs/setup/scripts/validate_installation.sh   # checks tools, models, and lab services
 garak --version
 ollama list
-opencode --version
 pyrit-cli setup
+opencode --version                            # the one you installed in Step 2
 ```
+
+### Already installed in the lab
+
+You do not need to install these — the guides are here for reference, for troubleshooting,
+and for anyone rebuilding the environment on their own machine.
+
+| Tool | What it gives you | Reference guide |
+|------|-------------------|-----------------|
+| **Ollama** | Local models for offline labs, plus `:cloud` models with no GPU | [setup/ollama/SetupOllama.md](./labs/setup/ollama/SetupOllama.md) · [GGUF models](./labs/setup/ollama/running_gguf_models.md) · [DeepSeek](./labs/setup/ollama/running_deepseek_ollama.md) |
+| **Garak** | Automated LLM vulnerability scanning | installed by [`Tool_Setup.sh`](./labs/setup/vm/Tool_Setup.sh) — standalone: `uv tool install garak` |
+| **PyRIT + `pyrit-cli`** | Microsoft's red-teaming framework — jailbreak, benchmark, and TAP labs | [setup/pyrit/](./labs/setup/pyrit/README.md) |
+| **Folly** | Prompt-injection challenge server for the agent track | [setup/folly/](./labs/setup/folly/README.md) |
+| **EDR agent** | Enterprise Deep Research target — RAG poisoning and Text2SQL labs | [setup/edr/](./labs/setup/edr/README.md) |
+| **PentAGI** | Autonomous pentest agent used as a target and as tooling | [setup/pentagi/](./labs/setup/pentagi/readme.md) |
+| **Vulhub** | Vulnerable-service stack for agent-driven exploitation labs | [setup/vulhub/](./labs/setup/vulhub/readme.md) |
+
+<details>
+<summary><b>Rebuilding outside the provided lab?</b> Clone the repo with submodules first.</summary>
+
+PyRIT and `pyrit_cli` are git submodules; a plain `git clone` leaves those directories
+empty.
+
+```bash
+git clone --recurse-submodules https://github.com/emulateai-dev/AISecWorkshops.git
+cd AISecWorkshops
+
+# if you already cloned without --recurse-submodules:
+make submodules-init
+
+# later, to pull newer PyRIT / pyrit_cli from their remotes:
+make submodules-update
+```
+
+Then work through the reference guides in the table above.
+
+</details>
 ---
 
 ## Labs
@@ -197,9 +234,11 @@ Exploiting Model Context Protocol integrations — tool poisoning, server impers
 
 ---
 
-## Lab Environment Setup
+## Lab Environment Setup (optional — offline VM)
 
-The labs are designed to run in a dedicated pre-configured environment. Follow these steps to get started:
+Skip this section if you are using the **online lab** provided to you; it is already set
+up. Follow these steps only if you want to run the environment locally in VirtualBox —
+offline work, or keeping the labs after the workshop.
 
 ### 1. Download & Import the DTX Lab VM
 
