@@ -57,7 +57,7 @@ All labs assume you are running inside the **DTX Lab VM**.
 |------|-------|
 | VM setup & tool installation | [setup/vm/](./setup/vm/README.md) |
 | API key configuration | See [project README](../README.md#getting-started) |
-| Coding agent (OpenCode + Groq / Ollama) | [setup/opencode/](./setup/opencode/README.md) |
+| Coding agent (OpenCode + Groq / DeepInfra / Ollama) | [setup/opencode/](./setup/opencode/README.md) |
 
 ### Quick Verify
 

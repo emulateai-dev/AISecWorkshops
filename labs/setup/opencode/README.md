@@ -1,7 +1,7 @@
-# OpenCode Setup — Groq and Ollama
+# OpenCode Setup — Groq, DeepInfra, and Ollama
 
 [OpenCode](https://opencode.ai) is a terminal coding agent (TUI) that talks to 75+ LLM
-providers. This guide wires it up to the two providers used in the workshop, and shows
+providers. This guide wires it up to the three providers used in the workshop, and shows
 **both authentication mechanisms** for each — pick whichever fits your box.
 
 Verified against `opencode 1.18.23` and `ollama 0.30.10`.
@@ -12,14 +12,16 @@ Verified against `opencode 1.18.23` and `ollama 0.30.10`.
 |---|---|---|---|---|
 | **Groq** | A1 | `/connect` inside OpenCode | `~/.local/share/opencode/auth.json` | Laptops, interactive use |
 | **Groq** | A2 | `export GROQ_API_KEY=...` | Your shell env / `~/.bashrc` | VMs, CI, scripted labs |
+| **DeepInfra** | C1 | `/connect` inside OpenCode | `~/.local/share/opencode/auth.json` | Laptops, interactive use |
+| **DeepInfra** | C2 | `export DEEPINFRA_API_KEY=...` | Your shell env / `~/.bashrc` | VMs, CI, scripted labs |
 | **Ollama (local)** | — | none needed | — | Offline / air-gapped labs |
 | **Ollama Cloud** | B1 | `ollama signin` (browser) | `~/.ollama` (managed by Ollama) | Desktop with a browser |
 | **Ollama Cloud** | B2 | `export OLLAMA_API_KEY=...` | Your shell env / `~/.bashrc` | Headless VMs, CI, direct API calls |
 
-Mechanisms are **not** mutually exclusive — you can configure Groq and Ollama at the
-same time and switch models inside the TUI with `/models` (see [§5](#5-using-groq-and-ollama-together)).
+Mechanisms are **not** mutually exclusive — you can configure all three at the
+same time and switch models inside the TUI with `/models` (see [§6](#6-using-groq-deepinfra-and-ollama-together)).
 
-Optional extra: [§7](#7-optional--dump-the-raw-llm-requests-and-responses) shows how to
+Optional extra: [§8](#8-optional--dump-the-raw-llm-requests-and-responses) shows how to
 capture the raw JSON requests and responses OpenCode sends to the model — the single
 most useful view for the agent red-teaming labs.
 
@@ -113,23 +115,59 @@ opencode auth logout groq     # then restart OpenCode
 opencode models groq
 ```
 
-Typical output:
+Output (August 2026):
 
 ```
-groq/llama-3.3-70b-versatile
-groq/llama-3.1-8b-instant
+groq/allam-2-7b
+groq/groq/compound
+groq/groq/compound-mini
 groq/openai/gpt-oss-120b
 groq/openai/gpt-oss-20b
 groq/qwen/qwen3.6-27b
-groq/groq/compound
 ...
 ```
+
+> ⚠️ **`opencode models` is a static catalogue, not a live check.** It comes from
+> [models.dev](https://models.dev) and drifts from what your Groq account can actually
+> serve — in both directions. Models it lists can be retired (`llama-3.3-70b-versatile`
+> and `llama-3.1-8b-instant` are listed but now return *"does not exist or you do not
+> have access to it"*), and models Groq serves can be missing from it
+> (`qwen/qwen3.8-27b` is live on Groq but absent from the catalogue, so OpenCode fails
+> it with `UnknownError`). Ask Groq directly for ground truth:
+>
+> ```bash
+> curl -s https://api.groq.com/openai/v1/models \
+>   -H "Authorization: Bearer $GROQ_API_KEY" | python3 -m json.tool | grep '"id"'
+> ```
+>
+> A model must be in **both** lists to be usable from OpenCode.
+
+**`--model` always takes `provider/model`** — and several Groq IDs carry an org prefix
+of their own, so they end up with three segments. `qwen/qwen3.6-27b` alone is not a
+valid ID; OpenCode would read `qwen` as the provider name:
+
+```bash
+opencode --model groq/qwen/qwen3.6-27b        # ✅  provider + org + model
+opencode --model qwen/qwen3.6-27b             # ❌  "qwen" is not a provider
+```
+
+The same applies to `groq/openai/gpt-oss-120b` and `groq/meta-llama/...`.
 
 Start OpenCode pinned to a model, or switch inside the TUI with `/models`:
 
 ```bash
-opencode --model groq/llama-3.3-70b-versatile
+opencode --model groq/openai/gpt-oss-120b
+opencode --model groq/qwen/qwen3.6-27b
 ```
+
+Verified working from OpenCode at the time of writing: `groq/openai/gpt-oss-120b`,
+`groq/openai/gpt-oss-20b`, `groq/qwen/qwen3.6-27b`.
+
+There is **no `--api_base` / `--api-base` flag.** Groq is a built-in provider, so
+OpenCode already knows the endpoint. Passing an unknown flag makes OpenCode print its
+help screen and exit 1 — if that is all you get back, look for a typo'd flag before
+anything else. To genuinely override an endpoint, see the `baseURL` option in
+[§6](#6-using-groq-deepinfra-and-ollama-together).
 
 One-shot (non-interactive) run:
 
@@ -139,13 +177,106 @@ opencode run --model groq/openai/gpt-oss-120b "Summarise the security risks in .
 
 ---
 
-## 3. Ollama
+## 3. DeepInfra
+
+DeepInfra is a hosted inference provider with a broad open-weights catalogue —
+Qwen, Llama, DeepSeek, Mistral — billed per token. It is the third-party route when
+Groq does not carry the model you want and you have no GPU for Ollama. OpenCode ships
+it as a **built-in provider**, so there is no base URL to configure.
+
+### 3.0 Get the key
+
+1. Sign in at <https://deepinfra.com>.
+2. Go to **Dashboard → API Keys** (<https://deepinfra.com/dash/api_keys>) → **New API key**.
+3. Copy the key.
+
+### Mechanism C1 — `/connect` (interactive, stored by OpenCode)
+
+```bash
+opencode
+```
+
+```
+/connect
+```
+
+Search for **Deep Infra** (two words), press Enter, paste the key. Stored in
+`~/.local/share/opencode/auth.json`, the same place as Groq A1 and Ollama Cloud.
+Shell equivalent: `opencode auth login`.
+
+### Mechanism C2 — `DEEPINFRA_API_KEY` environment variable
+
+```bash
+export DEEPINFRA_API_KEY="your_deepinfra_key"
+
+# persist it
+echo 'export DEEPINFRA_API_KEY="your_deepinfra_key"' >> ~/.bashrc
+```
+
+Exporting the variable is enough on its own — the provider registers with no config
+file and no `/connect`. Verify:
+
+```bash
+opencode models deepinfra | head
+```
+
+If the provider is missing entirely, the key is not exported in *this* shell.
+
+> ⚠️ Same rule as every other key in this workshop: not in Git, not in a VM snapshot,
+> not on screen during a demo. Prefer C2 on recorded sessions.
+
+### 3.1 Pick a model — mind the three-segment ID
+
+DeepInfra model names already contain an organisation prefix (`Qwen/`, `meta-llama/`,
+`deepseek-ai/`). OpenCode prepends the provider on top, so a DeepInfra ID has **three**
+segments and is **case-sensitive**:
+
+```
+deepinfra / Qwen / Qwen3.8-27B
+└ provider  └ org  └ model
+```
+
+```bash
+opencode models deepinfra | grep -i qwen3.8
+```
+
+```
+deepinfra/Qwen/Qwen3.8-2.4T-A95B
+deepinfra/Qwen/Qwen3.8-27B
+deepinfra/Qwen/Qwen3.8-Max
+```
+
+Start OpenCode on it:
+
+```bash
+export DEEPINFRA_API_KEY="your_deepinfra_key"
+opencode --model deepinfra/Qwen/Qwen3.8-27B
+```
+
+One-shot, non-interactive:
+
+```bash
+opencode run --model deepinfra/Qwen/Qwen3.8-27B "Summarise the security risks in ./app.py"
+```
+
+`Qwen3.8-27B` is a sensible default for the agent labs: 262K context, 32K output, and
+**both** tool calling and reasoning — unlike the small local Ollama models, it can
+actually drive a tool loop. Roughly $0.40 per 1M input tokens and $3.00 per 1M output
+at the time of writing; check <https://deepinfra.com/models> for current pricing and
+the live catalogue.
+
+> The first run downloads the `@ai-sdk/deepinfra` package, so it needs network access
+> even if you have the key. Air-gapped VMs should use local Ollama instead.
+
+---
+
+## 4. Ollama
 
 Ollama gives you two things: **local models** (free, offline, running on your own
 CPU/GPU) and **Ollama Cloud models** (`:cloud` tags — large models run on Ollama's
 servers, so a laptop with no GPU can drive them). Only the cloud models need auth.
 
-### 3.1 Install Ollama
+### 4.1 Install Ollama
 
 **Linux:**
 
@@ -175,7 +306,7 @@ ollama serve
 
 See [SetupOllama.md](../ollama/SetupOllama.md) for the full local-model walkthrough.
 
-### 3.2 Local models — no authentication required
+### 4.2 Local models — no authentication required
 
 ```bash
 ollama pull qwen3:1.7b
@@ -183,7 +314,7 @@ ollama run qwen3:1.7b        # quick sanity chat, /bye to exit
 ollama list                  # what you have locally
 ```
 
-Skip to [§4](#4-wiring-ollama-into-opencode) if you only need local models.
+Skip to [§5](#5-wiring-ollama-into-opencode) if you only need local models.
 
 ### Mechanism B1 — `ollama signin` (browser sign-in)
 
@@ -232,10 +363,10 @@ curl -s https://ollama.com/api/chat \
 
 **B1 or B2?** Either is sufficient on its own. B1 is the fastest path on a desktop;
 B2 is the only path on a headless box and is also what you need for the manual
-OpenCode provider config in [§4.3](#43-manual-config-local-and-cloud-side-by-side).
+OpenCode provider config in [§5.3](#53-manual-config--local-and-cloud-side-by-side).
 Setting both is harmless.
 
-### 3.3 Find and pull a cloud model
+### 4.3 Find and pull a cloud model
 
 Cloud tags change often — list the live catalogue rather than trusting a hardcoded set:
 
@@ -263,11 +394,11 @@ export OLLAMA_NO_CLOUD=1
 
 ---
 
-## 4. Wiring Ollama into OpenCode
+## 5. Wiring Ollama into OpenCode
 
-Three routes. Route 4.1 is the quickest; 4.2 and 4.3 give you explicit control.
+Three routes. Route 5.1 is the quickest; 5.2 and 5.3 give you explicit control.
 
-### 4.1 `ollama launch opencode` (auto-configures for you)
+### 5.1 `ollama launch opencode` (auto-configures for you)
 
 Ollama ships an OpenCode integration that writes the provider config itself:
 
@@ -289,9 +420,9 @@ ollama launch opencode --model glm-5.3-flash:cloud
 `opencode`, `cline`, `qwen`, `vscode`, …). The generated config lives in
 `~/.ollama/config.json` under `integrations`.
 
-### 4.2 `/connect` → Ollama Cloud (OpenCode's built-in provider)
+### 5.2 `/connect` → Ollama Cloud (OpenCode's built-in provider)
 
-Uses mechanism **B2** — it asks for the API key from [§3](#mechanism-b2--ollama_api_key-explicit-key):
+Uses mechanism **B2** — it asks for the API key from [§4](#mechanism-b2--ollama_api_key-explicit-key):
 
 1. Start `opencode`, run `/connect`, search **Ollama Cloud**, paste the API key.
 2. `ollama pull <model>:cloud` so the manifest exists locally.
@@ -299,7 +430,7 @@ Uses mechanism **B2** — it asks for the API key from [§3](#mechanism-b2--olla
 
 Credentials land in `~/.local/share/opencode/auth.json`, same as Groq mechanism A1.
 
-### 4.3 Manual config — local and cloud side by side
+### 5.3 Manual config — local and cloud side by side
 
 Create `~/.config/opencode/opencode.json`:
 
@@ -346,19 +477,22 @@ opencode --model ollama-cloud/glm-5.3-flash
 
 ---
 
-## 5. Using Groq and Ollama together
+## 6. Using Groq, DeepInfra, and Ollama together
 
-Nothing conflicts — configure both and switch per task. A combined
-`~/.config/opencode/opencode.json` with Groq keyed from the environment
-(mechanism A2) plus local and cloud Ollama:
+Nothing conflicts — configure all of them and switch per task. A combined
+`~/.config/opencode/opencode.json` with Groq and DeepInfra keyed from the environment
+(mechanisms A2 and C2) plus local and cloud Ollama:
 
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "groq/llama-3.3-70b-versatile",
+  "model": "groq/openai/gpt-oss-120b",
   "provider": {
     "groq": {
       "options": { "apiKey": "{env:GROQ_API_KEY}" }
+    },
+    "deepinfra": {
+      "options": { "apiKey": "{env:DEEPINFRA_API_KEY}" }
     },
     "ollama": {
       "npm": "@ai-sdk/openai-compatible",
@@ -380,8 +514,17 @@ Nothing conflicts — configure both and switch per task. A combined
 ```
 
 `"model"` sets the default at startup; `/models` switches mid-session. If you
-authenticated with `/connect` (A1/B1-style) you can drop the `apiKey` lines entirely —
+authenticated with `/connect` (A1/B1/C1-style) you can drop the `apiKey` lines entirely —
 the stored credential is picked up automatically.
+
+Groq and DeepInfra are built-in providers, so they need no `npm` or `baseURL` — the
+`apiKey` line alone is enough, and even that is optional when the environment variable
+is exported. `baseURL` is the *only* way to override an endpoint (a proxy, a
+compatible gateway); there is no command-line flag for it:
+
+```json
+"groq": { "options": { "baseURL": "https://api.groq.com/openai/v1" } }
+```
 
 Provision the whole thing on a fresh lab VM in one block:
 
@@ -393,6 +536,9 @@ export PATH="$HOME/.opencode/bin:$PATH"
 # Groq (mechanism A2)
 export GROQ_API_KEY="gsk_your_key_here"
 
+# DeepInfra (mechanism C2)
+export DEEPINFRA_API_KEY="your_deepinfra_key"
+
 # Ollama + cloud key (mechanism B2)
 curl -fsSL https://ollama.com/install.sh | sh
 export OLLAMA_API_KEY="your_api_key_here"
@@ -400,34 +546,43 @@ ollama pull qwen3:1.7b
 ollama pull glm-5.3-flash:cloud
 
 # sanity
-opencode run --model groq/llama-3.1-8b-instant "reply with the single word: ok"
+opencode run --model groq/openai/gpt-oss-20b       "reply with the single word: ok"
+opencode run --model deepinfra/Qwen/Qwen3.8-27B    "reply with the single word: ok"
 ```
 
 ---
 
-## 6. Verify the setup
+## 7. Verify the setup
 
 ```bash
 opencode auth list                                # providers with stored credentials
 opencode models                                   # every model OpenCode can reach
 opencode models groq                              # Groq only
+opencode models deepinfra                         # DeepInfra only
 ollama list                                       # local + pulled cloud models
 curl -s http://localhost:11434/api/tags | head    # local Ollama daemon is alive
 curl -s https://ollama.com/api/tags | head        # cloud catalogue is reachable
-echo "${GROQ_API_KEY:0:4}... ${OLLAMA_API_KEY:0:4}..."   # keys are exported
+
+# keys are exported (prefix only — never echo a whole key on a shared screen)
+echo "${GROQ_API_KEY:0:4}... ${DEEPINFRA_API_KEY:0:4}... ${OLLAMA_API_KEY:0:4}..."
 ```
+
+A provider missing from `opencode models` means neither its key nor a stored
+credential was found — it is never a model-name problem.
 
 Smoke test each path:
 
 ```bash
-opencode run --model groq/llama-3.1-8b-instant  "reply with the single word: ok"
-opencode run --model ollama/qwen3:1.7b          "reply with the single word: ok"
-opencode run --model ollama-cloud/glm-5.3-flash "reply with the single word: ok"
+opencode run --model groq/openai/gpt-oss-20b     "reply with the single word: ok"
+opencode run --model groq/qwen/qwen3.6-27b       "reply with the single word: ok"
+opencode run --model deepinfra/Qwen/Qwen3.8-27B  "reply with the single word: ok"
+opencode run --model ollama/qwen3:1.7b           "reply with the single word: ok"
+opencode run --model ollama-cloud/glm-5.3-flash  "reply with the single word: ok"
 ```
 
 ---
 
-## 7. Optional — dump the raw LLM requests and responses
+## 8. Optional — dump the raw LLM requests and responses
 
 **Optional.** Nothing else in the workshop depends on this. Turn it on when you want to
 see exactly what a coding agent puts on the wire: the full system prompt, every tool
@@ -436,14 +591,14 @@ definition, the tool results fed back in, and the model's raw reply. That transc
 teaches more than any diagram.
 
 OpenCode has **no built-in setting** that dumps request/response bodies (see
-[§7.5](#75-what-does-not-work) for the three places people expect to find them and
+[§8.5](#85-what-does-not-work) for the three places people expect to find them and
 don't). The community plugin [`@ljw1004/opencode-trace`](https://github.com/ljw1004/opencode-trace)
 fills the gap: it patches `fetch`, so it records the true wire bodies rather than a
 reconstruction.
 
 Verified against `opencode 1.18.23` / `opencode-trace 0.1.4`.
 
-### 7.1 Three ways to enable it
+### 8.1 Three ways to enable it
 
 Pick one — they are alternatives, not steps.
 
@@ -498,7 +653,7 @@ twice**. Deduplicate on read if it bothers you:
 ./trace-to-jsonl.sh <file>.html | jq -sc 'unique_by([._id,._kind])[]'
 ```
 
-### 7.2 Confirm it is loaded
+### 8.2 Confirm it is loaded
 
 ```bash
 opencode debug config | python3 -c "import sys,json; print(json.load(sys.stdin).get('plugin'))"
@@ -509,10 +664,10 @@ Run this from inside the project directory — that is what makes a project-scop
 config (Route A local / Route B project) show up. Route C loads from disk and so does
 **not** appear in `plugin`; prove it works by generating a trace instead.
 
-### 7.3 Generate and read a trace
+### 8.3 Generate and read a trace
 
 ```bash
-opencode run --model groq/llama-3.1-8b-instant "reply with the single word: ok"
+opencode run --model groq/openai/gpt-oss-20b "reply with the single word: ok"
 ls -lt ~/opencode-trace/
 ```
 
@@ -541,7 +696,7 @@ Each record carries `_id` (pairs a request with its response), `_kind`
 (`request` / `response` / `error`), `_purpose` (`[meta]` marks OpenCode's own internal
 calls, such as title generation), `_url`, and `_ts`.
 
-### 7.4 Exercises worth doing with a trace open
+### 8.4 Exercises worth doing with a trace open
 
 - Diff the system prompt across providers — `--model groq/...` vs `--model ollama/...`.
 - Count the tokens OpenCode spends on tool definitions before you type anything.
@@ -550,7 +705,7 @@ calls, such as title generation), `_url`, and `_ts`.
 - Compare `_purpose: "[meta]"` calls against the real ones: the agent talks to the
   model more often than the UI suggests.
 
-### 7.5 What does not work
+### 8.5 What does not work
 
 Three commonly cited approaches that will **not** give you request/response bodies on
 1.18.x — check them off so you stop looking:
@@ -561,7 +716,7 @@ Three commonly cited approaches that will **not** give you request/response bodi
 | Reading `~/.local/share/opencode/storage/*.json` | That directory no longer exists. Session state moved to SQLite: `~/.local/share/opencode/opencode.db`. |
 | `opencode export <sessionID>` | Real command, useful output — but it exports the *session object* (messages, tool calls, rendered text), not the HTTP bodies. |
 
-### 7.6 Handling and hygiene
+### 8.6 Handling and hygiene
 
 > ⚠️ A trace contains the complete conversation: system prompt, file contents the agent
 > read, command output, and anything you pasted. On these labs that can include target
@@ -586,14 +741,21 @@ rm -rf ~/.cache/opencode/packages/@ljw1004/opencode-trace@latest
 
 ---
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 | Symptom | Fix |
 |---|---|
 | `opencode: command not found` | Add `~/.opencode/bin` to `PATH`, then restart the shell. |
 | Groq model missing from `/models` | Key not connected — run `/connect` (A1) or export `GROQ_API_KEY` (A2), then restart OpenCode. |
+| Groq: `The model X does not exist or you do not have access to it` | The model is in OpenCode's static catalogue but retired by Groq (e.g. the `llama-3.x` IDs). Check the live list with `curl https://api.groq.com/openai/v1/models` and pick from it ([§2.1](#21-list-and-pick-a-groq-model)). |
+| Groq: `UnknownError` / `Unexpected server error` on a model Groq does list | The reverse drift — Groq serves it but OpenCode's catalogue has no entry (e.g. `qwen/qwen3.8-27b`). Use a model present in **both** `opencode models groq` and the Groq API list. |
 | `401 / invalid_api_key` from Groq | Key revoked or truncated on paste. Regenerate at the Groq console and re-apply A1 or A2. |
-| Groq `429 rate_limit_exceeded` | Free-tier TPM/RPM limit. Wait, or switch to a smaller model (`llama-3.1-8b-instant`). |
+| Groq `429 rate_limit_exceeded` | Free-tier TPM/RPM limit. Wait, or switch to a smaller model (`groq/openai/gpt-oss-20b`). |
+| OpenCode prints its **help screen** and exits `1` | An unrecognised flag. The arg parser is strict and there is no `--api_base`/`--api-base`; endpoints are set with `baseURL` in config ([§6](#6-using-groq-deepinfra-and-ollama-together)). |
+| `provider not found` / model not recognised | `--model` needs `provider/model`. Many IDs carry an org prefix, so the full ID has three segments: `groq/qwen/qwen3.6-27b`, `deepinfra/Qwen/Qwen3.8-27B`. Copy it verbatim from `opencode models`. |
+| DeepInfra model rejected as unknown | DeepInfra IDs are **case-sensitive** — `deepinfra/qwen/qwen3.8-27b` fails, `deepinfra/Qwen/Qwen3.8-27B` works. |
+| `deepinfra` absent from `opencode models` | `DEEPINFRA_API_KEY` not exported in this shell and no stored credential. Export it (C2) or run `opencode auth login` (C1). |
+| First DeepInfra run hangs or fails offline | It downloads `@ai-sdk/deepinfra` on first use. Needs network — on an air-gapped VM use local Ollama. |
 | Env var seems ignored | An `apiKey` in `opencode.json` overrides it, and a stored `/connect` credential may also be in use. Remove the config `apiKey` and/or run `opencode auth logout <provider>`, then retry. |
 | Ollama models absent from OpenCode | Daemon not running (`ollama serve` / `systemctl status ollama`) or wrong `baseURL` — it must end in `/v1`. |
 | Cloud model errors with "not found" | Authenticate (B1 `ollama signin` **or** B2 `OLLAMA_API_KEY`), then `ollama pull <model>:cloud` before selecting it. |
@@ -602,22 +764,26 @@ rm -rf ~/.cache/opencode/packages/@ljw1004/opencode-trace@latest
 | `ollama pull` fails behind a proxy | Export `HTTPS_PROXY`/`HTTP_PROXY` for both your shell and the systemd unit (`systemctl edit ollama`). |
 | Tool calls silently fail on a local model | Context window too small. Raise `num_ctx` / `OLLAMA_CONTEXT_LENGTH` to 16k–32k, or use a model with solid tool-calling support. |
 | Small local models loop or ignore instructions | Expected — 0.5B–2B models are weak agents. Use them for demos only; run real tasks on Groq or a `:cloud` model. |
-| No files appear in `~/opencode-trace/` (§7) | Plugin not loaded. Run `opencode debug config` **from the project directory** and check the `plugin` list; restart OpenCode after editing any config. |
-| Every trace record appears twice (§7) | You used Route C (vendored plugin) — the module loads once for the TUI and once for the server. Harmless; dedupe with `jq -sc 'unique_by([._id,._kind])[]'`. |
-| Trace HTML looks empty in the browser (§7) | The raw JSONL sits after an unterminated `<!--` at the tail, so it does not render. Use `trace-to-jsonl.sh` to read it. |
+| No files appear in `~/opencode-trace/` (§8) | Plugin not loaded. Run `opencode debug config` **from the project directory** and check the `plugin` list; restart OpenCode after editing any config. |
+| Every trace record appears twice (§8) | You used Route C (vendored plugin) — the module loads once for the TUI and once for the server. Harmless; dedupe with `jq -sc 'unique_by([._id,._kind])[]'`. |
+| Trace HTML looks empty in the browser (§8) | The raw JSONL sits after an unterminated `<!--` at the tail, so it does not render. Use `trace-to-jsonl.sh` to read it. |
 
 ---
 
-## 9. Workshop notes
+## 10. Workshop notes
 
 - **Groq** is the default for lab exercises that need speed and reliable tool calling.
+- **DeepInfra** is the fallback when Groq does not carry the model you need. It is the
+  broadest open-weights catalogue of the three and is billed per token, so keep an eye
+  on spend during long agent loops — `opencode stats` shows usage and cost.
 - **Ollama local** is the offline / air-gapped path and the one used for jailbreak and
   safety-alignment labs where an uncensored local model is the target.
 - **Ollama Cloud** (`:cloud` tags) bridges the two: no GPU needed, but traffic leaves
   the VM — do not point it at sensitive lab data.
-- On shared or recorded sessions prefer **A2 / B2** (environment variables) so no key
-  is typed on camera, and clear them with `unset GROQ_API_KEY OLLAMA_API_KEY` afterwards.
-- **Tracing ([§7](#7-optional--dump-the-raw-llm-requests-and-responses)) is optional but
+- On shared or recorded sessions prefer **A2 / B2 / C2** (environment variables) so no
+  key is typed on camera, and clear them afterwards with
+  `unset GROQ_API_KEY DEEPINFRA_API_KEY OLLAMA_API_KEY`.
+- **Tracing ([§8](#8-optional--dump-the-raw-llm-requests-and-responses)) is optional but
   high value.** Enable it before the agent and MCP red-teaming labs so students can see
   the injected payload arrive in the message history rather than take it on trust. Clear
   `~/opencode-trace/` afterwards — the files hold whole conversations.

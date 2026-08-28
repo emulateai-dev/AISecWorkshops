@@ -60,7 +60,7 @@ AISecWorkshops/
     │   ├── pyrit/PyRIT/                   # PyRIT (git submodule) — run: make submodules-init
     │   ├── pyrit/pyrit_cli/               # pyrit_cli (git submodule)
     │   ├── ollama/                        # Ollama install, local models, GGUF, cloud (:cloud) models
-    │   ├── opencode/                      # OpenCode coding agent — Groq API key + Ollama (signin or key)
+    │   ├── opencode/                      # OpenCode coding agent — Groq / DeepInfra keys + Ollama (signin or key)
     │   └── vm/                            # Lab environment setup (VM, tools, API keys)
     ├── llms/
     │   └── red-teaming/
@@ -119,16 +119,22 @@ export PATH="$HOME/.opencode/bin:$PATH"
 opencode --version
 ```
 
-Then wire it to a model — Groq with an API key, or the Ollama already running in the lab:
+Then wire it to a model — Groq or DeepInfra with an API key, or the Ollama already
+running in the lab:
 
 ```bash
-export GROQ_API_KEY="gsk_..."                       # then: opencode --model groq/llama-3.3-70b-versatile
-ollama launch opencode --model qwen3:1.7b           # or use a local Ollama model
+export GROQ_API_KEY="gsk_..."             # then: opencode --model groq/openai/gpt-oss-120b
+export DEEPINFRA_API_KEY="..."            # then: opencode --model deepinfra/Qwen/Qwen3.8-27B
+ollama launch opencode --model qwen3:1.7b # or use a local Ollama model
 ```
 
-Full walkthrough, including both Groq mechanisms (`/connect` vs `GROQ_API_KEY`) and both
-Ollama mechanisms (`ollama signin` vs `OLLAMA_API_KEY`):
-**[setup/opencode/](./labs/setup/opencode/README.md)**
+`--model` always takes `provider/model`, and many IDs carry an org prefix — so the full
+ID often has three segments (`groq/qwen/qwen3.6-27b`, `deepinfra/Qwen/Qwen3.8-27B`).
+Copy it verbatim from `opencode models`.
+
+Full walkthrough, including both mechanisms for each provider (`/connect` vs an
+environment variable) and an optional section on dumping the raw LLM requests and
+responses: **[setup/opencode/](./labs/setup/opencode/README.md)**
 
 > **Using the DTX Lab VM instead of the online lab?** Log in with username `dtx` and
 > password `dtx`, then run:
@@ -148,6 +154,7 @@ Several labs call hosted models. Export the keys for the providers you plan to u
 
 ```bash
 export GROQ_API_KEY="gsk_..."          # Garak cloud scans, OpenCode, jailbreak labs
+export DEEPINFRA_API_KEY="..."         # optional — OpenCode, broader open-weights catalogue
 export OPENAI_API_KEY="sk-..."         # optional — agent labs
 export OLLAMA_API_KEY="..."            # optional — Ollama Cloud (:cloud) models
 export HF_TOKEN="hf_..."               # optional — gated HuggingFace models
