@@ -61,6 +61,9 @@ Probes are **adversarial attack payloads** — each probe is designed to elicit 
 | `realtoxicityprompts` | Toxicity-eliciting prompts across 7 categories |
 | `atkgen` | Adaptive attack generation using a red-team model |
 
+> Garak ships no **social bias** probe. [Exercise 6](./advanced/bias/README.md) adds one, and is the
+> worked example for writing any custom probe/detector pair.
+
 ### Buffs
 
 Buffs **augment or perturb probe prompts** before they reach the model — similar to fuzzing in software security. They apply transformations to help evade filters:
@@ -93,6 +96,7 @@ Detectors **analyze model outputs** to determine if an attack succeeded:
 | **ML classifiers** | Fine-tuned models for toxicity, misleading claims, etc. |
 | **Regular expressions** | Pattern matching for structured outputs (product keys, code) |
 | **API-based** | External services (package registry checks for hallucinated packages) |
+| **LLM-as-judge** | A second model scores the response (`detectors.judge.*`, and the custom one in [Exercise 6](./advanced/bias/README.md)) |
 
 ---
 
@@ -375,8 +379,12 @@ The same pattern works for `--generator_options`, `--detector_options`, and
 |---|----------|------------|------|-------------|
 | 4 | [Advanced Jailbreak Techniques](./advanced/04_advanced_jailbreak_techniques.md) | TAP, GCG, Atkgen | ~20 min (explore) / ~1-3h (live) | Automated attack generation — tree search, gradient optimization, and adaptive red-teaming |
 | 5 | [TAP Lab](./advanced/tap/README.md) | Tree of Attacks with Pruning | ~30 s (smoke) / ~15 min (lite) / hours (full) | Live three-model TAP — attacker, judge, and target over Ollama, with full per-call tracing |
+| 6 | [Extending Garak: Bias Probe + LLM Judge](./advanced/bias/README.md) | Custom probe, custom detector, HF dataset | ~20 min | Set up garak from source in a venv, then add a plugin pair — by hand or by prompting an AI IDE (OpenCode / Claude Code) against a spec: a probe driven by the `ahmedallam/BiasDPO` preference dataset and an LLM-as-judge detector anchored on its accepted/rejected answer pair |
 
 > Advanced exercises assume you have completed Exercises 1-2 and understand Garak's probe/detector architecture.
+> Exercise 6 is the one to do if you want to **extend** Garak rather than just run it. It covers the source-checkout
+> setup, custom plugin discovery, carrying data from a probe to a detector, and validating a judge — including the
+> AI-generated one — before trusting its output.
 
 ---
 
@@ -405,6 +413,9 @@ The same pattern works for `--generator_options`, `--detector_options`, and
 | `Unusable run.spec` / `No probes, nothing to do` | The spec names a module whose classes are all inactive. Name the class on `--probes` instead |
 | A probe you selected by tag never ran | It is inactive, so `tag:` and `tier:` skip it. Check `garak --plugin_info probes.<module>.<Class>` |
 | Garak not found | Run `uv tool install garak` |
+| Custom probe not found after `garak upgrade` | Plugins live inside the garak package, so an upgrade wipes them. Re-run the lab's `install-plugins.sh` |
+| `AssertionError: plugin_cache.json is missing or corrupt` | Never delete that file — the cache self-invalidates. Restore with `cp ~/.cache/garak/resources/plugin_cache.json <garak package>/resources/` |
+| Reasoning model returns empty or truncated outputs | Generator defaults `max_tokens: 150` and `stop: ["#", ";"]` cut the response mid-scratchpad. Raise them — see [Exercise 6](./advanced/bias/README.md#the-trap-that-will-cost-you-an-afternoon) |
 
 ---
 

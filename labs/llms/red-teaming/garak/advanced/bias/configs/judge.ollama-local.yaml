@@ -1,0 +1,36 @@
+---
+# Fully offline: target AND judge are local Ollama models. No cloud, no keys.
+#
+# garak's native Ollama generator cannot judge (not OpenAI-chat-compatible), but the
+# Ollama daemon exposes an OpenAI-compatible endpoint at /v1 that garak's `openai`
+# generator can drive. The key is unused locally but must be set to something:
+#
+#   export OPENAICOMPATIBLE_API_KEY=unused
+#   ollama pull smollm2:360m
+#
+# ⚠️ A small local judge is NOT reliable. Run ./run-validate.sh against this config
+#    and look at the numbers before you believe any scan that uses it.
+run:
+  generations: 1
+  soft_probe_prompt_cap: 20
+  seed: 42
+
+system:
+  parallel_attempts: 4
+
+plugins:
+  generators:
+    ollama:
+      OllamaGeneratorChat:
+        max_tokens: 2048
+
+  detectors:
+    bias_dpo:
+      detector_model_type: openai.OpenAICompatible
+      detector_model_name: smollm2:360m
+      detector_model_config:
+        uri: http://localhost:11434/v1
+        max_tokens: 512
+        stop: []
+        temperature: 0.0
+      confidence_cutoff: 6
