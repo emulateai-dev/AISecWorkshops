@@ -19,6 +19,10 @@ Verified against `opencode 1.18.23` and `ollama 0.30.10`.
 Mechanisms are **not** mutually exclusive — you can configure Groq and Ollama at the
 same time and switch models inside the TUI with `/models` (see [§5](#5-using-groq-and-ollama-together)).
 
+Optional extra: [§7](#7-optional--dump-the-raw-llm-requests-and-responses) shows how to
+capture the raw JSON requests and responses OpenCode sends to the model — the single
+most useful view for the agent red-teaming labs.
+
 ---
 
 ## 1. Install OpenCode
@@ -423,7 +427,166 @@ opencode run --model ollama-cloud/glm-5.3-flash "reply with the single word: ok"
 
 ---
 
-## 7. Troubleshooting
+## 7. Optional — dump the raw LLM requests and responses
+
+**Optional.** Nothing else in the workshop depends on this. Turn it on when you want to
+see exactly what a coding agent puts on the wire: the full system prompt, every tool
+definition, the tool results fed back in, and the model's raw reply. That transcript
+*is* the attack surface for the agent and prompt-injection labs — reading it once
+teaches more than any diagram.
+
+OpenCode has **no built-in setting** that dumps request/response bodies (see
+[§7.5](#75-what-does-not-work) for the three places people expect to find them and
+don't). The community plugin [`@ljw1004/opencode-trace`](https://github.com/ljw1004/opencode-trace)
+fills the gap: it patches `fetch`, so it records the true wire bodies rather than a
+reconstruction.
+
+Verified against `opencode 1.18.23` / `opencode-trace 0.1.4`.
+
+### 7.1 Three ways to enable it
+
+Pick one — they are alternatives, not steps.
+
+**Route A — `opencode plugin` (recommended: no hand-edited JSON)**
+
+```bash
+# global — applies to every project on this machine
+opencode plugin @ljw1004/opencode-trace --global
+
+# or project-local — writes <project>/.opencode/opencode.json
+cd /path/to/your/lab && opencode plugin @ljw1004/opencode-trace
+```
+
+The command fetches the package, detects the entrypoint, and writes the config for
+you. It prints the scope it chose (`global` or `local`) and the exact file it touched.
+Add `--force` to replace an already-installed version.
+
+**Route B — edit a config file by hand**
+
+Global, `~/.config/opencode/config.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["@ljw1004/opencode-trace"]
+}
+```
+
+Project-scoped, `<project>/.opencode/opencode.json` — same `plugin` key. Use this to
+keep tracing on for the lab repo and off everywhere else. A project config is enough
+on its own; the global config does not need the plugin as well.
+
+**Route C — vendor the plugin file (no config edit, no network at run time)**
+
+OpenCode auto-loads any `.ts` dropped into `.opencode/plugin/` (`.opencode/plugins/`
+also works). Copy the plugin's two files in and it loads with no `plugin` key anywhere:
+
+```bash
+mkdir -p .opencode/plugin
+src=~/.cache/opencode/packages/@ljw1004/opencode-trace@latest/node_modules/@ljw1004/opencode-trace
+cp "$src/index.ts" .opencode/plugin/trace.ts
+cp "$src/viewer.js" .opencode/plugin/
+```
+
+This is the route for **air-gapped VMs** and for students who want to edit the plugin
+and watch their changes take effect. Two caveats: you must have fetched the package
+once on a connected machine to have those files, and the vendored copy gets loaded as
+two module instances (TUI + server), so **every request and response is written
+twice**. Deduplicate on read if it bothers you:
+
+```bash
+./trace-to-jsonl.sh <file>.html | jq -sc 'unique_by([._id,._kind])[]'
+```
+
+### 7.2 Confirm it is loaded
+
+```bash
+opencode debug config | python3 -c "import sys,json; print(json.load(sys.stdin).get('plugin'))"
+# -> ['@ljw1004/opencode-trace']
+```
+
+Run this from inside the project directory — that is what makes a project-scoped
+config (Route A local / Route B project) show up. Route C loads from disk and so does
+**not** appear in `plugin`; prove it works by generating a trace instead.
+
+### 7.3 Generate and read a trace
+
+```bash
+opencode run --model groq/llama-3.1-8b-instant "reply with the single word: ok"
+ls -lt ~/opencode-trace/
+```
+
+One HTML file per session lands in `~/opencode-trace/`, named
+`<date> <time> <first prompt>.html`. The path is hardcoded in the plugin — there is no
+env var or config option to move it.
+
+Open the file in a browser for the collapsible viewer. Each file is *also* the raw
+data: the JSONL is appended after an unterminated `<!--` comment at the tail, so the
+browser never renders it. Extract it with the helper in this directory:
+
+```bash
+./trace-to-jsonl.sh ~/opencode-trace/*.html > trace.jsonl
+
+# what was exchanged, one line per call
+jq -c '{_id,_kind,_purpose,_url}' trace.jsonl
+
+# the full system prompt OpenCode sends
+jq -r 'select(._kind=="request") | .messages[] | select(.role=="system") | .content' trace.jsonl
+
+# every tool the agent was offered
+jq -r 'select(._kind=="request") | .tools[]?.function.name' trace.jsonl
+```
+
+Each record carries `_id` (pairs a request with its response), `_kind`
+(`request` / `response` / `error`), `_purpose` (`[meta]` marks OpenCode's own internal
+calls, such as title generation), `_url`, and `_ts`.
+
+### 7.4 Exercises worth doing with a trace open
+
+- Diff the system prompt across providers — `--model groq/...` vs `--model ollama/...`.
+- Count the tokens OpenCode spends on tool definitions before you type anything.
+- Plant an injected instruction in a file, ask the agent to read it, and find the
+  moment it enters the message history as a tool result.
+- Compare `_purpose: "[meta]"` calls against the real ones: the agent talks to the
+  model more often than the UI suggests.
+
+### 7.5 What does not work
+
+Three commonly cited approaches that will **not** give you request/response bodies on
+1.18.x — check them off so you stop looking:
+
+| Approach | Reality |
+|---|---|
+| `opencode --log-level DEBUG --print-logs` | `~/.local/share/opencode/log/opencode.log` records events and timings. No prompt or response bodies. |
+| Reading `~/.local/share/opencode/storage/*.json` | That directory no longer exists. Session state moved to SQLite: `~/.local/share/opencode/opencode.db`. |
+| `opencode export <sessionID>` | Real command, useful output — but it exports the *session object* (messages, tool calls, rendered text), not the HTTP bodies. |
+
+### 7.6 Handling and hygiene
+
+> ⚠️ A trace contains the complete conversation: system prompt, file contents the agent
+> read, command output, and anything you pasted. On these labs that can include target
+> URLs and secrets. Treat `~/opencode-trace/` as sensitive — do not commit it, do not
+> ship it in a VM snapshot, and clear it before screen-sharing.
+
+```bash
+rm -rf ~/opencode-trace/*                       # clear traces
+echo '.opencode/plugin/' >> .gitignore          # if you vendored via Route C
+```
+
+To turn tracing off: `opencode plugin` has no uninstall, so remove the `plugin` entry
+from whichever config you edited, or delete the vendored files. `opencode --pure`
+starts a single session with all external plugins disabled.
+
+One upgrade gotcha, from the plugin's own README: the default install pins
+`@latest`, which OpenCode does not refresh when upstream publishes. Force it with:
+
+```bash
+rm -rf ~/.cache/opencode/packages/@ljw1004/opencode-trace@latest
+```
+
+---
+
+## 8. Troubleshooting
 
 | Symptom | Fix |
 |---|---|
@@ -439,10 +602,13 @@ opencode run --model ollama-cloud/glm-5.3-flash "reply with the single word: ok"
 | `ollama pull` fails behind a proxy | Export `HTTPS_PROXY`/`HTTP_PROXY` for both your shell and the systemd unit (`systemctl edit ollama`). |
 | Tool calls silently fail on a local model | Context window too small. Raise `num_ctx` / `OLLAMA_CONTEXT_LENGTH` to 16k–32k, or use a model with solid tool-calling support. |
 | Small local models loop or ignore instructions | Expected — 0.5B–2B models are weak agents. Use them for demos only; run real tasks on Groq or a `:cloud` model. |
+| No files appear in `~/opencode-trace/` (§7) | Plugin not loaded. Run `opencode debug config` **from the project directory** and check the `plugin` list; restart OpenCode after editing any config. |
+| Every trace record appears twice (§7) | You used Route C (vendored plugin) — the module loads once for the TUI and once for the server. Harmless; dedupe with `jq -sc 'unique_by([._id,._kind])[]'`. |
+| Trace HTML looks empty in the browser (§7) | The raw JSONL sits after an unterminated `<!--` at the tail, so it does not render. Use `trace-to-jsonl.sh` to read it. |
 
 ---
 
-## 8. Workshop notes
+## 9. Workshop notes
 
 - **Groq** is the default for lab exercises that need speed and reliable tool calling.
 - **Ollama local** is the offline / air-gapped path and the one used for jailbreak and
@@ -451,3 +617,7 @@ opencode run --model ollama-cloud/glm-5.3-flash "reply with the single word: ok"
   the VM — do not point it at sensitive lab data.
 - On shared or recorded sessions prefer **A2 / B2** (environment variables) so no key
   is typed on camera, and clear them with `unset GROQ_API_KEY OLLAMA_API_KEY` afterwards.
+- **Tracing ([§7](#7-optional--dump-the-raw-llm-requests-and-responses)) is optional but
+  high value.** Enable it before the agent and MCP red-teaming labs so students can see
+  the injected payload arrive in the message history rather than take it on trust. Clear
+  `~/opencode-trace/` afterwards — the files hold whole conversations.
