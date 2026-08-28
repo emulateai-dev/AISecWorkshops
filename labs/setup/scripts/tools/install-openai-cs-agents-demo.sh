@@ -75,6 +75,33 @@ if grep -q '"start"' package.json; then
 fi
 popd >/dev/null
 
+# --- Patch server.py: functools.partial has no __code__/__closure__ ---
+# python-backend/requirements.txt pins openai-agents to no version at all, so
+# `pip install -r requirements.txt` always resolves whatever's newest. As of
+# openai-agents 0.22.0, Handoff.on_invoke_handoff is built as
+# `partial(_invoke_handoff_with_redaction, _invoke_handoff_impl)` (confirmed
+# by reading agents/handoffs/__init__.py in that release) instead of a plain
+# closure. server.py's _record_events() does `fn.__code__.co_freevars` on it
+# purely to derive a cosmetic display label for a handoff's on_handoff
+# callback — functools.partial has no __code__, so this crashes every chat
+# turn that goes through a handoff with:
+#   AttributeError: 'functools.partial' object has no attribute '__code__'
+# Making the two lookups defensive (empty fv/cl -> the label is skipped,
+# nothing else breaks) survives this SDK-internals change and any future one
+# like it, instead of chasing an exact openai-agents version to pin.
+SERVER_PY="python-backend/server.py"
+if [[ -f "${SERVER_PY}" ]]; then
+  if grep -q 'fn\.__code__\.co_freevars' "${SERVER_PY}"; then
+    sed -i \
+      -e 's/fv = fn\.__code__\.co_freevars/fv = getattr(getattr(fn, "__code__", None), "co_freevars", ())/' \
+      -e 's/cl = fn\.__closure__ or \[\]/cl = getattr(fn, "__closure__", None) or []/' \
+      "${SERVER_PY}"
+    echo "Patched ${SERVER_PY}: on_invoke_handoff introspection is now functools.partial-safe."
+  else
+    echo "${SERVER_PY} already patched (or upstream changed this code) — skipping."
+  fi
+fi
+
 # --- start_service.sh at repo root ---
 cat > start_service.sh <<'EOF'
 #!/usr/bin/env bash
