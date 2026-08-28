@@ -311,3 +311,7 @@ The full hitlog and HTML report are available in the [samples/](./samples/) dire
 ---
 
 **Back to:** [Garak Lab Overview](./README.md)
+
+---
+
+**Next:** [Exercise 4 — Extend Garak: Bias Testing](./04_extend_garak_bias_testing.md)

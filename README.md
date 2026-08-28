@@ -60,7 +60,7 @@ AISecWorkshops/
     │   ├── pyrit/PyRIT/                   # PyRIT (git submodule) — run: make submodules-init
     │   ├── pyrit/pyrit_cli/               # pyrit_cli (git submodule)
     │   ├── ollama/                        # Ollama install, local models, GGUF, cloud (:cloud) models
-    │   ├── opencode/                      # OpenCode coding agent — Groq API key + Ollama (signin or key)
+    │   ├── opencode/                      # OpenCode coding agent — Groq / DeepInfra keys + Ollama (signin or key)
     │   └── vm/                            # Lab environment setup (VM, tools, API keys)
     ├── llms/
     │   └── red-teaming/
@@ -69,7 +69,7 @@ AISecWorkshops/
     │       │   ├── 02_benchmark_groq_model.md
     │       │   ├── 03_benchmark_hf_model.md
     │       │   ├── advanced/
-    │       │   │   └── 04_advanced_jailbreak_techniques.md
+    │       │   │   └── 05_advanced_jailbreak_techniques.md
     │       │   └── samples/               # Sample scan reports and hitlogs
     │       └── jailbreaks/                # Jailbreak lab — Jupyter (PyRIT Docker) and/or pyrit-cli
     │           └── README.md
@@ -119,16 +119,22 @@ export PATH="$HOME/.opencode/bin:$PATH"
 opencode --version
 ```
 
-Then wire it to a model — Groq with an API key, or the Ollama already running in the lab:
+Then wire it to a model — Groq or DeepInfra with an API key, or the Ollama already
+running in the lab:
 
 ```bash
-export GROQ_API_KEY="gsk_..."                       # then: opencode --model groq/llama-3.3-70b-versatile
-ollama launch opencode --model qwen3:1.7b           # or use a local Ollama model
+export GROQ_API_KEY="gsk_..."             # then: opencode --model groq/openai/gpt-oss-120b
+export DEEPINFRA_API_KEY="..."            # then: opencode --model deepinfra/Qwen/Qwen3.8-27B
+ollama launch opencode --model qwen3:1.7b # or use a local Ollama model
 ```
 
-Full walkthrough, including both Groq mechanisms (`/connect` vs `GROQ_API_KEY`) and both
-Ollama mechanisms (`ollama signin` vs `OLLAMA_API_KEY`):
-**[setup/opencode/](./labs/setup/opencode/README.md)**
+`--model` always takes `provider/model`, and many IDs carry an org prefix — so the full
+ID often has three segments (`groq/qwen/qwen3.6-27b`, `deepinfra/Qwen/Qwen3.8-27B`).
+Copy it verbatim from `opencode models`.
+
+Full walkthrough, including both mechanisms for each provider (`/connect` vs an
+environment variable) and an optional section on dumping the raw LLM requests and
+responses: **[setup/opencode/](./labs/setup/opencode/README.md)**
 
 > **Using the DTX Lab VM instead of the online lab?** Log in with username `dtx` and
 > password `dtx`, then run:
@@ -148,6 +154,7 @@ Several labs call hosted models. Export the keys for the providers you plan to u
 
 ```bash
 export GROQ_API_KEY="gsk_..."          # Garak cloud scans, OpenCode, jailbreak labs
+export DEEPINFRA_API_KEY="..."         # optional — OpenCode, broader open-weights catalogue
 export OPENAI_API_KEY="sk-..."         # optional — agent labs
 export OLLAMA_API_KEY="..."            # optional — Ollama Cloud (:cloud) models
 export HF_TOKEN="hf_..."               # optional — gated HuggingFace models
@@ -221,7 +228,8 @@ Probe large language models for security vulnerabilities using automated scannin
 | 1 | [Explore Garak Probes](./labs/llms/red-teaming/garak/01_explore_garak_probes.md) | `test.Blank` | ~10 min | Understand Garak's probe architecture, inspect attack prompts |
 | 2 | [Benchmark Groq Model](./labs/llms/red-teaming/garak/02_benchmark_groq_model.md) | `qwen/qwen3-32b` | ~30 min | Run DAN jailbreak probes against a cloud LLM, review reports |
 | 3 | [Benchmark HuggingFace Model](./labs/llms/red-teaming/garak/03_benchmark_hf_model.md) | `smollm:135m` | ~2h (CPU) | Scan a local model, compare to cloud, interpret findings |
-| 4 | [Advanced Jailbreak Techniques](./labs/llms/red-teaming/garak/advanced/04_advanced_jailbreak_techniques.md) | Various | ~20 min | TAP, GCG, and Atkgen — automated attack generation |
+| 4 | [Extend Garak: Bias Testing](./labs/llms/red-teaming/garak/04_extend_garak_bias_testing.md) | Garak | ~20 min | Write a custom probe + LLM-judge detector against a HuggingFace dataset |
+| 5 | [Advanced Jailbreak Techniques](./labs/llms/red-teaming/garak/advanced/05_advanced_jailbreak_techniques.md) | Various | ~20 min | TAP, GCG, and Atkgen — automated attack generation |
 | — | [LLM Jailbreaks](./labs/llms/red-teaming/jailbreaks/README.md) | Ollama / Groq / OpenAI | ~5 h (full track) | Alignment, datasets, PyRIT benchmarks, converters, TAP; optional **pyrit-cli** terminal track |
 
 ### Agent Red Teaming

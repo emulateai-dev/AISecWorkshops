@@ -5,6 +5,8 @@ __pycache__/
 .venv/
 venv/
 .env
+.env.txt
+.env.local
 
 # CAI framework writes a session log into the current working directory.
 # validate_installation.sh probes `cai --version` from the repo root, so
@@ -14,7 +16,7 @@ logs/
 # Validation script default log location, if run from the repo root.
 dtx-validate.log
 
-# OpenCode tracing (labs/setup/opencode/README.md §7, optional). Route C vendors the
+# OpenCode tracing (labs/setup/opencode/README.md §8, optional). Route C vendors the
 # trace plugin into the repo; the extracted JSONL holds whole agent conversations.
 .opencode/plugin/
 .opencode/plugins/
