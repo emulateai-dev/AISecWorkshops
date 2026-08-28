@@ -1,4 +1,4 @@
-# Exercise 4: Advanced Automated Jailbreak Techniques
+# Exercise 5: Advanced Automated Jailbreak Techniques
 
 > **Goal:** Understand how TAP, GCG, and Atkgen shift LLM red teaming from manual prompt crafting to automated, machine-speed adversarial testing — and inspect the prompts they generate.
 

@@ -10,6 +10,7 @@ and scan results from three different kinds of target.
 
 **Time:** ~20 min (smoke) · ~10 min more for the lite scans  
 **Difficulty:** Advanced — assumes Exercises 1–3  
+**Exercise brief:** [Exercise 4 — Extend Garak: Bias Testing](../../04_extend_garak_bias_testing.md) — start there if you want the short version  
 **Setup:** garak source checkout in a venv (Step 1); an existing `uv tool install garak` also works  
 **Verified against** `garak 0.16.0` (uv tool) and `0.16.1.pre1` (source `main`), `datasets 3.6.0`, Python 3.11, `uv 0.8.16`
 

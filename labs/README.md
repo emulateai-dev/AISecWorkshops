@@ -17,7 +17,8 @@ Probe large language models for security vulnerabilities — jailbreaks, prompt 
 | 1 | [Explore Garak Probes](./llms/red-teaming/garak/01_explore_garak_probes.md) | Garak | `test.Blank` | ~10 min |
 | 2 | [Benchmark Groq Model](./llms/red-teaming/garak/02_benchmark_groq_model.md) | Garak | `qwen/qwen3-32b` | ~30 min |
 | 3 | [Benchmark HuggingFace Model](./llms/red-teaming/garak/03_benchmark_hf_model.md) | Garak | `smollm:135m` | ~2h (CPU) |
-| 4 | [Advanced Jailbreak Techniques](./llms/red-teaming/garak/advanced/04_advanced_jailbreak_techniques.md) | Garak | Various | ~20 min |
+| 4 | [Extend Garak: Bias Testing](./llms/red-teaming/garak/04_extend_garak_bias_testing.md) | Garak | Custom probe + LLM judge | ~20 min |
+| 5 | [Advanced Jailbreak Techniques](./llms/red-teaming/garak/advanced/05_advanced_jailbreak_techniques.md) | Garak | Various | ~20 min |
 
 [Full lab overview](./llms/red-teaming/garak/) with Garak introduction, architecture, and background.
 

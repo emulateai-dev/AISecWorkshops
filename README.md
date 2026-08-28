@@ -69,7 +69,7 @@ AISecWorkshops/
     │       │   ├── 02_benchmark_groq_model.md
     │       │   ├── 03_benchmark_hf_model.md
     │       │   ├── advanced/
-    │       │   │   └── 04_advanced_jailbreak_techniques.md
+    │       │   │   └── 05_advanced_jailbreak_techniques.md
     │       │   └── samples/               # Sample scan reports and hitlogs
     │       └── jailbreaks/                # Jailbreak lab — Jupyter (PyRIT Docker) and/or pyrit-cli
     │           └── README.md
@@ -228,7 +228,8 @@ Probe large language models for security vulnerabilities using automated scannin
 | 1 | [Explore Garak Probes](./labs/llms/red-teaming/garak/01_explore_garak_probes.md) | `test.Blank` | ~10 min | Understand Garak's probe architecture, inspect attack prompts |
 | 2 | [Benchmark Groq Model](./labs/llms/red-teaming/garak/02_benchmark_groq_model.md) | `qwen/qwen3-32b` | ~30 min | Run DAN jailbreak probes against a cloud LLM, review reports |
 | 3 | [Benchmark HuggingFace Model](./labs/llms/red-teaming/garak/03_benchmark_hf_model.md) | `smollm:135m` | ~2h (CPU) | Scan a local model, compare to cloud, interpret findings |
-| 4 | [Advanced Jailbreak Techniques](./labs/llms/red-teaming/garak/advanced/04_advanced_jailbreak_techniques.md) | Various | ~20 min | TAP, GCG, and Atkgen — automated attack generation |
+| 4 | [Extend Garak: Bias Testing](./labs/llms/red-teaming/garak/04_extend_garak_bias_testing.md) | Garak | ~20 min | Write a custom probe + LLM-judge detector against a HuggingFace dataset |
+| 5 | [Advanced Jailbreak Techniques](./labs/llms/red-teaming/garak/advanced/05_advanced_jailbreak_techniques.md) | Various | ~20 min | TAP, GCG, and Atkgen — automated attack generation |
 | — | [LLM Jailbreaks](./labs/llms/red-teaming/jailbreaks/README.md) | Ollama / Groq / OpenAI | ~5 h (full track) | Alignment, datasets, PyRIT benchmarks, converters, TAP; optional **pyrit-cli** terminal track |
 
 ### Agent Red Teaming
