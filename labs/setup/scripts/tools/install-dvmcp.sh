@@ -89,6 +89,30 @@ else
   fi
 fi
 
+# ── 3b. Pin mcp<2.0.0 in requirements.txt (used by both the venv below AND
+#        the Docker build) ────────────────────────────────────────────────
+# requirements.txt declares `mcp[cli]>=0.5.0` with no upper bound, so both
+# `pip install -r requirements.txt` here and the Dockerfile's own
+# `pip install -r requirements.txt` resolve whatever's newest — currently
+# mcp 2.x, which renamed FastMCP -> MCPServer. Every challenge server does
+# `from mcp.server.fastmcp import FastMCP`, which no longer exists, so
+# supervisord (autorestart=true) crash-loops all 10 challenge processes
+# inside the container. Reproduced directly: building the image and
+# `requests.get(".../sse", stream=True)` against it fails with
+# ConnectionResetError precisely because the process is crashing and
+# restarting mid-connection, not because of a port conflict.
+REQS_FILE="${LAB_DIR}/requirements.txt"
+if [ -f "${REQS_FILE}" ]; then
+  if grep -q '^mcp\[cli\]>=0\.5\.0$' "${REQS_FILE}"; then
+    sed -i 's/^mcp\[cli\]>=0\.5\.0$/mcp[cli]>=0.5.0,<2.0.0/' "${REQS_FILE}"
+    success "Patched requirements.txt: pinned mcp[cli]<2.0.0 (mcp 2.x breaks every challenge server's FastMCP import)."
+  elif grep -q '^mcp\[cli\]>=0\.5\.0,<2\.0\.0$' "${REQS_FILE}"; then
+    info "requirements.txt already patched — skipping."
+  else
+    warn "Expected line 'mcp[cli]>=0.5.0' not found in requirements.txt (upstream may have changed) — check the mcp pin by hand before building."
+  fi
+fi
+
 # ── 4. Install / check Ollama ─────────────────────────────────
 info "Checking Ollama..."
 if command -v ollama >/dev/null 2>&1; then
