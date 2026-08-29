@@ -83,10 +83,13 @@ AISecWorkshops/
     │       ├── ai-red-teaming-labs/       # Microsoft AI Red Teaming Playground Labs
     │       │   └── challenges/            # 12 challenges: exfiltration, Crescendo, injection, safety bypass
     │       └── dtx-demo-agents/           # Target sandbox: chat/RAG/tool/text2sql demo apps
-    └── mcp/
+    ├── mcp/
+    │   └── red-teaming/
+    │       └── dv_mcp_labs/               # Damn Vulnerable MCP Server challenges
+    │           └── challenges/            # 10 challenges: injection, BOLA, SSRF
+    └── ai/
         └── red-teaming/
-            └── dv_mcp_labs/               # Damn Vulnerable MCP Server challenges
-                └── challenges/            # 10 challenges: injection, BOLA, SSRF
+            └── pentest-using-ai/          # Methodology: driving Claude Code as a pentest operator
 ```
 
 ---
@@ -251,6 +254,14 @@ Exploiting Model Context Protocol integrations — tool poisoning, server impers
 | # | Exercise | Project | Challenges | Time | Description |
 |---|----------|---------|------------|------|-------------|
 | 1 | [Damn Vulnerable MCP Server](./labs/mcp/red-teaming/dv_mcp_labs/readme.md) | DVMS | 10 | ~60 min | Exploiting insecure tool/resource implementations in MCP |
+
+### AI-Driven Pentesting
+
+Using an AI coding agent as a pentest operator on any target — not a specific lab, a repeatable methodology.
+
+| Exercise | Target | Description |
+|----------|--------|-------------|
+| [Pentesting Any Target with Claude Code](./labs/ai/red-teaming/pentest-using-ai/AI-PENTEST-WORKFLOW.md) | Any authorized web app/API | Human-driven, AI-executed workflow: recon → attack-surface mapping → test cases → adversarial verification → evidence → report |
 
 ---
 
