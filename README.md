@@ -87,6 +87,8 @@ AISecWorkshops/
         └── red-teaming/
             └── dv_mcp_labs/               # Damn Vulnerable MCP Server challenges
                 └── challenges/            # 10 challenges: injection, BOLA, SSRF
+└── faq/                                   # Session Q&A, one file per month
+    └── 2026-08.md
 ```
 
 ---
@@ -356,6 +358,18 @@ sudo ./Tool_Setup.sh
 ### 5. Start the Labs
 
 Begin with the [Explore Garak Probes](./labs/llms/red-teaming/garak/01_explore_garak_probes.md) exercise — it requires no API keys and is the best place to start.
+
+---
+
+## FAQ
+
+Questions asked during live sessions, answered properly afterwards — one file per month.
+
+| Month | Topics |
+|---|---|
+| [August 2026](./faq/2026-08.md) | What an agent is vs. an agent harness (OpenCode); designing a secure agent |
+
+See [faq/README.md](./faq/README.md) for the index and how to add a question.
 
 ---
 
