@@ -38,6 +38,17 @@ The **OpenAI Customer Support Agent Demo** is a multi-agent system for handling 
    $INSTALL_SCRIPTS/install-openai-cs-agents-demo.sh
    ```
 
+   > **Using a local Ollama model instead of a real OpenAI key?** Set
+   > `USE_OLLAMA=true` (and optionally `OLLAMA_MODEL`, default `llama3.1`).
+   > Unlike Folly, this app has no runtime provider switch — the installer
+   > patches its hardcoded `MODEL`/`GUARDRAIL_MODEL` constants and forces the
+   > Agents SDK onto the Chat Completions API (Ollama doesn't implement the
+   > newer Responses API the SDK defaults to):
+   >
+   > ```bash
+   > USE_OLLAMA=true OLLAMA_MODEL=llama3.1 $INSTALL_SCRIPTS/install-openai-cs-agents-demo.sh
+   > ```
+
 2. **Run the application**
 
    ```bash

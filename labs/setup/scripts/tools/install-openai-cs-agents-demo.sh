@@ -2,6 +2,12 @@
 # Installs detoxio-ai/openai-cs-agents-demo under ~/labs/agents/,
 # prepares python-backend/.venv with uv, installs UI deps,
 # binds Next.js dev/prod to 0.0.0.0, and creates start_service.sh to run `npm run dev`.
+#
+# Optional: point the demo at a local Ollama model instead of the real OpenAI
+# API (USE_OLLAMA=true). Unlike Folly, this app has no runtime provider switch
+# built in — MODEL/GUARDRAIL_MODEL are hardcoded strings in its own source, so
+# this is applied as a one-time source patch after cloning, same idea as the
+# Next.js host-binding patch below.
 
 set -euo pipefail
 
@@ -10,11 +16,16 @@ BASE_DIR="${BASE_DIR:-$HOME/labs/agents}"
 REPO_URL="${REPO_URL:-https://github.com/openai/openai-cs-agents-demo}"
 CLONE_DIR="${CLONE_DIR:-openai-cs-agents-demo}"
 PYTHON_VERSION="${PYTHON_VERSION:-3.12}"
+USE_OLLAMA="${USE_OLLAMA:-false}"
+OLLAMA_MODEL="${OLLAMA_MODEL:-llama3.1}"
+OLLAMA_GUARDRAIL_MODEL="${OLLAMA_GUARDRAIL_MODEL:-${OLLAMA_MODEL}}"
 
 echo "==> Installing ${CLONE_DIR}"
 echo "    BASE_DIR=${BASE_DIR}"
 echo "    REPO_URL=${REPO_URL}"
 echo "    PYTHON_VERSION=${PYTHON_VERSION}"
+echo "    USE_OLLAMA=${USE_OLLAMA}"
+[[ "${USE_OLLAMA}" == "true" ]] && echo "    OLLAMA_MODEL=${OLLAMA_MODEL}  OLLAMA_GUARDRAIL_MODEL=${OLLAMA_GUARDRAIL_MODEL}"
 
 # --- Preflight ---
 need(){ command -v "$1" >/dev/null 2>&1 || { echo "ERROR: '$1' is required."; exit 1; }; }
@@ -102,6 +113,89 @@ if [[ -f "${SERVER_PY}" ]]; then
   fi
 fi
 
+# --- Optional: wire the demo to a local Ollama model instead of OpenAI ---
+if [[ "${USE_OLLAMA}" == "true" ]]; then
+  echo ""
+  echo "==> Wiring ${CLONE_DIR} to local Ollama (model: ${OLLAMA_MODEL})"
+
+  if command -v ollama >/dev/null 2>&1; then
+    echo "Ollama already installed: $(ollama --version 2>/dev/null || echo 'version unknown')"
+  else
+    echo "Installing Ollama..."
+    curl -fsSL https://ollama.com/install.sh | sh
+  fi
+
+  if ! pgrep -x "ollama" >/dev/null 2>&1; then
+    ollama serve >/dev/null 2>&1 &
+    sleep 4
+  fi
+
+  for m in "${OLLAMA_MODEL}" "${OLLAMA_GUARDRAIL_MODEL}"; do
+    if ollama list 2>/dev/null | grep -q "^${m}"; then
+      echo "Model '${m}' already available in Ollama."
+    else
+      echo "Pulling Ollama model '${m}'... (this may take a while)"
+      ollama pull "${m}" || echo "WARNING: failed to pull '${m}' — pull it manually before starting the app: ollama pull ${m}"
+    fi
+  done
+
+  # Patch the hardcoded OpenAI model names to the local Ollama models. These
+  # sed targets are pinned to the exact upstream source lines as of this
+  # writing (openai/openai-cs-agents-demo) — if a future `git pull` there
+  # changes agents.py/guardrails.py, these silently no-op with a warning
+  # instead of corrupting the file; re-check MODEL=/GUARDRAIL_MODEL= by hand
+  # in that case.
+  AGENTS_PY="python-backend/airline/agents.py"
+  GUARDRAILS_PY="python-backend/airline/guardrails.py"
+
+  if grep -q '^MODEL = "gpt-5.2"$' "${AGENTS_PY}"; then
+    sed -i "s/^MODEL = \"gpt-5.2\"\$/MODEL = \"${OLLAMA_MODEL}\"/" "${AGENTS_PY}"
+    echo "Patched MODEL -> ${OLLAMA_MODEL} in ${AGENTS_PY}"
+  elif grep -q "^MODEL = \"${OLLAMA_MODEL}\"\$" "${AGENTS_PY}"; then
+    echo "${AGENTS_PY} already patched — skipping."
+  else
+    echo "WARNING: expected line 'MODEL = \"gpt-5.2\"' not found in ${AGENTS_PY} (upstream may have changed) — set MODEL there by hand."
+  fi
+
+  if grep -q '^GUARDRAIL_MODEL = "gpt-4.1-mini"$' "${GUARDRAILS_PY}"; then
+    sed -i "s/^GUARDRAIL_MODEL = \"gpt-4.1-mini\"\$/GUARDRAIL_MODEL = \"${OLLAMA_GUARDRAIL_MODEL}\"/" "${GUARDRAILS_PY}"
+    echo "Patched GUARDRAIL_MODEL -> ${OLLAMA_GUARDRAIL_MODEL} in ${GUARDRAILS_PY}"
+  elif grep -q "^GUARDRAIL_MODEL = \"${OLLAMA_GUARDRAIL_MODEL}\"\$" "${GUARDRAILS_PY}"; then
+    echo "${GUARDRAILS_PY} already patched — skipping."
+  else
+    echo "WARNING: expected line 'GUARDRAIL_MODEL = \"gpt-4.1-mini\"' not found in ${GUARDRAILS_PY} (upstream may have changed) — set GUARDRAIL_MODEL there by hand."
+  fi
+
+  # Force the Agents SDK onto the Chat Completions API. It defaults to
+  # OpenAI's newer Responses API, which Ollama's OpenAI-compatible endpoint
+  # does not implement (only /v1/chat/completions) — without this, every
+  # request 404s against Ollama regardless of OPENAI_BASE_URL.
+  MAIN_PY="python-backend/main.py"
+  if grep -q "set_default_openai_api" "${MAIN_PY}"; then
+    echo "${MAIN_PY} already sets an explicit API mode — skipping."
+  else
+    python3 - "${MAIN_PY}" <<'PYEOF'
+import sys
+path = sys.argv[1]
+with open(path) as f:
+    lines = f.readlines()
+insert_at = 0
+for i, line in enumerate(lines):
+    if line.startswith("from ") or line.startswith("import "):
+        insert_at = i + 1
+lines.insert(
+    insert_at,
+    "\nfrom agents import set_default_openai_api\n"
+    "set_default_openai_api(\"chat_completions\")  "
+    "# Ollama only supports Chat Completions, not the Responses API\n",
+)
+with open(path, "w") as f:
+    f.writelines(lines)
+PYEOF
+    echo "Patched ${MAIN_PY} to force Chat Completions mode (required for Ollama)."
+  fi
+fi
+
 # --- start_service.sh at repo root ---
 cat > start_service.sh <<'EOF'
 #!/usr/bin/env bash
@@ -109,7 +203,8 @@ set -euo pipefail
 # Runs both frontend and backend via the ui package.json "dev" script.
 cd "$(dirname "$0")/ui"
 
-# If you keep OPENAI_API_KEY in ../python-backend/.env, python-dotenv will load it.
+# If you keep OPENAI_API_KEY (and, in Ollama mode, OPENAI_BASE_URL) in
+# ../python-backend/.env, python-dotenv will load it.
 if [[ -z "${OPENAI_API_KEY:-}" ]]; then
   echo "ℹ️  OPENAI_API_KEY not set in shell. If it's in python-backend/.env, that's fine."
 fi
@@ -134,25 +229,37 @@ fi
 EOF
 chmod +x "${BASE_DIR}/${CLONE_DIR}/stop_service.sh"
 
-# --- optional backend .env template ---
-if [[ ! -f python-backend/.env ]]; then
-  # Auto-read from ~/.secrets/ if available, otherwise leave as placeholder
+# --- backend .env ---
+# Idempotent key=value updater — safe to re-run even if .env already exists
+# from a prior run in a different mode (e.g. switching USE_OLLAMA on later).
+set_env_var() {
+  local file="$1" name="$2" value="$3"
+  touch "${file}"
+  if grep -q "^${name}=" "${file}"; then
+    sed -i "s|^${name}=.*|${name}=${value}|" "${file}"
+  else
+    echo "${name}=${value}" >> "${file}"
+  fi
+}
+
+ENV_FILE="python-backend/.env"
+if [[ "${USE_OLLAMA}" == "true" ]]; then
+  set_env_var "${ENV_FILE}" "OPENAI_API_KEY" "ollama"
+  set_env_var "${ENV_FILE}" "OPENAI_BASE_URL" "http://localhost:11434/v1"
+  echo "✅ ${ENV_FILE} configured for local Ollama (${OLLAMA_MODEL} / ${OLLAMA_GUARDRAIL_MODEL})."
+else
   _OPENAI_KEY=""
   if [[ -n "${OPENAI_API_KEY:-}" ]]; then
     _OPENAI_KEY="${OPENAI_API_KEY}"
   elif [[ -f "$HOME/.secrets/OPENAI_API_KEY.txt" ]]; then
     _OPENAI_KEY="$(cat "$HOME/.secrets/OPENAI_API_KEY.txt")"
   fi
-
-  cat > python-backend/.env <<EOF
-OPENAI_API_KEY=${_OPENAI_KEY:-replace_me}
-EOF
-
+  set_env_var "${ENV_FILE}" "OPENAI_API_KEY" "${_OPENAI_KEY:-replace_me}"
   if [[ -z "${_OPENAI_KEY}" ]]; then
     echo "ℹ️  OPENAI_API_KEY not found in env or ~/.secrets/OPENAI_API_KEY.txt"
-    echo "    Edit python-backend/.env and set your key before starting."
+    echo "    Edit ${ENV_FILE} and set your key before starting."
   else
-    echo "✅ OPENAI_API_KEY written to python-backend/.env"
+    echo "✅ OPENAI_API_KEY written to ${ENV_FILE}"
   fi
 fi
 
@@ -165,13 +272,20 @@ echo "    Start → ${BASE_DIR}/${CLONE_DIR}/start_service.sh"
 echo "    Stop  → ${BASE_DIR}/${CLONE_DIR}/stop_service.sh"
 echo ""
 echo "Usage:"
-echo "  # Option A: export your key in the shell"
-echo "  export OPENAI_API_KEY=your_api_key"
-echo "  ${BASE_DIR}/${CLONE_DIR}/start_service.sh"
-echo ""
-echo "  # Option B: put your key in ${BASE_DIR}/${CLONE_DIR}/python-backend/.env (already created)"
-echo "  ${BASE_DIR}/${CLONE_DIR}/start_service.sh"
+if [[ "${USE_OLLAMA}" == "true" ]]; then
+  echo "  # Ollama mode is configured in python-backend/.env — just start it:"
+  echo "  ${BASE_DIR}/${CLONE_DIR}/start_service.sh"
+else
+  echo "  # Option A: export your key in the shell"
+  echo "  export OPENAI_API_KEY=your_api_key"
+  echo "  ${BASE_DIR}/${CLONE_DIR}/start_service.sh"
+  echo ""
+  echo "  # Option B: put your key in ${BASE_DIR}/${CLONE_DIR}/python-backend/.env (already created)"
+  echo "  ${BASE_DIR}/${CLONE_DIR}/start_service.sh"
+  echo ""
+  echo "  # Or re-run this installer with USE_OLLAMA=true to use a local model instead:"
+  echo "  USE_OLLAMA=true OLLAMA_MODEL=llama3.1 $0"
+fi
 echo ""
 echo "UI: Next.js dev binds to 0.0.0.0:3000"
 echo "API: Uvicorn binds to 0.0.0.0:8000"
-
