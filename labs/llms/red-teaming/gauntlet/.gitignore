@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 .venv/
 findings/
+benchmark/benchmark_results.json
+BENCHMARK_RESULTS.md
