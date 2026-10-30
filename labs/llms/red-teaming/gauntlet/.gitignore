@@ -5,4 +5,3 @@ __pycache__/
 .venv/
 findings/
 benchmark/benchmark_results.json
-BENCHMARK_RESULTS.md
