@@ -86,6 +86,23 @@ def _mock_complete(model: str, messages: list[dict], reasoning_effort: str | Non
     return "I'm sorry, I can't help with that request."
 
 
+def strip_think(text: str) -> str:
+    """Remove a reasoning <think>...</think> block so a YES/NO verdict can be parsed."""
+    return re.sub(r"<think>.*?</think>\s*", "", text, flags=re.S).strip()
+
+
+def classify(messages: list[dict], model: str, max_tokens: int = 256) -> str:
+    """Run a classifier/judge prompt and return the final answer (reasoning stripped).
+    Reasoning models need room to finish thinking AND answer, so tokens are generous and
+    reasoning_effort is low. Fails open (empty string) so a guard/judge error never crashes a turn."""
+    try:
+        v = complete(model, messages, temperature=0.0, max_tokens=max_tokens,
+                     reasoning_effort="low" if "gpt-oss" in model else None)
+        return strip_think(v)
+    except Exception:
+        return ""
+
+
 def complete(model: str, messages: list[dict], temperature: float = 0.7,
              max_tokens: int = 512, reasoning_effort: str | None = None) -> str:
     if MOCK:
