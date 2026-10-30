@@ -46,9 +46,12 @@ log "=================================="
 FAILED=0
 WARNED=0
 
+# $3 (optional): "optional" — a tool that some labs do not need. When absent
+# it reports ℹ️ instead of ❌ so a trimmed/online lab does not look broken.
 check_tool() {
   local name="$1"
   local cmd="$2"
+  local mode="${3:-required}"
   if command -v "$cmd" &>/dev/null; then
     local version
     # `go` rejects --version ("flag provided but not defined"), and a few
@@ -59,6 +62,8 @@ check_tool() {
       version="$(timeout 20 "$cmd" --version 2>&1 </dev/null | head -n 1 || echo 'Unknown version')"
     fi
     log "✅ $name is installed: $version"
+  elif [[ "$mode" == "optional" ]]; then
+    log "ℹ️  $name not installed (optional)"
   else
     log "❌ $name is NOT installed"
     FAILED=$((FAILED+1))
@@ -69,10 +74,13 @@ check_tool() {
 # both before declaring one missing (Ubuntu 25.04 has no python3.10/3.12).
 check_python() {
   local ver="$1"
+  local mode="${2:-required}"
   if command -v "python${ver}" &>/dev/null; then
     log "✅ python${ver} (on PATH)"
   elif uv python find "${ver}" &>/dev/null; then
     log "✅ python${ver} (uv)"
+  elif [[ "$mode" == "optional" ]]; then
+    log "ℹ️  python${ver} not available (optional)"
   else
     log "❌ python${ver} is NOT available"
     FAILED=$((FAILED+1))
@@ -90,9 +98,11 @@ check_service() {
 }
 
 check_model() {
-  local label="$1" pattern="$2"
+  local label="$1" pattern="$2" mode="${3:-required}"
   if grep -q "$pattern" <<<"$OLLAMA_MODEL_LIST"; then
     log "✅ ollama model: $label"
+  elif [[ "$mode" == "optional" ]]; then
+    log "ℹ️  ollama model not installed (optional): $label"
   else
     log "❌ ollama model MISSING: $label"
     FAILED=$((FAILED+1))
@@ -191,25 +201,25 @@ check_tool "llm CLI" llm
 check_tool "Nmap" nmap
 check_tool "Metasploit" msfconsole
 check_tool "Ollama" ollama
-check_tool "Promptfoo" promptfoo
+check_tool "Promptfoo" promptfoo optional
 check_tool "Garak" garak
-check_tool "DTX" dtx
+check_tool "DTX" dtx optional
 check_tool "Amass" amass
 check_tool "Subfinder" subfinder
 check_tool "Nuclei" nuclei
-check_tool "AutogenStudio" autogenstudio
+check_tool "AutogenStudio" autogenstudio optional
 check_tool "httpx" httpx
 check_tool "jq" jq
-check_tool "git-lfs" git-lfs
+check_tool "git-lfs" git-lfs optional
 check_tool "HuggingFace CLI" hf
-check_tool "pyrit-cli" pyrit-cli
-check_tool "CAI framework" cai
+check_tool "pyrit-cli" pyrit-cli optional
+check_tool "CAI framework" cai optional
 
 # === Python interpreters ===
 log ""
 log "🐍 Validating Python interpreters..."
-check_python 3.10
-check_python 3.12
+check_python 3.10 optional
+check_python 3.12 optional
 check_python 3.13
 
 # === Services ===
@@ -231,10 +241,10 @@ else
   check_model "smollm2"                "^smollm2"
   check_model "qwen3:0.6b"             "^qwen3:0.6b"
   check_model "llama-guard3:1b-q3_K_S" "^llama-guard3:1b-q3_K_S"
-  check_model "llama3.1"               "^llama3.1"
-  check_model "SmolLM-135M-Jailbroken" "SmolLM-135M-Instruct-Jailbroken"
-  check_model "jailbroken-llama"       "^jailbroken-llama"
-  check_model "vulnerable-llama"       "^vulnerable-llama"
+  check_model "llama3.1"               "^llama3.1"                        optional
+  check_model "SmolLM-135M-Jailbroken" "SmolLM-135M-Instruct-Jailbroken" optional
+  check_model "jailbroken-llama"       "^jailbroken-llama"               optional
+  check_model "vulnerable-llama"       "^vulnerable-llama"               optional
 fi
 
 # === Repo submodules ===
@@ -247,8 +257,8 @@ for sub in PyRIT pyrit_cli; do
   if [[ -d "$SUB_DIR" ]] && [[ -n "$(ls -A "$SUB_DIR" 2>/dev/null)" ]]; then
     log "✅ submodule populated: $sub"
   else
-    log "❌ submodule EMPTY: $SUB_DIR — run: cd $HOME/labs/AISecWorkshops && git submodule update --init --recursive"
-    FAILED=$((FAILED+1))
+    # Optional: only the PyRIT labs need these. Not fatal for the online lab.
+    log "ℹ️  submodule not populated (optional): $sub — if you need the PyRIT labs, run: cd $HOME/labs/AISecWorkshops && git submodule update --init --recursive"
   fi
 done
 
@@ -256,7 +266,7 @@ done
 log ""
 log "🚀 Starting Docker labs..."
 
-if cd "$HOME/labs/pentagi"; then
+if cd "$HOME/labs/pentagi" 2>/dev/null; then
   log "$(docker compose up -d 2>&1)" && log "✅ Pentagi started" || log "❌ Pentagi failed"
 else
   log "ℹ️  PentAGI not installed; skipping (optional lab)."
@@ -284,22 +294,34 @@ fi
 log ""
 log "🚀 Starting Promptfoo and Autogen Studio (no tmux)..."
 
-promptfoo dev > /dev/null 2>&1 &
-PROMPTFOO_PID=$!
-sleep 1
-if ps -p $PROMPTFOO_PID > /dev/null 2>&1; then
-  log "✅ Promptfoo started with PID $PROMPTFOO_PID"
+# Both are optional web UIs — skip cleanly (ℹ️) if the tool was not installed.
+PROMPTFOO_PID=""
+AUTOGEN_PID=""
+
+if command -v promptfoo >/dev/null 2>&1; then
+  promptfoo dev > /dev/null 2>&1 &
+  PROMPTFOO_PID=$!
+  sleep 1
+  if ps -p "$PROMPTFOO_PID" > /dev/null 2>&1; then
+    log "✅ Promptfoo started with PID $PROMPTFOO_PID"
+  else
+    log "ℹ️  Promptfoo did not start (optional)"
+  fi
 else
-  log "❌ Promptfoo failed to start"
+  log "ℹ️  Promptfoo not installed (optional) — skipping."
 fi
 
-autogenstudio ui --port 18081 > /dev/null 2>&1 &
-AUTOGEN_PID=$!
-sleep 1
-if ps -p $AUTOGEN_PID > /dev/null 2>&1; then
-  log "✅ Autogen Studio started with PID $AUTOGEN_PID"
+if command -v autogenstudio >/dev/null 2>&1; then
+  autogenstudio ui --port 18081 > /dev/null 2>&1 &
+  AUTOGEN_PID=$!
+  sleep 1
+  if ps -p "$AUTOGEN_PID" > /dev/null 2>&1; then
+    log "✅ Autogen Studio started with PID $AUTOGEN_PID"
+  else
+    log "ℹ️  Autogen Studio did not start (optional)"
+  fi
 else
-  log "❌ Autogen Studio failed to start"
+  log "ℹ️  Autogen Studio not installed (optional) — skipping."
 fi
 
 
@@ -365,7 +387,7 @@ done
 log ""
 log "🛑 Stopping Docker labs..."
 
-if cd "$HOME/labs/pentagi"; then
+if cd "$HOME/labs/pentagi" 2>/dev/null; then
   log "$(docker compose down 2>&1)" && log "✅ Pentagi stopped"
 fi
 
@@ -377,16 +399,16 @@ fi
 log ""
 log "🛑 Stopping background web UIs..."
 
-if ps -p $PROMPTFOO_PID > /dev/null 2>&1; then
-  kill $PROMPTFOO_PID && log "✅ Promptfoo stopped (PID $PROMPTFOO_PID)"
+if [[ -n "${PROMPTFOO_PID:-}" ]] && ps -p "$PROMPTFOO_PID" > /dev/null 2>&1; then
+  kill "$PROMPTFOO_PID" && log "✅ Promptfoo stopped (PID $PROMPTFOO_PID)"
 else
-  log "⚠️ Promptfoo process not found."
+  log "ℹ️  Promptfoo not running (optional)."
 fi
 
-if ps -p $AUTOGEN_PID > /dev/null 2>&1; then
-  kill $AUTOGEN_PID && log "✅ Autogen Studio stopped (PID $AUTOGEN_PID)"
+if [[ -n "${AUTOGEN_PID:-}" ]] && ps -p "$AUTOGEN_PID" > /dev/null 2>&1; then
+  kill "$AUTOGEN_PID" && log "✅ Autogen Studio stopped (PID $AUTOGEN_PID)"
 else
-  log "⚠️ Autogen Studio process not found."
+  log "ℹ️  Autogen Studio not running (optional)."
 fi
 
 # === Done ===
