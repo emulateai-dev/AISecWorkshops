@@ -178,4 +178,8 @@ rm -rf "$TMPDIR"
 # ============================================================
 chown -R "$TARGET_USER:$TARGET_USER" "$TARGET_HOME/.aisecurity" 2>/dev/null || true
 echo "✅ Post-setup complete for $TARGET_USER"
+echo ""
+echo "➡️  OpenCode and other CLIs were added to your PATH via ~/.bashrc."
+echo "   Open a NEW terminal tab (or run: source ~/.bashrc) so they are found."
+echo "   If you see 'opencode: command not found', that refresh is all it needs."
 
