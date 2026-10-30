@@ -5,3 +5,4 @@ __pycache__/
 .venv/
 findings/
 benchmark/benchmark_results.json
+benchmark/results_per_technique.csv

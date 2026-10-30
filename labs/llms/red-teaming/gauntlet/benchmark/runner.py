@@ -104,7 +104,9 @@ def run(levels, k, tau, prune, max_tier):
                         min_turns = tts if min_turns is None else min(min_turns, tts)
                 rate = wins / k
                 results[ch][lvl][t["id"]] = {"tier": t["tier"], "score": t["auto_score"],
-                                             "rate": rate, "min_turns": min_turns, "skipped": False}
+                                             "rate": rate, "wins": wins, "trials": k,
+                                             "min_turns": min_turns, "skipped": False,
+                                             "category": t.get("category", ""), "turns": t.get("turns", 1)}
                 if rate >= tau:
                     r = complexity.rank(t["tier"])
                     solved_rank = r if solved_rank is None else min(solved_rank, r)
@@ -128,4 +130,5 @@ if __name__ == "__main__":
     json.dump(data, open(a.out, "w"), indent=1)
     print(f"\nTotal model trials: {data['meta']['total_trials']}  ->  {a.out}")
     import report
+    report.write_csv(data, str(HERE / "results_per_technique.csv"))
     report.render(data, str(HERE / "../BENCHMARK_RESULTS.md"))

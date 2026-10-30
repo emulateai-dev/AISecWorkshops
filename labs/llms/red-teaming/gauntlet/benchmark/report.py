@@ -19,6 +19,29 @@ def _msc(cell_techs, tau):
     return best
 
 
+def write_csv(data, out_path):
+    """Per-technique success/failure for every challenge x level x technique."""
+    import csv
+    res, meta = data["results"], data["meta"]
+    with open(out_path, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["challenge", "level", "technique", "tier", "category", "turns",
+                    "auto_score", "trials", "successes", "success_rate", "min_turns_to_solve", "solved"])
+        for ch in meta["challenges"]:
+            for lvl in meta["levels"]:
+                for tid, d in res[ch][lvl].items():
+                    if d.get("skipped"):
+                        w.writerow([ch, lvl, tid, d.get("tier", ""), "", "", d.get("score", ""),
+                                    0, 0, "", "", "skipped"])
+                        continue
+                    rate = d.get("rate", 0.0)
+                    w.writerow([ch, lvl, tid, d.get("tier", ""), d.get("category", ""), d.get("turns", 1),
+                                d.get("score", ""), d.get("trials", 0), d.get("wins", 0),
+                                f"{rate:.3f}", d.get("min_turns") or "",
+                                "yes" if rate >= meta["tau"] else "no"])
+    print(f"[csv] written to {out_path}")
+
+
 def render(data, out_path):
     meta, res = data["meta"], data["results"]
     levels, chs, tau = meta["levels"], meta["challenges"], meta["tau"]
