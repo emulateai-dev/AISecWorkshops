@@ -198,6 +198,7 @@ check_tool "Go" go
 check_tool "asdf" asdf
 check_tool "uv" uv
 check_tool "llm CLI" llm
+check_tool "OpenCode" opencode
 check_tool "Nmap" nmap
 check_tool "Metasploit" msfconsole
 check_tool "Ollama" ollama

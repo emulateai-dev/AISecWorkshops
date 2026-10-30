@@ -2,8 +2,11 @@
 set -euo pipefail
 
 # ============================================================
-# DTX Lab — Post setup (user tools, repos, models, keys)
-# Run with: sudo ./post.sh
+# DTX Lab - Tool Setup (AISecWorkshops online lab): user tools, repo, models, keys
+# Update on the VM:
+#   curl -fsSL https://raw.githubusercontent.com/emulateai-dev/AISecWorkshops/main_online/labs/setup/vm/Tool_Setup.sh -o ~/Tool_Setup.sh && chmod +x ~/Tool_Setup.sh
+# Run with:
+#   sudo ~/Tool_Setup.sh
 # ============================================================
 
 # --- Resolve target user/home (prefer sudo caller), fallback 'dtx' ---
@@ -53,6 +56,13 @@ sudo -u "$TARGET_USER" bash -lc '
   uv tool install "garak"
   uv tool install "huggingface_hub[cli,torch]"
 '
+
+# ============================================================
+# 2b) OpenCode (user-scope CLI for the agentic labs)
+# ============================================================
+sudo -u "$TARGET_USER" bash -lc 'curl -fsSL https://opencode.ai/v2/install | bash' \
+  && echo "✅ OpenCode installed" \
+  || echo "⚠️  OpenCode install failed (optional) — continuing."
 
 # ============================================================
 # 3) Ollama models (system-level, tolerate absence)
