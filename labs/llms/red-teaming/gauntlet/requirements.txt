@@ -1,0 +1,5 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+litellm==1.106.6
+pyyaml>=6.0.1
+# pydantic is pulled transitively by fastapi + litellm (>=2.9)

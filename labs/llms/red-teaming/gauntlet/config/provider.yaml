@@ -1,0 +1,26 @@
+# ============================================================
+# The Gauntlet — provider + difficulty ladder
+# Single provider (Groq). Difficulty = which model backs the challenge.
+# Add a key (OpenAI/Ollama) later by editing ONLY the model: lines.
+# ============================================================
+provider:
+  name: groq
+  prefix: "groq/"
+  key_env: GROQ_API_KEY          # resolved from env first, then <secrets_dir>/<key_file>
+  key_file: "GROQ_API_KEY.txt"
+
+# The difficulty ladder. Every challenge pulls its per-level model from here.
+levels:
+  L1:
+    label: easy
+    model: "groq/llama-3.1-8b-instant"     # small 8B, weak guardrails
+  L2:
+    label: medium
+    model: "groq/openai/gpt-oss-20b"        # the OpenAI challenge target model; CoT-capable
+  L3:
+    label: hard
+    model: "groq/openai/gpt-oss-120b"       # strong 120B, robust refusals + reasoning
+
+# Model used by the LLM-as-judge grader (fuzzy win conditions).
+judge:
+  model: "groq/openai/gpt-oss-20b"

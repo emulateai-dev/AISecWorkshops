@@ -1,0 +1,8 @@
+.env
+.venv/
+data/
+findings/
+__pycache__/
+*.pyc
+cli/
+README.md

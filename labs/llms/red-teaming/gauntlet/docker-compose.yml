@@ -1,0 +1,25 @@
+services:
+  gauntlet:
+    build: .
+    container_name: gauntlet
+    env_file: .env
+    ports:
+      - "${GAUNTLET_PORT:-8000}:8000"
+    volumes:
+      - ./data:/app/data                                  # sessions/findings persist
+      - ${SECRETS_DIR:-/home/dtx/.secrets}:/secrets:ro     # read keys the lab's way
+    restart: unless-stopped
+
+  # Optional local models. Enable with:  docker compose --profile local up -d
+  ollama:
+    image: ollama/ollama
+    container_name: gauntlet-ollama
+    profiles: ["local"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  ollama: {}
