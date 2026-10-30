@@ -7,6 +7,13 @@ Every playable challenge below was solved end to end against the engine (**6/6**
 grader). The prompts shown are representative of what works on a real `gpt-oss-20b`; the
 exact wording that lands will vary run to run — red teaming is iterative.
 
+> **Secrets are per-session and random** (`FLAG-XXXX-XXXX`, generated at session start,
+> never shown). The secret strings in older notes (`DTX{...}`) are gone — a solution
+> extracts *whatever this session's secret is*, it can't aim at a fixed string. The
+> grader is privileged (knows the secret, de-obfuscates reversed/base64/leet/hex, has an
+> LLM-judge fallback, and rejects a secret you paste yourself), and the L3+ guards are
+> **LLM classifiers** — so these techniques work at L1–L2 and must *evolve* to climb.
+
 **How difficulty scales (same model, every challenge):**
 `L1 naive → L2 aware (anti-injection) → L3 filtered (+input filter) → L4 guarded (+output
 scan) → L5 fortified (+moderation)`. Each rung defeats the previous technique and forces a

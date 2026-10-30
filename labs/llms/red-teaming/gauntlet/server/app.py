@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from engine import config, defenses, grader, llm
+from engine import secret as secretgen
 from engine.secrets import resolve_keys, readiness_table
 from server import store
 
@@ -99,7 +100,7 @@ def _run_turn(sid: str, message: str) -> dict:
     store.add_message(sid, "assistant", reply)
     attempts = store.bump_attempts(sid)
 
-    result = grader.grade(spec, reply, attempts)
+    result = grader.grade(spec, reply, message, attempts)
     if result["won"] and not was_solved:
         finding = {
             "schema": "gauntlet.finding/v1",
@@ -137,6 +138,7 @@ def new_session(body: NewSession):
     spec = _build_spec(body.challenge, overrides)
     if spec.get("agentic"):
         raise HTTPException(400, f"'{body.challenge}' is an agentic challenge — needs the tool-runtime (Phase 2).")
+    spec = secretgen.concretize(spec)   # per-session random secret substituted into system/brief
 
     model = config.the_model(overrides.get("model"))
     effort = overrides.get("reasoning_effort")

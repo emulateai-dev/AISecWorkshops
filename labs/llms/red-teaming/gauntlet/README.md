@@ -20,13 +20,31 @@ call — not from swapping models. Each rung forces a *new* technique:
 |-------|-------|-----------------|-----------|
 | **L1** | naive     | — | — |
 | **L2** | aware     | anti-injection | — |
-| **L3** | filtered  | + anti-encode | `input_filter` |
-| **L4** | guarded   | + anti-encode | `input_filter`, `output_scan` |
-| **L5** | fortified | + self-check | `input_filter`, `output_scan`, `moderation` |
+| **L3** | filtered  | + anti-encode | `input_filter`, **`input_guard`** |
+| **L4** | guarded   | + anti-encode | `+ output_scan`, **`output_guard`** |
+| **L5** | fortified | + self-check | `+ safety` (Llama-Guard, both sides) |
 
-Guardrails: `input_filter` (regex blocklist), `output_scan` (redacts the secret),
-`moderation` (an LLM classifier screens the prompt *and* the reply). All on one model —
-edit `config/provider.yaml` to add clauses or guards; no code change.
+Guardrails: `input_filter`/`output_scan` are cheap regex layers; **`input_guard`**
+(LLM injection classifier) and **`output_guard`** (LLM leak classifier) are real
+model-based guards; **`safety`** runs a content-safety model (Llama-Guard) on both sides.
+
+### What makes these *real* challenges (not keyword games)
+- **Per-session random secret** — each session's secret (`FLAG-XXXX-XXXX`) is generated
+  at start and never shown. You can't aim for a known string, share answers, or script a
+  canned payload; you must genuinely extract *this* session's secret.
+- **Privileged robust grader** — stronger than the output guard: it knows the secret and
+  checks for it in *any* form (reversed, rot13, leet, base64, hex, spelled), with an LLM
+  judge fallback, plus a provenance check so a secret you paste yourself doesn't count.
+  → no false positives, and encoded leaks are caught.
+- **LLM-based guards** — paraphrased attacks that beat a keyword filter still face an LLM
+  injection/leak classifier, so only genuine techniques pass the upper rungs.
+
+The **grader is deliberately stronger than the output guard**: a clever leak can beat the
+guard yet still be credited — that gap is where valid techniques live.
+
+**Guard model** (`config/provider.yaml → guards`) resolves by provider/availability:
+`classifier_model: auto` uses the challenge model; `safety_model: ollama/llama-guard3:1b`
+uses the local Llama-Guard pulled by `Tool_Setup.sh` (falls back to the classifier model).
 
 **Optional advanced dials** (per session, not the primary axis):
 - `overrides.model` — swap the brain for an extra-hard variant.
@@ -133,7 +151,7 @@ Novelty · Reproducibility · Methodological insight** — and exported as a
 ## Layout
 ```
 config/     provider.yaml (ladder) · challenges.yaml (roster)
-engine/     secrets · config · llm (litellm + mock) · defenses · grader
+engine/     secrets(keys) · secret(per-session) · config · llm(litellm+mock) · defenses(guards) · grader
 server/     app.py (FastAPI) · store.py (SQLite)
 ui/         index.html (web client)
 cli/        play.py (terminal client)

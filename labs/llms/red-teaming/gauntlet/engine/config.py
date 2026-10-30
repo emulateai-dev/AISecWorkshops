@@ -46,8 +46,21 @@ def default_effort(override: str | None = None) -> str | None:
     return eff if eff in EFFORTS else None
 
 
-def moderation_model() -> str:
-    return provider_config().get("moderation", {}).get("model", the_model())
+def guards_config() -> dict:
+    return provider_config().get("guards", {}) or {}
+
+
+def classifier_model() -> str:
+    """Model for the LLM guardrails + the privileged grader fallback.
+    Resolves by provider/availability: an explicit config value, else the challenge model."""
+    m = guards_config().get("classifier_model")
+    return the_model() if (not m or m == "auto") else m
+
+
+def safety_model() -> str:
+    """Content-safety model (e.g. Llama-Guard). Falls back to the classifier model."""
+    m = guards_config().get("safety_model")
+    return classifier_model() if (not m or m == "auto") else m
 
 
 def hardening_clauses() -> dict:
