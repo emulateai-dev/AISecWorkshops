@@ -50,10 +50,11 @@
   </aside>
   <main>
     <div class="bar">
-      <label>Level
-        <select id="level"><option value="L1">L1 · easy</option><option value="L2">L2 · medium</option><option value="L3">L3 · hard</option></select>
+      <label>Level <select id="level"></select></label>
+      <label>🧠 Thinking
+        <select id="think"><option value="">default</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select>
       </label>
-      <input id="sid" placeholder="session id (optional)" style="width:200px">
+      <input id="sid" placeholder="session id (optional)" style="width:180px">
       <button id="start">New Session</button>
       <span class="pill" id="state"></span>
       <button class="ghost" id="export" style="display:none">Export finding.json</button>
@@ -100,12 +101,14 @@ async function loadGallery(){
 document.getElementById('start').onclick=async()=>{
   if(!picked){alert('Pick a challenge first');return;}
   const body={challenge:picked.id, level:document.getElementById('level').value};
+  const think=document.getElementById('think').value; if(think) body.overrides={reasoning_effort:think};
   const sid=document.getElementById('sid').value.trim(); if(sid) body.session_id=sid;
   try{
     session=await api('/sessions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   }catch(e){alert('Error: '+(e.detail||JSON.stringify(e)));return;}
   document.getElementById('log').innerHTML='';
-  render('sys',`Session ${session.session_id} · ${session.badge} ${session.challenge} · ${session.level} · ${session.model}`);
+  render('sys',`Session ${session.session_id} · ${session.badge} ${session.challenge} · ${session.level} (${session.level_label||''}) · 🧠 ${session.reasoning_effort||'default'} · ${session.model.replace('groq/','')}`);
+  render('sys', (session.guards&&session.guards.length)?('🛡️ Guards: '+session.guards.join(', ')):'🛡️ Guards: none');
   render('sys','Goal: '+session.brief);
   document.getElementById('state').textContent='● live';
   document.getElementById('export').style.display='none';
@@ -137,9 +140,15 @@ document.getElementById('export').onclick=async()=>{
   a.download=`finding_${session.challenge}_${session.level}.json`; a.click();
 };
 
-(async()=>{ await loadGallery();
-  try{document.getElementById('mode').textContent='ready';}catch(e){}
-})();
+async function loadLevels(){
+  const d=await api('/levels');
+  const sel=document.getElementById('level'); sel.innerHTML='';
+  d.ladder.forEach(l=>{ const o=document.createElement('option'); o.value=l.level;
+    const g=l.guards.length?(' · '+l.guards.join('+')):' · no guards';
+    o.textContent=`${l.level} · ${l.label}${g}`; sel.appendChild(o); });
+  try{document.getElementById('mode').textContent='model: '+d.model.replace('groq/','');}catch(e){}
+}
+(async()=>{ await loadGallery(); await loadLevels(); })();
 </script>
 </body>
 </html>

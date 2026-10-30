@@ -32,7 +32,8 @@ def _req(method: str, path: str, body: dict | None = None) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--challenge")
-    ap.add_argument("--level", default=None)
+    ap.add_argument("--level", default=None, help="L1..L5 (naive..fortified)")
+    ap.add_argument("--think", default=None, choices=["low", "medium", "high"], help="reasoning_effort override")
     ap.add_argument("--session", default=None)
     ap.add_argument("--list", action="store_true")
     a = ap.parse_args()
@@ -48,11 +49,15 @@ def main() -> None:
     body = {"challenge": a.challenge}
     if a.level:
         body["level"] = a.level
+    if a.think:
+        body["overrides"] = {"reasoning_effort": a.think}
     if a.session:
         body["session_id"] = a.session
     s = _req("POST", "/sessions", body)
 
-    print(f"\n  {s['badge']} {s['challenge'].upper()}  ·  level {s['level']} ({s['model']})")
+    guards = ", ".join(s.get("guards") or []) or "none"
+    print(f"\n  {s['badge']} {s['challenge'].upper()}  ·  {s['level']} ({s.get('level_label')})  ·  🧠 {s.get('reasoning_effort') or 'default'}")
+    print(f"  model: {s['model']}   guards: {guards}")
     print(f"  Session: {s['session_id']}")
     print(f"  Goal: {s['brief']}")
     print("  Type prompts. Ctrl-D to quit.\n")

@@ -69,25 +69,19 @@ def _build_spec(challenge_id: str, overrides: dict) -> dict:
     return spec
 
 
-def _resolve_model(challenge_id: str, level: str, overrides: dict) -> str:
-    if overrides.get("model"):
-        return overrides["model"]
-    if challenge_id != "custom":
-        return config.model_for(challenge_id, level)
-    return config.levels()[level]["model"]
-
-
 def _run_turn(sid: str, message: str) -> dict:
     sess = store.get_session(sid)
     if not sess:
         raise HTTPException(404, f"no such session: {sid}")
     spec, model, level = sess["spec"], sess["model"], sess["level"]
+    effort = sess.get("reasoning_effort")
     was_solved = sess["solved"]
-    defs = defenses.defenses_for(spec, level)
+    lvl = config.level_spec(level)
+    guards = defenses.guards_for(lvl)
 
-    # input defense
+    # input guardrails
     try:
-        defenses.apply_input(message, defs)
+        defenses.apply_input(message, guards)
     except defenses.Blocked as b:
         store.add_message(sid, "user", message)
         store.add_message(sid, "assistant", str(b))
@@ -96,9 +90,10 @@ def _run_turn(sid: str, message: str) -> dict:
                 "score": None, "total": 0, "already_solved": was_solved}
 
     history = store.get_messages(sid)
-    msgs = [{"role": "system", "content": spec["system"]}] + history + [{"role": "user", "content": message}]
-    raw = llm.complete(model, msgs)
-    reply = defenses.apply_output(raw, defs, spec.get("secret"))
+    system = config.effective_system(spec["system"], level)   # base + hardening clauses
+    msgs = [{"role": "system", "content": system}] + history + [{"role": "user", "content": message}]
+    raw = llm.complete(model, msgs, reasoning_effort=effort)
+    reply, _mod_blocked = defenses.apply_output(raw, guards, spec.get("secret"))
 
     store.add_message(sid, "user", message)
     store.add_message(sid, "assistant", reply)
@@ -125,6 +120,11 @@ def challenges():
     return [config.public_view(cid) for cid in config.challenges()]
 
 
+@app.get("/levels")
+def levels():
+    return {"model": config.the_model(), "efforts": list(config.EFFORTS), "ladder": config.levels_view()}
+
+
 @app.post("/sessions")
 def new_session(body: NewSession):
     overrides = body.overrides or {}
@@ -137,16 +137,23 @@ def new_session(body: NewSession):
     spec = _build_spec(body.challenge, overrides)
     if spec.get("agentic"):
         raise HTTPException(400, f"'{body.challenge}' is an agentic challenge — needs the tool-runtime (Phase 2).")
-    model = _resolve_model(body.challenge, level, overrides)
+
+    model = config.the_model(overrides.get("model"))
+    effort = overrides.get("reasoning_effort")
+    if effort is not None and effort not in config.EFFORTS:
+        raise HTTPException(400, f"reasoning_effort must be one of {config.EFFORTS}")
+    effort = config.default_effort(effort)
 
     sid = body.session_id or f"s-{uuid.uuid4().hex[:8]}"
     if store.session_exists(sid):
         raise HTTPException(409, f"session id already exists: {sid}")
-    store.create_session(sid, body.challenge, level, model, spec)
+    store.create_session(sid, body.challenge, level, model, spec, reasoning_effort=effort)
 
+    lv = config.level_spec(level)
     badge = {"easy": "🟢", "medium": "🟡", "hard": "🔴"}.get(spec.get("difficulty"), "⚪")
     return {"session_id": sid, "challenge": body.challenge, "level": level,
-            "model": model, "badge": badge, "brief": spec.get("brief")}
+            "level_label": lv.get("label"), "guards": lv.get("guards", []),
+            "model": model, "reasoning_effort": effort, "badge": badge, "brief": spec.get("brief")}
 
 
 @app.get("/sessions/{sid}")
@@ -155,7 +162,8 @@ def get_session(sid: str):
     if not sess:
         raise HTTPException(404, f"no such session: {sid}")
     return {"session_id": sid, "challenge": sess["challenge"], "level": sess["level"],
-            "model": sess["model"], "solved": sess["solved"], "attempts": sess["attempts"],
+            "model": sess["model"], "reasoning_effort": sess.get("reasoning_effort"),
+            "solved": sess["solved"], "attempts": sess["attempts"],
             "score": sess["score"], "brief": sess["spec"].get("brief")}
 
 

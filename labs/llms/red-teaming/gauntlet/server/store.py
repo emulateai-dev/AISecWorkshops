@@ -22,7 +22,7 @@ def init() -> None:
             """
             CREATE TABLE IF NOT EXISTS sessions (
                 id TEXT PRIMARY KEY,
-                challenge TEXT, level TEXT, model TEXT,
+                challenge TEXT, level TEXT, model TEXT, reasoning_effort TEXT,
                 spec TEXT,                 -- frozen effective challenge spec (json)
                 created REAL, solved INTEGER DEFAULT 0,
                 attempts INTEGER DEFAULT 0, score TEXT
@@ -37,11 +37,13 @@ def init() -> None:
         )
 
 
-def create_session(sid: str, challenge: str, level: str, model: str, spec: dict) -> None:
+def create_session(sid: str, challenge: str, level: str, model: str, spec: dict,
+                   reasoning_effort: str | None = None) -> None:
     with _conn() as c:
         c.execute(
-            "INSERT INTO sessions (id, challenge, level, model, spec, created) VALUES (?,?,?,?,?,?)",
-            (sid, challenge, level, model, json.dumps(spec), time.time()),
+            "INSERT INTO sessions (id, challenge, level, model, reasoning_effort, spec, created) "
+            "VALUES (?,?,?,?,?,?,?)",
+            (sid, challenge, level, model, reasoning_effort, json.dumps(spec), time.time()),
         )
 
 
