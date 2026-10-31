@@ -69,8 +69,13 @@ sudo -u "$TARGET_USER" bash -lc 'curl -fsSL https://opencode.ai/v2/install | bas
 # ============================================================
 # Start/enable service if present (don’t fail hard on minimal envs)
 curl -fsSL https://ollama.com/install.sh | sh
-systemctl enable ollama >/dev/null 2>&1 || true
-systemctl start  ollama >/dev/null 2>&1 || true
+# Listen on all interfaces (not just 127.0.0.1) so Dockerized labs (e.g. The Gauntlet)
+# can reach Ollama via host.docker.internal.
+mkdir -p /etc/systemd/system/ollama.service.d
+printf '[Service]\nEnvironment="OLLAMA_HOST=0.0.0.0"\n' > /etc/systemd/system/ollama.service.d/override.conf
+systemctl daemon-reload >/dev/null 2>&1 || true
+systemctl enable  ollama >/dev/null 2>&1 || true
+systemctl restart ollama >/dev/null 2>&1 || systemctl start ollama >/dev/null 2>&1 || true
 
 # Pull models (ignore failures if ollama/daemon not present yet)
 ollama pull smollm2                 || true
