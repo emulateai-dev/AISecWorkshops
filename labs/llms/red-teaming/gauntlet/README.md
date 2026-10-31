@@ -20,18 +20,22 @@ call — not from swapping models. Each rung forces a *new* technique:
 |-------|-------|-----------------|-----------|
 | **L1** | naive     | — | — |
 | **L2** | aware     | anti-injection | — |
-| **L3** | filtered  | + anti-encode | `input_filter`, **`input_guard`** |
-| **L4** | guarded   | + anti-encode | `+ output_scan`, **`output_guard`** |
-| **L5** | fortified | + self-check | `+ safety` (Llama-Guard, both sides) |
+| **L3** | filtered  | + anti-encode | `input_filter`, **`input_guard`**, `mask` |
+| **L4** | guarded   | + anti-encode | `+ output_scan`, **`output_guard`**, `mask` |
+| **L5** | fortified | + self-check | `+ safety` (Llama-Guard, both sides), `mask` |
 
 Guardrails: `input_filter`/`output_scan` are cheap regex layers; **`input_guard`**
 (LLM injection classifier) and **`output_guard`** (LLM leak classifier) are real
-model-based guards; **`safety`** runs a content-safety model (Llama-Guard) on both sides.
+model-based guards; **`safety`** runs a content-safety model (Llama-Guard) on both sides;
+**`mask`** redacts challenge-declared literals (e.g. `the-grader`'s per-session passphrase)
+from the output — including the reasoning trace — so leaked non-token values can't be replayed.
 
 ### What makes these *real* challenges (not keyword games)
 - **Per-session random secret** — each session's secret (`FLAG-XXXX-XXXX`) is generated
   at start and never shown. You can't aim for a known string, share answers, or script a
-  canned payload; you must genuinely extract *this* session's secret.
+  canned payload; you must genuinely extract *this* session's secret. Challenges with a gate
+  (e.g. `the-grader`) also get a **per-session random passphrase**, so a passphrase discovered
+  in one session is useless in the next.
 - **Privileged robust grader** — stronger than the output guard: it knows the secret and
   checks for it in *any* form (reversed, rot13, leet, base64, hex, spelled), with an LLM
   judge fallback, plus a provenance check so a secret you paste yourself doesn't count.

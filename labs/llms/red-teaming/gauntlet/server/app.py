@@ -54,7 +54,7 @@ class ChatIn(BaseModel):
 
 
 # ----------------------------- helpers -----------------------------
-_OVERRIDE_KEYS = ("system", "secret", "win", "expect", "judge_prompt", "brief", "defenses", "score", "topic", "difficulty")
+_OVERRIDE_KEYS = ("system", "secret", "win", "expect", "judge_prompt", "brief", "defenses", "score", "topic", "difficulty", "mask")
 
 
 def _build_spec(challenge_id: str, overrides: dict) -> dict:
@@ -94,7 +94,7 @@ def _run_turn(sid: str, message: str) -> dict:
     system = config.effective_system(spec["system"], level)   # base + hardening clauses
     msgs = [{"role": "system", "content": system}] + history + [{"role": "user", "content": message}]
     raw = llm.complete(model, msgs, reasoning_effort=effort)
-    reply, _mod_blocked = defenses.apply_output(raw, guards, spec.get("secret"))
+    reply, _mod_blocked = defenses.apply_output(raw, guards, spec.get("secret"), spec.get("mask"))
 
     store.add_message(sid, "user", message)
     store.add_message(sid, "assistant", reply)

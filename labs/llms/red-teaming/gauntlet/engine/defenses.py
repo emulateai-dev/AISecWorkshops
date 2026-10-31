@@ -6,6 +6,7 @@ still be credited. That gap is where valid techniques live.
 
   input_filter : regex blocklist on the prompt (cheap pre-screen)        -> Blocked
   input_guard  : LLM injection/jailbreak classifier on the prompt         -> Blocked
+  mask         : redact configured literals (e.g. the-grader passphrase) from the reply
   output_scan  : regex redaction of the secret in the reply (cheap)
   output_guard : LLM leak classifier on the reply (no knowledge of secret) -> refusal
   safety       : Llama-Guard content-safety on prompt AND reply           -> Blocked/refusal
@@ -74,9 +75,14 @@ def apply_input(prompt: str, guards: list[str]) -> None:
         raise Blocked("🛡️ Llama-Guard flagged your prompt as unsafe.")
 
 
-def apply_output(reply: str, guards: list[str], secret: str | None) -> tuple[str, bool]:
-    """Returns (reply_to_show, blocked)."""
+def apply_output(reply: str, guards: list[str], secret: str | None,
+                 mask: list[str] | None = None) -> tuple[str, bool]:
+    """Returns (reply_to_show, blocked). `mask` = literals to redact (never the token)."""
     out = reply
+    if "mask" in guards and mask:
+        for m in mask:
+            if m and m != secret:   # never mask the graded token — that would break grading
+                out = re.sub(re.escape(m), "🛡️[MASKED]", out, flags=re.I)
     if "output_scan" in guards and secret and secret in out:
         out = out.replace(secret, "🛡️[REDACTED BY OUTPUT GUARD]")
     if "output_guard" in guards and _leak_classify(out):
