@@ -101,5 +101,5 @@ def get_finding(sid: str) -> dict | None:
 def list_sessions() -> list[dict]:
     with _conn() as c:
         rows = c.execute("SELECT id, challenge, level, model, attempts, solved, created "
-                         "FROM sessions ORDER BY created DESC").fetchall()
+                         "FROM sessions ORDER BY created DESC LIMIT 100").fetchall()
         return [dict(r) | {"solved": bool(r["solved"])} for r in rows]
