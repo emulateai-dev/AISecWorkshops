@@ -69,10 +69,16 @@ uses the local Llama-Guard pulled by `Tool_Setup.sh` (falls back to the classifi
 ## Run it (Docker)
 
 ```bash
-cp .env.template .env          # add GROQ_API_KEY, or set SECRETS_DIR to your ~/.secrets
+./setup.sh                     # build .env from ~/.secrets (or tell you to add a key)
 ./start.sh                     # → http://localhost:8000
 ./stop.sh
 ```
+
+`setup.sh` reads your provider key from `~/.secrets` (or `$SECRETS_DIR`) — it looks for
+`GROQ_API_KEY.txt` (also `OPENAI_API_KEY.txt`, `ANTHROPIC_API_KEY.txt`) and inlines it
+into `.env` (key values are never printed). If no key is found it still creates `.env`
+and prints how to pick a provider and add a key. It never overwrites an existing `.env`.
+To set it up by hand instead: `cp .env.template .env` and add `GROQ_API_KEY`.
 
 ### Run it (no Docker, dev)
 ```bash
