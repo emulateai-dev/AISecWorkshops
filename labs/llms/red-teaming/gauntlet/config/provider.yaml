@@ -88,8 +88,8 @@ level_models:
 levels:
   L1: { label: naive,      soften: [s_open],      harden: [],                                       guards: [] }
   L2: { label: aware,      soften: [s_authority], harden: [anti_injection],                         guards: [] }
-  L3: { label: filtered,   soften: [s_roleplay],  harden: [anti_injection, anti_encode],            guards: [input_filter, input_guard] }
-  L4: { label: guarded,    soften: [s_obfusc],    harden: [anti_injection, anti_encode],            guards: [input_filter, input_guard, output_scan, output_guard] }
+  L3: { label: filtered,   soften: [s_roleplay],  harden: [anti_injection, anti_encode],            guards: [input_filter] }
+  L4: { label: guarded,    soften: [s_obfusc],    harden: [anti_injection, anti_encode],            guards: [input_filter, output_scan, output_guard] }
   L5: { label: unsolvable, soften: [],            harden: [anti_injection, anti_encode, self_check], guards: [input_filter, input_guard, output_scan, output_guard, safety] }
 
 # Reasoning-trace masking is an ALWAYS-ON baseline (every level, every challenge except
