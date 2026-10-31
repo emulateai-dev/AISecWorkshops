@@ -111,14 +111,25 @@ def hardening_clauses() -> dict:
     return provider_config().get("hardening", {})
 
 
+def vuln_clauses() -> dict:
+    return provider_config().get("vuln", {})
+
+
 def effective_system(base_system: str, level: str) -> str:
-    """Base system prompt + the hardening clauses this level stacks on."""
+    """Base system prompt + this level's soft-corner (vuln) clause and/or hardening clauses.
+    L1-L4 each append one realistic soft corner (solvable by a specific technique); L5 appends
+    the hardening clauses and no soft corner (the hard wall)."""
     lv = level_spec(level)
-    hard = hardening_clauses()
-    hp = [hard[n].strip() for n in lv.get("harden", []) if n in hard]
-    if not hp:
+    parts = []
+    v = lv.get("vuln")
+    if v and v in vuln_clauses():
+        parts.append(vuln_clauses()[v].strip())
+    for n in lv.get("harden", []):
+        if n in hardening_clauses():
+            parts.append(hardening_clauses()[n].strip())
+    if not parts:
         return base_system.rstrip()
-    return base_system.rstrip() + "\n\n" + "\n".join(f"- {c}" for c in hp)
+    return base_system.rstrip() + "\n\n" + "\n".join(f"- {c}" for c in parts)
 
 
 def providers_view() -> dict:
