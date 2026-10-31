@@ -21,7 +21,7 @@ from pydantic import BaseModel
 
 from engine import config, defenses, grader, llm
 from engine import secret as secretgen
-from engine.secrets import resolve_keys, readiness_table
+from engine.secrets import resolve_providers, readiness_table
 from server import store
 
 APP_DIR = Path(__file__).resolve().parent.parent
@@ -34,11 +34,12 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 @app.on_event("startup")
 def _startup() -> None:
     store.init()
-    pc = config.provider_config()["provider"]
-    readiness = resolve_keys(pc)
+    readiness = resolve_providers(config.providers())
     mode = "MOCK (offline)" if llm.MOCK else "LIVE"
-    print(f"\n🏰 The Gauntlet — provider: {pc['name']}  mode: {mode}")
-    print("Key readiness:\n" + readiness_table(readiness) + "\n")
+    print(f"\n🏰 The Gauntlet — mode: {mode}")
+    print(f"   profile (models): {config.active_profile_name()}   |   provider (guards): {config.active_provider_name()}")
+    print("   per-level target models: " + ", ".join(f"{l}={config.the_model(level=l)}" for l in config.levels()))
+    print("Provider key readiness:\n" + readiness_table(readiness) + "\n")
 
 
 # ----------------------------- models -----------------------------

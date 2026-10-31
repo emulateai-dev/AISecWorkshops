@@ -12,6 +12,35 @@ import os
 from pathlib import Path
 
 
+def resolve_providers(providers: dict, secrets_dir: str | None = None) -> dict:
+    """Load keys + API bases for EVERY configured provider so any model id works.
+    Returns a readiness map {provider: present?}. Values are never printed."""
+    secrets_dir = secrets_dir or os.environ.get("SECRETS_DIR") or "/secrets"
+    base = Path(os.path.expanduser(secrets_dir))
+    readiness: dict[str, bool] = {}
+    for name, cfg in (providers or {}).items():
+        # API base (e.g. OLLAMA_API_BASE) — set from config unless already in the env
+        ab_env, ab = cfg.get("api_base_env"), cfg.get("api_base")
+        if ab_env and ab and not os.environ.get(ab_env):
+            os.environ[ab_env] = ab
+        env, key_file = cfg.get("key_env"), cfg.get("key_file")
+        if not env:                       # no key needed (local ollama)
+            readiness[name] = True
+            continue
+        if os.environ.get(env):
+            readiness[name] = True
+            continue
+        cand = base / key_file if key_file else None
+        if cand and cand.is_file():
+            val = cand.read_text(encoding="utf-8").strip()
+            if val:
+                os.environ[env] = val
+                readiness[name] = True
+                continue
+        readiness[name] = False
+    return readiness
+
+
 def resolve_keys(provider_cfg: dict, secrets_dir: str | None = None) -> dict:
     """Populate env vars from secret files when absent. Return a readiness map."""
     secrets_dir = secrets_dir or os.environ.get("SECRETS_DIR") or "/secrets"

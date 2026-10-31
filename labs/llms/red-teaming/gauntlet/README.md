@@ -12,11 +12,20 @@ is a draft competition finding.
 
 ## Difficulty = target model + prompt hardening + guardrails
 
-Difficulty stacks on three axes: the **target model**, **hardening clauses**, and
-**guardrails**. L1–L4 use an *easy, jailbreakable* model so learners get real wins and
-practise the techniques; **L5 is the "unsolvable" final boss** — the robust **`gpt-oss-20b`**
-competition target with every hardening clause and every guard. Models are provider-aware
-(`models: {groq: …, ollama: …}` in `provider.yaml`); the Groq ids are shown below.
+Difficulty stacks on four axes: the **target model**, a **soft-corner exception**, **hardening
+clauses**, and **guardrails**. L1–L4 use an *easy, jailbreakable* model (a weak local Ollama
+model) **plus a graduated soft corner** so learners get real wins and practise the technique;
+**L5 is the "unsolvable" final boss** — the robust **`gpt-oss-20b`** target, no soft corner,
+every hardening clause and every guard.
+
+**Providers & profiles.** The lab supports **ollama (local), ollama_cloud, groq, openai**;
+keys/bases for all configured providers load at startup, so a level may target *any* of them.
+Two selectors in `provider.yaml` (env-overridable):
+`active_models` / `GAUNTLET_PROFILE` picks the per-level model table (`mixed`, `ollama`, `groq`,
+`openai`, `ollama_cloud`), and `active_provider` / `GAUNTLET_PROVIDER` picks the provider that
+supplies the guard/grader models. The default **`mixed`** profile = weak local Ollama for L1–L4
++ Groq `gpt-oss-20b` at L5. (Groq's own models are too aligned to honour a soft corner, so a
+pure-Groq profile makes L1–L4 harder — use `ollama` or `mixed` for a real easy tier.)
 
 | Level | Label | Target model (Groq) | Hardening added | Guardrails |
 |-------|-------|--------------|-----------------|-----------|

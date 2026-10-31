@@ -46,26 +46,49 @@ def level_spec(level: str) -> dict:
     return lv
 
 
+# ---------------- providers ----------------
+def providers() -> dict:
+    return provider_config().get("providers", {}) or {}
+
+
+def active_provider_name() -> str:
+    """Which provider supplies the guard/grader models + default (env overridable)."""
+    return os.environ.get("GAUNTLET_PROVIDER") or provider_config().get("active_provider") or "groq"
+
+
+def active_provider() -> dict:
+    return providers().get(active_provider_name(), {})
+
+
+def active_profile_name() -> str:
+    """Which per-level model table to use (env overridable)."""
+    return os.environ.get("GAUNTLET_PROFILE") or provider_config().get("active_models") or active_provider_name()
+
+
+def level_models() -> dict:
+    """The active profile's {level: model} table."""
+    return provider_config().get("level_models", {}).get(active_profile_name(), {})
+
+
+def provider_default_model() -> str:
+    ap = active_provider()
+    return ap.get("default_model") or provider_config().get("model") or "groq/openai/gpt-oss-20b"
+
+
 def the_model(override: str | None = None, level: str | None = None) -> str:
     """Resolve the target model:
-      per-session override  >  per-level model (provider-aware)  >  provider default.
-    A level may set `model:` (single) or `models: {<provider>: <id>}` (per provider)."""
+      per-session override  >  active profile's per-level model  >  active provider default."""
     if override:
         return override
     if level:
-        lv = levels().get(level, {})
-        models = lv.get("models")
-        if isinstance(models, dict):
-            pname = provider_config()["provider"].get("name")
-            if models.get(pname):
-                return models[pname]
-        if lv.get("model"):
-            return lv["model"]
-    return provider_config()["provider"]["model"]
+        m = level_models().get(level)
+        if m:
+            return m
+    return provider_default_model()
 
 
 def default_effort(override: str | None = None) -> str | None:
-    eff = override or provider_config()["provider"].get("reasoning_effort")
+    eff = override or provider_config().get("reasoning_effort")
     return eff if eff in EFFORTS else None
 
 
@@ -75,15 +98,21 @@ def guards_config() -> dict:
 
 def classifier_model() -> str:
     """Model for the LLM guardrails + the privileged grader fallback.
-    Resolves by provider/availability: an explicit config value, else the challenge model."""
+    'auto' (or unset) resolves to the active provider's classifier_model, else its default."""
     m = guards_config().get("classifier_model")
-    return the_model() if (not m or m == "auto") else m
+    if m and m != "auto":
+        return m
+    ap = active_provider()
+    return ap.get("classifier_model") or provider_default_model()
 
 
 def safety_model() -> str:
-    """Content-safety model (e.g. Llama-Guard). Falls back to the classifier model."""
+    """Content-safety model. 'auto' resolves to the active provider's safety_model, else classifier."""
     m = guards_config().get("safety_model")
-    return classifier_model() if (not m or m == "auto") else m
+    if m and m != "auto":
+        return m
+    ap = active_provider()
+    return ap.get("safety_model") or classifier_model()
 
 
 def hardening_clauses() -> dict:
