@@ -60,31 +60,16 @@ def active_provider() -> dict:
     return providers().get(active_provider_name(), {})
 
 
-def active_profile_name() -> str:
-    """Which per-level model table to use (env overridable)."""
-    return os.environ.get("GAUNTLET_PROFILE") or provider_config().get("active_models") or active_provider_name()
-
-
-def level_models() -> dict:
-    """The active profile's {level: model} table."""
-    return provider_config().get("level_models", {}).get(active_profile_name(), {})
-
-
 def provider_default_model() -> str:
     ap = active_provider()
-    return ap.get("default_model") or provider_config().get("model") or "groq/openai/gpt-oss-20b"
+    return ap.get("model") or provider_config().get("model") or "groq/openai/gpt-oss-20b"
 
 
 def the_model(override: str | None = None, level: str | None = None) -> str:
-    """Resolve the target model:
-      per-session override  >  active profile's per-level model  >  active provider default."""
-    if override:
-        return override
-    if level:
-        m = level_models().get(level)
-        if m:
-            return m
-    return provider_default_model()
+    """The target model: per-session override, else the active provider's model.
+    ONE model runs every level (difficulty comes from hardening + guards), so `level`
+    is accepted for backward compatibility but ignored."""
+    return override or provider_default_model()
 
 
 def target_temperature() -> float:
@@ -126,25 +111,25 @@ def hardening_clauses() -> dict:
     return provider_config().get("hardening", {})
 
 
-def softening_clauses() -> dict:
-    return provider_config().get("softening", {})
-
-
 def effective_system(base_system: str, level: str) -> str:
-    """Base system prompt + this level's hardening clauses + its soft-corner clauses.
-    Soft corners come LAST (the model weights later instructions) — they are the intended,
-    graduated gap that makes the challenge solvable with a technique (none at L5)."""
+    """Base system prompt + the hardening clauses this level stacks on."""
     lv = level_spec(level)
     hard = hardening_clauses()
-    soft = softening_clauses()
     hp = [hard[n].strip() for n in lv.get("harden", []) if n in hard]
-    sp = [soft[n].strip() for n in lv.get("soften", []) if n in soft]
-    parts = [base_system.rstrip()]
-    if hp:
-        parts.append("\n".join(f"- {c}" for c in hp))
-    if sp:
-        parts.append("\n".join(sp))
-    return "\n\n".join(parts)
+    if not hp:
+        return base_system.rstrip()
+    return base_system.rstrip() + "\n\n" + "\n".join(f"- {c}" for c in hp)
+
+
+def providers_view() -> dict:
+    """Available providers + their model + readiness, for the UI/API model picker."""
+    out = []
+    for name, cfg in providers().items():
+        key_env = cfg.get("key_env")
+        ready = (not key_env) or bool(os.environ.get(key_env))   # local ollama needs no key
+        out.append({"provider": name, "model": cfg.get("model"), "ready": ready,
+                    "needs_key": bool(key_env)})
+    return {"active": active_provider_name(), "default_model": provider_default_model(), "providers": out}
 
 
 def default_level(challenge_id: str) -> str:

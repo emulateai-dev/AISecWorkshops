@@ -37,8 +37,8 @@ def _startup() -> None:
     readiness = resolve_providers(config.providers())
     mode = "MOCK (offline)" if llm.MOCK else "LIVE"
     print(f"\n🏰 The Gauntlet — mode: {mode}")
-    print(f"   profile (models): {config.active_profile_name()}   |   provider (guards): {config.active_provider_name()}")
-    print("   per-level target models: " + ", ".join(f"{l}={config.the_model(level=l)}" for l in config.levels()))
+    print(f"   active provider: {config.active_provider_name()}   |   model (all levels): {config.the_model()}")
+    print("   (difficulty = hardening + guards per level; pick a weaker model for an easier run)")
     print("Provider key readiness:\n" + readiness_table(readiness) + "\n")
 
 
@@ -135,6 +135,13 @@ def challenge_info(challenge_id: str):
 @app.get("/levels")
 def levels():
     return {"model": config.the_model(), "efforts": list(config.EFFORTS), "ladder": config.levels_view()}
+
+
+@app.get("/providers")
+def providers():
+    """Available providers + models + readiness, for the UI/API model picker.
+    Pick one per session via POST /sessions overrides.model = "<provider-prefixed model id>"."""
+    return config.providers_view()
 
 
 @app.post("/sessions")

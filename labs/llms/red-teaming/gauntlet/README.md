@@ -10,22 +10,29 @@ is a draft competition finding.
 
 ---
 
-## Difficulty = target model + prompt hardening + guardrails
+## Difficulty = your model + prompt hardening + guardrails
 
-Difficulty stacks on four axes: the **target model**, a **soft-corner exception**, **hardening
-clauses**, and **guardrails**. L1–L4 use an *easy, jailbreakable* model (a weak local Ollama
-model) **plus a graduated soft corner** so learners get real wins and practise the technique;
-**L5 is the "unsolvable" final boss** — the robust **`gpt-oss-20b`** target, no soft corner,
-every hardening clause and every guard.
+**One model runs every level.** Difficulty comes from the **system prompt** (stacked hardening
+clauses) and the **guardrails** wrapped around the call — the real thing, not a scripted gap.
+The **model you pick sets the base difficulty**:
 
-**Providers & profiles.** The lab supports **ollama (local), ollama_cloud, groq, openai**;
-keys/bases for all configured providers load at startup, so a level may target *any* of them.
-Two selectors in `provider.yaml` (env-overridable):
-`active_models` / `GAUNTLET_PROFILE` picks the per-level model table (`mixed`, `ollama`, `groq`,
-`openai`, `ollama_cloud`), and `active_provider` / `GAUNTLET_PROVIDER` picks the provider that
-supplies the guard/grader models. The default **`mixed`** profile = weak local Ollama for L1–L4
-+ Groq `gpt-oss-20b` at L5. (Groq's own models are too aligned to honour a soft corner, so a
-pure-Groq profile makes L1–L4 harder — use `ollama` or `mixed` for a real easy tier.)
+- a **small / weak model** (e.g. local Ollama `llama3.1`, `qwen3:0.6b`) → **easy**: it gives in
+  to basic techniques, so beginners get genuine wins and learn.
+- the aligned **`gpt-oss-20b`** target → **hard**: it resists — the real challenge.
+
+| Level | Label | Hardening added | Guardrails |
+|-------|-------|-----------------|-----------|
+| **L1** | naive     | — | — |
+| **L2** | aware     | anti-injection | — |
+| **L3** | filtered  | + anti-encode | `input_filter`, **`input_guard`** |
+| **L4** | guarded   | + anti-encode | `+ output_scan`, **`output_guard`** |
+| **L5** | fortified | + self-check | `+ safety` (Llama-Guard, both sides) |
+
+**Choose the model — UI, API, or config.** The lab supports **ollama (local), ollama_cloud,
+groq, openai**; keys/bases for every configured provider load at startup. Pick the target per
+session in the Web UI's **Model** dropdown, or via the API (`overrides.model`); `GET /providers`
+lists what's available and ready. The lab-wide default is `active_provider` in `provider.yaml`
+(env `GAUNTLET_PROVIDER`). Guard/grader models come from the active provider.
 
 | Level | Label | Target model (Groq) | Hardening added | Guardrails |
 |-------|-------|--------------|-----------------|-----------|
@@ -183,6 +190,7 @@ The chosen `level` supplies the hardening + guardrails; `overrides` can also set
 | GET  | `/challenges` | roster with badges + public brief |
 | GET  | `/challenges/{id}/info` | learning panel: description, techniques, non-spoiler hint |
 | GET  | `/levels` | the L1–L5 ladder (hardening + guards) + model + efforts |
+| GET  | `/providers` | available providers + models + readiness (for the model picker) |
 | POST | `/sessions` | create session (own id + overrides) |
 | GET  | `/sessions/{id}` | session state |
 | POST | `/sessions/{id}/chat` | attack turn → reply + grader verdict |

@@ -68,6 +68,7 @@
   <main>
     <div class="bar">
       <label>Level <select id="level"></select></label>
+      <label>Model <select id="model"><option value="">default</option></select></label>
       <label>🧠 Thinking
         <select id="think"><option value="">default</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select>
       </label>
@@ -145,7 +146,9 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeInfo(); });
 document.getElementById('start').onclick=async()=>{
   if(!picked){alert('Pick a challenge first');return;}
   const body={challenge:picked.id, level:document.getElementById('level').value};
-  const think=document.getElementById('think').value; if(think) body.overrides={reasoning_effort:think};
+  const think=document.getElementById('think').value;
+  const model=document.getElementById('model').value;
+  if(think||model){ body.overrides={}; if(think) body.overrides.reasoning_effort=think; if(model) body.overrides.model=model; }
   const sid=document.getElementById('sid').value.trim(); if(sid) body.session_id=sid;
   try{
     session=await api('/sessions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -191,6 +194,19 @@ function markStale(reason){
 }
 document.getElementById('level').addEventListener('change',()=>markStale('Level changed to '+document.getElementById('level').value));
 document.getElementById('think').addEventListener('change',()=>markStale('Thinking changed'));
+document.getElementById('model').addEventListener('change',()=>markStale('Model changed'));
+
+async function loadProviders(){
+  let d; try{ d=await api('/providers'); }catch(e){ return; }
+  const sel=document.getElementById('model'); sel.innerHTML='';
+  const shorten=m=>(m||'').replace('groq/','').replace('openai/','').replace('ollama/','');
+  const def=document.createElement('option'); def.value='';
+  def.textContent='default ('+shorten(d.default_model)+')'; sel.appendChild(def);
+  (d.providers||[]).forEach(p=>{ const o=document.createElement('option'); o.value=p.model;
+    o.textContent=p.provider+' · '+shorten(p.model)+(p.ready?'':' — no key');
+    if(!p.ready) o.disabled=true;
+    sel.appendChild(o); });
+}
 
 document.getElementById('export').onclick=async()=>{
   const t=await api(`/sessions/${session.session_id}/transcript`);
@@ -204,11 +220,10 @@ async function loadLevels(){
   const sel=document.getElementById('level'); sel.innerHTML='';
   d.ladder.forEach(l=>{ const o=document.createElement('option'); o.value=l.level;
     const g=l.guards.length?(' · '+l.guards.join('+')):' · no guards';
-    const m=l.model?(' · '+l.model.replace('groq/','').replace('openai/','')):'';
-    o.textContent=`${l.level} · ${l.label}${m}${g}`; sel.appendChild(o); });
-  try{document.getElementById('mode').textContent='target: easy model → gpt-oss (L3+)';}catch(e){}
+    o.textContent=`${l.level} · ${l.label}${g}`; sel.appendChild(o); });
+  try{document.getElementById('mode').textContent='model: '+d.model.replace('groq/','').replace('ollama/','oll:');}catch(e){}
 }
-(async()=>{ await loadGallery(); await loadLevels();
+(async()=>{ await loadGallery(); await loadLevels(); await loadProviders();
   if(location.hash.indexOf('#info=')===0) openInfo(decodeURIComponent(location.hash.slice(6)));
 })();
 </script>
