@@ -17,9 +17,13 @@ provider:
 levels:
   L1: { label: naive,     harden: [],                                      guards: [] }
   L2: { label: aware,     harden: [anti_injection],                        guards: [] }
-  L3: { label: filtered,  harden: [anti_injection, anti_encode],           guards: [input_filter, input_guard, mask] }
-  L4: { label: guarded,   harden: [anti_injection, anti_encode],           guards: [input_filter, input_guard, output_scan, output_guard, mask] }
-  L5: { label: fortified, harden: [anti_injection, anti_encode, self_check], guards: [input_filter, input_guard, output_scan, output_guard, safety, mask] }
+  L3: { label: filtered,  harden: [anti_injection, anti_encode],           guards: [input_filter, input_guard] }
+  L4: { label: guarded,   harden: [anti_injection, anti_encode],           guards: [input_filter, input_guard, output_scan, output_guard] }
+  L5: { label: fortified, harden: [anti_injection, anti_encode, self_check], guards: [input_filter, input_guard, output_scan, output_guard, safety] }
+
+# Reasoning-trace masking is an ALWAYS-ON baseline (every level, every challenge except
+# the chain-of-thought one): the secret — and any challenge-declared `mask` literals — are
+# hidden inside the model's <think> trace so a CoT blurt can't hand out a free win.
 
 # Reusable hardening clauses appended to a challenge's base system prompt.
 # (Distinct phrases double as mock-mode difficulty signals — keep them unique.)

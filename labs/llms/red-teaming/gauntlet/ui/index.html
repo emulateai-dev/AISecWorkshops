@@ -111,7 +111,7 @@ async function loadGallery(){
     el.className='ch'+(c.agentic?' dis':'');
     el.innerHTML=`<div class="hd"><div class="t">${c.badge} ${c.id}</div><button class="info-btn" title="About this challenge & techniques">ℹ️ info</button></div><div class="m">${c.topic}${c.agentic?' · agentic (Phase 2)':''}</div>`;
     el.querySelector('.info-btn').onclick=(e)=>{e.stopPropagation(); openInfo(c.id);};
-    if(!c.agentic){ el.onclick=()=>{picked=c; document.getElementById('level').value=c.default_level;
+    if(!c.agentic){ el.onclick=()=>{ markStale('Challenge changed'); picked=c; document.getElementById('level').value=c.default_level;
       document.getElementById('brief').innerHTML=`<b>${c.badge} ${c.id}</b> — ${c.brief}`;}; }
     g.appendChild(el);
   });
@@ -176,6 +176,21 @@ async function send(){
 }
 document.getElementById('send').onclick=send;
 document.getElementById('prompt').addEventListener('keydown',e=>{if(e.key==='Enter')send();});
+
+// A session's level/thinking is fixed when created. If the selection changes, the current
+// session no longer matches it — mark it stale so the player must start a New Session
+// (prevents an easy-level solve looking like it also solved the harder level).
+function markStale(reason){
+  if(!session) return;
+  session=null;
+  document.getElementById('prompt').disabled=true;
+  document.getElementById('send').disabled=true;
+  document.getElementById('export').style.display='none';
+  document.getElementById('state').textContent='○ new session needed';
+  render('sys', (reason||'Selection changed')+' — click “New Session” to start this level.');
+}
+document.getElementById('level').addEventListener('change',()=>markStale('Level changed to '+document.getElementById('level').value));
+document.getElementById('think').addEventListener('change',()=>markStale('Thinking changed'));
 
 document.getElementById('export').onclick=async()=>{
   const t=await api(`/sessions/${session.session_id}/transcript`);

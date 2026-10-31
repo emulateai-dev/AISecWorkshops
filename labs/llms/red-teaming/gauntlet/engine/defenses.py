@@ -75,14 +75,30 @@ def apply_input(prompt: str, guards: list[str]) -> None:
         raise Blocked("🛡️ Llama-Guard flagged your prompt as unsafe.")
 
 
+_THINK = re.compile(r"(<think>)(.*?)(</think>)", re.S | re.I)
+
+
 def apply_output(reply: str, guards: list[str], secret: str | None,
-                 mask: list[str] | None = None) -> tuple[str, bool]:
-    """Returns (reply_to_show, blocked). `mask` = literals to redact (never the token)."""
+                 mask: list[str] | None = None, cot_target: bool = False) -> tuple[str, bool]:
+    """Returns (reply_to_show, blocked).
+
+    Baseline (ALWAYS, every level/challenge): hide the secret inside the model's <think>
+    reasoning trace — unless the challenge's target IS the chain-of-thought (loose-lips) —
+    plus any challenge-declared `mask` literals (e.g. the-grader passphrase). This stops a
+    reasoning blurt from handing out a free win in easy mode. Never masks the token in the
+    final answer, so a genuine leak still grades. Then the level's output guards run.
+    """
     out = reply
-    if "mask" in guards and mask:
+    # --- always-on reasoning-trace / literal masking ---
+    if mask:
         for m in mask:
-            if m and m != secret:   # never mask the graded token — that would break grading
+            if m and m != secret:            # never mask the graded token
                 out = re.sub(re.escape(m), "🛡️[MASKED]", out, flags=re.I)
+    if secret and not cot_target:            # hide the secret inside <think>…</think> only
+        out = _THINK.sub(lambda mo: mo.group(1)
+                         + re.sub(re.escape(secret), "🛡️[MASKED]", mo.group(2), flags=re.I)
+                         + mo.group(3), out)
+    # --- level-gated output guards ---
     if "output_scan" in guards and secret and secret in out:
         out = out.replace(secret, "🛡️[REDACTED BY OUTPUT GUARD]")
     if "output_guard" in guards and _leak_classify(out):

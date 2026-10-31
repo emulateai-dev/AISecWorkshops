@@ -20,15 +20,19 @@ call — not from swapping models. Each rung forces a *new* technique:
 |-------|-------|-----------------|-----------|
 | **L1** | naive     | — | — |
 | **L2** | aware     | anti-injection | — |
-| **L3** | filtered  | + anti-encode | `input_filter`, **`input_guard`**, `mask` |
-| **L4** | guarded   | + anti-encode | `+ output_scan`, **`output_guard`**, `mask` |
-| **L5** | fortified | + self-check | `+ safety` (Llama-Guard, both sides), `mask` |
+| **L3** | filtered  | + anti-encode | `input_filter`, **`input_guard`** |
+| **L4** | guarded   | + anti-encode | `+ output_scan`, **`output_guard`** |
+| **L5** | fortified | + self-check | `+ safety` (Llama-Guard, both sides) |
 
 Guardrails: `input_filter`/`output_scan` are cheap regex layers; **`input_guard`**
 (LLM injection classifier) and **`output_guard`** (LLM leak classifier) are real
-model-based guards; **`safety`** runs a content-safety model (Llama-Guard) on both sides;
-**`mask`** redacts challenge-declared literals (e.g. `the-grader`'s per-session passphrase)
-from the output — including the reasoning trace — so leaked non-token values can't be replayed.
+model-based guards; **`safety`** runs a content-safety model (Llama-Guard) on both sides.
+
+**Reasoning-trace masking (always on, every level).** For every challenge *except*
+`loose-lips` (where the CoT leak *is* the win), the secret — and any challenge-declared
+`mask` literals (e.g. `the-grader`'s per-session passphrase) — are hidden inside the model's
+`<think>` trace. Otherwise the model musing about the secret in its reasoning would be a free
+win in easy mode; the secret must reach the actual answer (or an encoded leak) to count.
 
 ### What makes these *real* challenges (not keyword games)
 - **Per-session random secret** — each session's secret (`FLAG-XXXX-XXXX`) is generated
