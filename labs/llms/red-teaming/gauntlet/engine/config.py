@@ -90,13 +90,25 @@ def hardening_clauses() -> dict:
     return provider_config().get("hardening", {})
 
 
+def softening_clauses() -> dict:
+    return provider_config().get("softening", {})
+
+
 def effective_system(base_system: str, level: str) -> str:
-    """Base system prompt + the hardening clauses this level stacks on."""
-    clauses = hardening_clauses()
-    picked = [clauses[name].strip() for name in level_spec(level).get("harden", []) if name in clauses]
-    if not picked:
-        return base_system
-    return base_system.rstrip() + "\n\n" + "\n".join(f"- {c}" for c in picked)
+    """Base system prompt + this level's hardening clauses + its soft-corner clauses.
+    Soft corners come LAST (the model weights later instructions) — they are the intended,
+    graduated gap that makes the challenge solvable with a technique (none at L5)."""
+    lv = level_spec(level)
+    hard = hardening_clauses()
+    soft = softening_clauses()
+    hp = [hard[n].strip() for n in lv.get("harden", []) if n in hard]
+    sp = [soft[n].strip() for n in lv.get("soften", []) if n in soft]
+    parts = [base_system.rstrip()]
+    if hp:
+        parts.append("\n".join(f"- {c}" for c in hp))
+    if sp:
+        parts.append("\n".join(sp))
+    return "\n\n".join(parts)
 
 
 def default_level(challenge_id: str) -> str:
