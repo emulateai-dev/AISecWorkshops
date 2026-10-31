@@ -34,17 +34,9 @@ session in the Web UI's **Model** dropdown, or via the API (`overrides.model`); 
 lists what's available and ready. The lab-wide default is `active_provider` in `provider.yaml`
 (env `GAUNTLET_PROVIDER`). Guard/grader models come from the active provider.
 
-| Level | Label | Target model (Groq) | Hardening added | Guardrails |
-|-------|-------|--------------|-----------------|-----------|
-| **L1** | naive      | `qwen3.8-27b` (easy) | — | — |
-| **L2** | aware      | `qwen3.8-27b` (easy) | anti-injection | — |
-| **L3** | filtered   | `qwen3.8-27b` (easy) | + anti-encode | `input_filter`, **`input_guard`** |
-| **L4** | guarded    | `qwen3.8-27b` (easy) | + anti-encode | `+ output_scan`, **`output_guard`** |
-| **L5** | **unsolvable** | **`gpt-oss-20b`** (target) | + self-check | `+ safety` (Llama-Guard, both sides) |
-
-Why: `gpt-oss-20b` is robustly aligned, so a *naive* L1 against it isn't actually easy —
-basic techniques just bounce (and the old "easy wins" were just the model musing the secret
-in its reasoning). An easy model on L1–L4 makes the climb real; L5 is the hard target.
+Why it matters: `gpt-oss-20b` is robustly aligned, so a *naive* L1 against it isn't trivially
+easy — basic prompts bounce. A small/weak model makes the lower rungs genuinely solvable so you
+can learn the techniques, then graduate to the hard target. The ladder is the lesson.
 
 Guardrails: `input_filter`/`output_scan` are cheap regex layers; **`input_guard`**
 (LLM injection classifier) and **`output_guard`** (LLM leak classifier) are real
