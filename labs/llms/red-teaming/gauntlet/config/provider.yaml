@@ -11,7 +11,7 @@
 # Pick the model by setting the active provider below (or GAUNTLET_PROVIDER).
 # ============================================================
 active_provider: ollama       # which provider/model to use (env: GAUNTLET_PROVIDER)
-temperature: 0.3              # target sampling temperature (lower = more reproducible)
+temperature: 0.8              # target sampling temperature (higher = more variance, so retries pay off)
 
 # ---- Provider registry: the model + how LiteLLM reaches each backend ----
 providers:
