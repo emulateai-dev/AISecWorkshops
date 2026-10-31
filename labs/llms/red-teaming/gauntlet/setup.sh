@@ -13,10 +13,14 @@ ENV_FILE=".env"
 
 # Providers the lab can use:  name | key file in ~/.secrets | .env variable.
 # groq is the configured default (config/provider.yaml); the rest are for convenience.
+# Ollama: LOCAL ollama (the llama-guard safety model) needs NO key. OLLAMA_API_KEY is
+# only for Ollama CLOUD (:cloud models); pair it with OLLAMA_API_BASE=https://ollama.com.
 PROVIDERS=(
   "groq|GROQ_API_KEY.txt|GROQ_API_KEY"
   "openai|OPENAI_API_KEY.txt|OPENAI_API_KEY"
   "anthropic|ANTHROPIC_API_KEY.txt|ANTHROPIC_API_KEY"
+  "ollama-cloud|OLLAMA_API_KEY.txt|OLLAMA_API_KEY"
+  "ollama-base|OLLAMA_API_BASE.txt|OLLAMA_API_BASE"
 )
 
 echo "🔧 The Gauntlet setup"
@@ -47,7 +51,8 @@ if [ "${#found_keys[@]}" -eq 0 ]; then
   cat <<EOF
 
 ⚠️  No provider API keys found in $SECRETS_DIR
-    (looked for: GROQ_API_KEY.txt, OPENAI_API_KEY.txt, ANTHROPIC_API_KEY.txt)
+    (looked for: GROQ_API_KEY.txt, OPENAI_API_KEY.txt, ANTHROPIC_API_KEY.txt,
+                 OLLAMA_API_KEY.txt  [Ollama Cloud only])
 
     Created $ENV_FILE from the template — but you must pick a provider and add a key:
 
@@ -55,6 +60,11 @@ if [ "${#found_keys[@]}" -eq 0 ]; then
       2) Drop the key in a file:  echo 'gsk_...' > $SECRETS_DIR/GROQ_API_KEY.txt
          then re-run ./setup.sh   (it will inline the key for you), OR
       3) Offline demo (no key):   set  GAUNTLET_MOCK=1  in $ENV_FILE
+
+    Ollama: LOCAL models (e.g. the llama-guard safety guard) need NO key — just a
+    running ollama at localhost:11434. A key is only for Ollama CLOUD (:cloud models):
+      echo 'your-ollama-cloud-key' > $SECRETS_DIR/OLLAMA_API_KEY.txt
+      echo 'https://ollama.com'    > $SECRETS_DIR/OLLAMA_API_BASE.txt   # then re-run ./setup.sh
 
     Free Groq key: https://console.groq.com/keys
     Then start the lab with:  ./start.sh
@@ -64,7 +74,7 @@ fi
 
 # ---- Keys found: write .env from the template with the key(s) inlined. ----
 # Strip the lines we manage (keep the template's comments), then append real values.
-grep -vE '^(GROQ_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|SECRETS_DIR)=' .env.template > "$ENV_FILE"
+grep -vE '^(GROQ_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|OLLAMA_API_KEY|OLLAMA_API_BASE|SECRETS_DIR)=' .env.template > "$ENV_FILE"
 {
   echo ""
   echo "# --- keys inlined by setup.sh from $SECRETS_DIR (do not commit) ---"
@@ -75,9 +85,13 @@ for entry in "${found_keys[@]}"; do
   IFS='|' read -r name var file <<< "$entry"
   val="$(tr -d '\r\n' < "$file")"           # strip newlines; value stays out of the terminal
   printf '%s=%s\n' "$var" "$val" >> "$ENV_FILE"   # printf %s is literal (safe for key chars)
-  [ -z "$primary" ] && primary="$name"
-  echo "   ✅ $name key loaded into $ENV_FILE (from $file)"
+  case "$var" in
+    *_BASE) echo "   ✅ $name set in $ENV_FILE (from $file)" ;;          # a URL, not a credential
+    *)      echo "   ✅ $name key loaded into $ENV_FILE (from $file)"
+            [ -z "$primary" ] && primary="$name" ;;                      # name the provider
+  esac
 done
+[ -z "$primary" ] && primary="ollama (local, no key)"
 
 echo ""
 echo "✅ $ENV_FILE ready (provider: $primary). Start the lab with:  ./start.sh"

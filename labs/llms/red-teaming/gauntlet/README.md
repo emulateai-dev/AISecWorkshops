@@ -75,10 +75,15 @@ uses the local Llama-Guard pulled by `Tool_Setup.sh` (falls back to the classifi
 ```
 
 `setup.sh` reads your provider key from `~/.secrets` (or `$SECRETS_DIR`) — it looks for
-`GROQ_API_KEY.txt` (also `OPENAI_API_KEY.txt`, `ANTHROPIC_API_KEY.txt`) and inlines it
-into `.env` (key values are never printed). If no key is found it still creates `.env`
-and prints how to pick a provider and add a key. It never overwrites an existing `.env`.
-To set it up by hand instead: `cp .env.template .env` and add `GROQ_API_KEY`.
+`GROQ_API_KEY.txt` (also `OPENAI_API_KEY.txt`, `ANTHROPIC_API_KEY.txt`, and
+`OLLAMA_API_KEY.txt`/`OLLAMA_API_BASE.txt` for Ollama Cloud) and inlines it into `.env`
+(key values are never printed). If no key is found it still creates `.env` and prints how
+to pick a provider and add a key. It never overwrites an existing `.env`. To set it up by
+hand instead: `cp .env.template .env` and add `GROQ_API_KEY`.
+
+> **Ollama:** *local* models (e.g. the `llama-guard3:1b` safety guard) need **no key** —
+> just a running `ollama` at `localhost:11434`. `OLLAMA_API_KEY` is only for Ollama
+> **Cloud** (`:cloud` models); pair it with `OLLAMA_API_BASE=https://ollama.com`.
 
 ### Run it (no Docker, dev)
 ```bash
