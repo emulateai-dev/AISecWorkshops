@@ -94,7 +94,7 @@ def _run_turn(sid: str, message: str) -> dict:
     history = store.get_messages(sid)
     system = config.effective_system(spec["system"], level)   # base + hardening clauses
     msgs = [{"role": "system", "content": system}] + history + [{"role": "user", "content": message}]
-    raw = llm.complete(model, msgs, reasoning_effort=effort)
+    raw = llm.complete(model, msgs, temperature=config.target_temperature(), reasoning_effort=effort)
     cot_target = bool(spec.get("cot_target") or spec.get("topic") == "chain-of-thought")
     reply, _mod_blocked = defenses.apply_output(raw, guards, spec.get("secret"), spec.get("mask"), cot_target)
 

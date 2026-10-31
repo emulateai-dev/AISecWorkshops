@@ -87,6 +87,13 @@ def the_model(override: str | None = None, level: str | None = None) -> str:
     return provider_default_model()
 
 
+def target_temperature() -> float:
+    try:
+        return float(provider_config().get("temperature", 0.3))
+    except (TypeError, ValueError):
+        return 0.3
+
+
 def default_effort(override: str | None = None) -> str | None:
     eff = override or provider_config().get("reasoning_effort")
     return eff if eff in EFFORTS else None
