@@ -47,13 +47,20 @@ def level_spec(level: str) -> dict:
 
 
 def the_model(override: str | None = None, level: str | None = None) -> str:
-    """Resolve the target model: per-session override > per-level model > provider default."""
+    """Resolve the target model:
+      per-session override  >  per-level model (provider-aware)  >  provider default.
+    A level may set `model:` (single) or `models: {<provider>: <id>}` (per provider)."""
     if override:
         return override
     if level:
-        lm = levels().get(level, {}).get("model")
-        if lm:
-            return lm
+        lv = levels().get(level, {})
+        models = lv.get("models")
+        if isinstance(models, dict):
+            pname = provider_config()["provider"].get("name")
+            if models.get(pname):
+                return models[pname]
+        if lv.get("model"):
+            return lv["model"]
     return provider_config()["provider"]["model"]
 
 
