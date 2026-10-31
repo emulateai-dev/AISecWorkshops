@@ -3,6 +3,12 @@ services:
     build: .
     container_name: gauntlet
     env_file: .env
+    environment:
+      # Reach the host's Ollama (L1-L4 weak models) from inside the container.
+      # Override in .env if your Ollama runs elsewhere.
+      - OLLAMA_API_BASE=${OLLAMA_API_BASE:-http://host.docker.internal:11434}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${GAUNTLET_PORT:-8000}:8000"
     volumes:
