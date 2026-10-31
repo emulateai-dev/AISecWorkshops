@@ -19,7 +19,11 @@ providers:
     prefix: "ollama/"
     api_base_env: OLLAMA_API_BASE
     api_base: "http://localhost:11434"
-    model: "ollama/llama3.1:latest"
+    model: "ollama/smollm2:latest"        # default: fastest local model (~1.5s/turn on CPU)
+    models:                               # selectable local targets (fast -> slower)
+      - "ollama/smollm2:latest"           # fastest, very weak -> easiest
+      - "ollama/llama3.1:latest"          # mid (~3s), more coherent
+      - "ollama/qwen3:0.6b"               # tiny reasoning model (~4s)
     classifier_model: "ollama/llama3.1:latest"
     safety_model: "ollama/llama-guard3:1b"
   groq:                       # Groq cloud. gpt-oss-20b = the HARD target (the competition model).

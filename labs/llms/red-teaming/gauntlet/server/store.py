@@ -100,5 +100,6 @@ def get_finding(sid: str) -> dict | None:
 
 def list_sessions() -> list[dict]:
     with _conn() as c:
-        rows = c.execute("SELECT id, challenge, level, solved, attempts FROM sessions ORDER BY created DESC").fetchall()
+        rows = c.execute("SELECT id, challenge, level, model, attempts, solved, created "
+                         "FROM sessions ORDER BY created DESC").fetchall()
         return [dict(r) | {"solved": bool(r["solved"])} for r in rows]

@@ -127,8 +127,9 @@ def providers_view() -> dict:
     for name, cfg in providers().items():
         key_env = cfg.get("key_env")
         ready = (not key_env) or bool(os.environ.get(key_env))   # local ollama needs no key
-        out.append({"provider": name, "model": cfg.get("model"), "ready": ready,
-                    "needs_key": bool(key_env)})
+        models = cfg.get("models") or ([cfg.get("model")] if cfg.get("model") else [])
+        for m in models:
+            out.append({"provider": name, "model": m, "ready": ready, "needs_key": bool(key_env)})
     return {"active": active_provider_name(), "default_model": provider_default_model(), "providers": out}
 
 

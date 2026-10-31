@@ -56,6 +56,10 @@
   .hintbox .samp{background:#0a0f3a;border-radius:6px;padding:9px 11px;margin:8px 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;white-space:pre-wrap}
   .reflink{color:var(--cyan);font-size:13px;display:block;margin:3px 0;text-decoration:none}
   .reflink:hover{text-decoration:underline}
+  .loading{align-self:flex-start;color:var(--mut);font-style:italic}
+  .dots::after{content:'';animation:dots 1.3s steps(4,end) infinite}
+  @keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
+  .hrow{cursor:pointer}
 </style>
 </head>
 <body>
@@ -74,6 +78,8 @@
       </label>
       <input id="sid" placeholder="session id (optional)" style="width:180px">
       <button id="start">New Session</button>
+      <button class="ghost" id="restart" title="Clear chat & start over with a fresh session">↻ Restart</button>
+      <button class="ghost" id="history" title="View past sessions & their transcripts">🕘 History</button>
       <span class="pill" id="state"></span>
       <button class="ghost" id="export" style="display:none">Export finding.json</button>
     </div>
@@ -167,8 +173,15 @@ async function send(){
   const inp=document.getElementById('prompt'); const text=inp.value.trim();
   if(!text||!session) return; inp.value='';
   render('user',text);
+  const sendBtn=document.getElementById('send'); sendBtn.disabled=true; inp.disabled=true;
+  const log=document.getElementById('log');
+  const ld=document.createElement('div'); ld.className='msg bot loading';
+  ld.innerHTML='🤖 thinking<span class="dots"></span>  <span style="font-size:11px">('+(session.model||'').replace(/^.*\//,'')+')</span>';
+  log.appendChild(ld); log.scrollTop=log.scrollHeight;
   let r; try{ r=await api(`/sessions/${session.session_id}/chat`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})}); }
-  catch(e){render('sys','Error: '+(e.detail||JSON.stringify(e)));return;}
+  catch(e){ ld.remove(); sendBtn.disabled=false; inp.disabled=false; inp.focus();
+    render('sys','Error: '+(e.detail||e.message||'request failed — the model may be slow; try a faster model (e.g. smollm2)')); return; }
+  ld.remove(); sendBtn.disabled=false; inp.disabled=false; inp.focus();
   render(r.blocked?'sys':'bot', r.reply);
   if(r.won && !r.already_solved){
     const s=r.score;
@@ -206,6 +219,40 @@ async function loadProviders(){
     o.textContent=p.provider+' · '+shorten(p.model)+(p.ready?'':' — no key');
     if(!p.ready) o.disabled=true;
     sel.appendChild(o); });
+}
+
+// Clear the current chat and start over with a fresh session (same challenge/level/model).
+function restart(){
+  if(!picked){ alert('Pick a challenge first'); return; }
+  document.getElementById('sid').value='';   // force a new auto-generated id
+  start();
+}
+document.getElementById('restart').onclick=restart;
+
+// Per-session history: list past sessions, click one to view its transcript.
+async function openHistory(){
+  let d; try{ d=await api('/sessions'); }catch(e){ alert('Could not load history'); return; }
+  let h='<h3>🕘 Session history</h3><div class="sub">Click a session to view its transcript (read-only).</div>';
+  if(!d.length) h+='<p class="sub">No sessions yet — start one and attack.</p>';
+  d.forEach(s=>{ const m=(s.model||'').replace(/^.*\//,'');
+    h+=`<div class="tech hrow" onclick="viewSession('${s.id}')"><b>${esc(s.challenge)}</b> · ${esc(s.level)} · `
+      +`${s.solved?'✅ solved':'· unsolved'} · ${s.attempts} attempt(s)`
+      +`<span>${esc(s.id)}${m?(' · '+esc(m)):''}</span></div>`; });
+  document.getElementById('minfo').innerHTML=h;
+  document.getElementById('modal').style.display='flex';
+}
+document.getElementById('history').onclick=openHistory;
+
+async function viewSession(id){
+  closeInfo();  // close the modal
+  let t; try{ t=await api('/sessions/'+id+'/transcript'); }catch(e){ return; }
+  const log=document.getElementById('log'); log.innerHTML='';
+  render('sys',`🕘 Viewing ${id} · ${t.challenge} · ${t.level}${t.solved?' · ✅ solved':''} (read-only — start a New Session to play)`);
+  (t.messages||[]).forEach(m=> render(m.role==='user'?'user':'bot', m.content));
+  session=null;
+  document.getElementById('prompt').disabled=true; document.getElementById('send').disabled=true;
+  document.getElementById('export').style.display='none';
+  document.getElementById('state').textContent='🕘 history';
 }
 
 document.getElementById('export').onclick=async()=>{
