@@ -102,6 +102,13 @@ GAUNTLET_MOCK=1 uvicorn server.app:app --port 8000   # deterministic mock target
 
 ## How to play
 
+**Learn first (ℹ️ info panel).** Every challenge card has an **ℹ️ info** link that opens a
+learning panel: a detailed description of the vulnerability class, the relevant **techniques
+described** so you can learn them, and a **hint** (a suggested technique + a *sample* prompt that
+shows the attack's shape — not the solution) hidden behind a click. It's shareable via
+`http://localhost:8000/#info=<challenge>`, and available as JSON at `GET /challenges/<id>/info`.
+Content lives in `config/info.yaml`.
+
 **Web UI** — open `http://localhost:8000`, pick a challenge, **New Session**, attack.
 
 **CLI**
@@ -146,6 +153,7 @@ The chosen `level` supplies the hardening + guardrails; `overrides` can also set
 | Method | Route | Purpose |
 |--------|-------|---------|
 | GET  | `/challenges` | roster with badges + public brief |
+| GET  | `/challenges/{id}/info` | learning panel: description, techniques, non-spoiler hint |
 | GET  | `/levels` | the L1–L5 ladder (hardening + guards) + model + efforts |
 | POST | `/sessions` | create session (own id + overrides) |
 | GET  | `/sessions/{id}` | session state |

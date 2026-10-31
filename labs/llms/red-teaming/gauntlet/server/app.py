@@ -121,6 +121,15 @@ def challenges():
     return [config.public_view(cid) for cid in config.challenges()]
 
 
+@app.get("/challenges/{challenge_id}/info")
+def challenge_info(challenge_id: str):
+    """Learning panel: detailed description, relevant techniques, and a non-spoiler hint."""
+    try:
+        return config.info_view(challenge_id)
+    except KeyError:
+        raise HTTPException(404, f"unknown challenge: {challenge_id}")
+
+
 @app.get("/levels")
 def levels():
     return {"model": config.the_model(), "efforts": list(config.EFFORTS), "ladder": config.levels_view()}

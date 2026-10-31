@@ -19,6 +19,15 @@ def challenges() -> dict:
     return yaml.safe_load((CONFIG_DIR / "challenges.yaml").read_text())
 
 
+@lru_cache(maxsize=1)
+def challenge_info() -> dict:
+    """Optional per-challenge learning content (config/info.yaml)."""
+    f = CONFIG_DIR / "info.yaml"
+    if not f.is_file():
+        return {}
+    return yaml.safe_load(f.read_text()) or {}
+
+
 def get_challenge(challenge_id: str) -> dict:
     ch = challenges().get(challenge_id)
     if not ch:
@@ -89,6 +98,19 @@ def public_view(challenge_id: str) -> dict:
         "id": challenge_id, "topic": ch.get("topic"), "difficulty": ch.get("difficulty"),
         "badge": badge, "brief": ch.get("brief"), "agentic": bool(ch.get("agentic")),
         "default_level": default_level(challenge_id),
+    }
+
+
+def info_view(challenge_id: str) -> dict:
+    """Player-facing learning panel: description + techniques + a non-spoiler hint."""
+    ch = get_challenge(challenge_id)   # raises KeyError if unknown
+    info = dict(challenge_info().get(challenge_id, {}))
+    badge = {"easy": "🟢", "medium": "🟡", "hard": "🔴"}.get(ch.get("difficulty"), "⚪")
+    return {
+        "id": challenge_id, "topic": ch.get("topic"), "difficulty": ch.get("difficulty"),
+        "badge": badge, "brief": ch.get("brief"), "agentic": bool(ch.get("agentic")),
+        "summary": info.get("summary"), "techniques": info.get("techniques", []),
+        "hint": info.get("hint"), "references": info.get("references", []),
     }
 
 

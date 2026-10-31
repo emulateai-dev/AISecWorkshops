@@ -39,6 +39,23 @@
   .pill{font-size:11px;padding:2px 8px;border-radius:999px;background:#1b227a;color:var(--cyan)}
   code{background:#0a0f3a;padding:1px 5px;border-radius:4px}
   .empty{color:var(--mut);margin:auto;text-align:center}
+  .ch .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .info-btn{background:transparent;border:1px solid #2a3290;color:var(--cyan);border-radius:6px;font-size:12px;line-height:1;padding:3px 6px;cursor:pointer;flex:none}
+  .info-btn:hover{border-color:var(--cyan);background:#0a0f3a}
+  .overlay{position:fixed;inset:0;background:rgba(2,4,20,.74);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
+  .sheet{background:var(--panel);border:1px solid #2a3290;border-radius:14px;max-width:680px;width:100%;max-height:86vh;overflow-y:auto;padding:22px 24px;position:relative}
+  .sheet h3{margin:0 0 4px;font-size:19px}
+  .sheet .sub{color:var(--mut);font-size:13px;margin-bottom:10px}
+  .sheet h4{color:var(--cyan);font-size:12px;text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px}
+  .sheet p{line-height:1.55;font-size:14px;margin:0}
+  .tech{background:var(--panel2);border:1px solid #2a3290;border-radius:8px;padding:9px 12px;margin:6px 0}
+  .tech b{color:var(--cyan)} .tech span{display:block;color:var(--mut);font-size:13px;margin-top:3px}
+  .x{position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--mut);font-size:18px;cursor:pointer}
+  .showhint{background:var(--warn);color:#2a1d00;border:none;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer}
+  .hintbox{border:1px dashed #3a429a;border-radius:8px;padding:12px;margin-top:8px}
+  .hintbox .samp{background:#0a0f3a;border-radius:6px;padding:9px 11px;margin:8px 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;white-space:pre-wrap}
+  .reflink{color:var(--cyan);font-size:13px;display:block;margin:3px 0;text-decoration:none}
+  .reflink:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -67,6 +84,7 @@
     </div>
   </main>
 </div>
+<div id="modal" class="overlay" style="display:none"><div class="sheet"><button class="x" id="mx">✕</button><div id="minfo"></div></div></div>
 <script>
 const api = (p,o)=>fetch(p,o).then(r=>r.ok?r.json():r.json().then(e=>Promise.reject(e)));
 let picked=null, session=null;
@@ -91,12 +109,38 @@ async function loadGallery(){
   chs.forEach(c=>{
     const el=document.createElement('div');
     el.className='ch'+(c.agentic?' dis':'');
-    el.innerHTML=`<div class="t">${c.badge} ${c.id}</div><div class="m">${c.topic}${c.agentic?' · agentic (Phase 2)':''}</div>`;
+    el.innerHTML=`<div class="hd"><div class="t">${c.badge} ${c.id}</div><button class="info-btn" title="About this challenge & techniques">ℹ️ info</button></div><div class="m">${c.topic}${c.agentic?' · agentic (Phase 2)':''}</div>`;
+    el.querySelector('.info-btn').onclick=(e)=>{e.stopPropagation(); openInfo(c.id);};
     if(!c.agentic){ el.onclick=()=>{picked=c; document.getElementById('level').value=c.default_level;
       document.getElementById('brief').innerHTML=`<b>${c.badge} ${c.id}</b> — ${c.brief}`;}; }
     g.appendChild(el);
   });
 }
+
+function techHtml(t){ return `<div class="tech"><b>${esc(t.name||'')}</b><span>${esc(t.desc||'')}</span></div>`; }
+async function openInfo(id){
+  let d; try{ d=await api('/challenges/'+id+'/info'); }catch(e){ alert('No info for this challenge'); return; }
+  let h=`<h3>${d.badge} ${esc(d.id)}</h3><div class="sub">${esc(d.topic||'')}${d.difficulty?(' · '+esc(d.difficulty)):''}${d.agentic?' · agentic (Phase 2)':''}</div>`;
+  if(d.summary){ h+=`<h4>What this challenge is</h4><p>${esc(d.summary)}</p>`; }
+  if(d.techniques&&d.techniques.length){ h+=`<h4>Techniques to learn &amp; try</h4>`+d.techniques.map(techHtml).join(''); }
+  if(d.hint){ h+=`<h4>Hint</h4><button class="showhint" id="sh">💡 Show a hint (suggested technique + sample)</button>`
+    +`<div class="hintbox" id="hb" style="display:none">`
+    +`<div><b style="color:var(--cyan)">Try:</b> ${esc(d.hint.technique||'')}</div>`
+    +(d.hint.sample?`<div class="samp">${esc(d.hint.sample)}</div>`:'')
+    +(d.hint.why?`<div style="color:var(--mut);font-size:13px">${esc(d.hint.why)}</div>`:'')
+    +`<div style="color:var(--mut);font-size:12px;margin-top:8px">A sample to show the technique — <b>not</b> the solution. Craft your own prompt.</div></div>`;
+  }
+  if(d.references&&d.references.length){ h+=`<h4>Read more</h4>`+d.references.map(r=>`<a class="reflink" href="${esc(r.url)}" target="_blank" rel="noopener">↗ ${esc(r.title)}</a>`).join(''); }
+  document.getElementById('minfo').innerHTML=h;
+  document.getElementById('modal').style.display='flex';
+  try{ history.replaceState(null,'','#info='+encodeURIComponent(id)); }catch(e){}
+  const sh=document.getElementById('sh');
+  if(sh) sh.onclick=()=>{ document.getElementById('hb').style.display='block'; sh.style.display='none'; };
+}
+function closeInfo(){ document.getElementById('modal').style.display='none'; try{ history.replaceState(null,'',location.pathname); }catch(e){} }
+document.getElementById('mx').onclick=closeInfo;
+document.getElementById('modal').onclick=(e)=>{ if(e.target.id==='modal') closeInfo(); };
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeInfo(); });
 
 document.getElementById('start').onclick=async()=>{
   if(!picked){alert('Pick a challenge first');return;}
@@ -148,7 +192,9 @@ async function loadLevels(){
     o.textContent=`${l.level} · ${l.label}${g}`; sel.appendChild(o); });
   try{document.getElementById('mode').textContent='model: '+d.model.replace('groq/','');}catch(e){}
 }
-(async()=>{ await loadGallery(); await loadLevels(); })();
+(async()=>{ await loadGallery(); await loadLevels();
+  if(location.hash.indexOf('#info=')===0) openInfo(decodeURIComponent(location.hash.slice(6)));
+})();
 </script>
 </body>
 </html>
