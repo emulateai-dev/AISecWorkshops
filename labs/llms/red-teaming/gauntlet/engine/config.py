@@ -46,8 +46,15 @@ def level_spec(level: str) -> dict:
     return lv
 
 
-def the_model(override: str | None = None) -> str:
-    return override or provider_config()["provider"]["model"]
+def the_model(override: str | None = None, level: str | None = None) -> str:
+    """Resolve the target model: per-session override > per-level model > provider default."""
+    if override:
+        return override
+    if level:
+        lm = levels().get(level, {}).get("model")
+        if lm:
+            return lm
+    return provider_config()["provider"]["model"]
 
 
 def default_effort(override: str | None = None) -> str | None:
@@ -118,6 +125,6 @@ def levels_view() -> list[dict]:
     """Player-facing ladder description."""
     out = []
     for name, lv in levels().items():
-        out.append({"level": name, "label": lv.get("label"),
+        out.append({"level": name, "label": lv.get("label"), "model": the_model(level=name),
                     "hardening": lv.get("harden", []), "guards": lv.get("guards", [])})
     return out

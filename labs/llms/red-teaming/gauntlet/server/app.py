@@ -150,11 +150,13 @@ def new_session(body: NewSession):
         raise HTTPException(400, f"'{body.challenge}' is an agentic challenge — needs the tool-runtime (Phase 2).")
     spec = secretgen.concretize(spec)   # per-session random secret substituted into system/brief
 
-    model = config.the_model(overrides.get("model"))
+    model = config.the_model(overrides.get("model"), level)   # per-level model (L1/L2 easy, L3+ gpt-oss)
     effort = overrides.get("reasoning_effort")
     if effort is not None and effort not in config.EFFORTS:
         raise HTTPException(400, f"reasoning_effort must be one of {config.EFFORTS}")
     effort = config.default_effort(effort)
+    if "gpt-oss" not in model:    # reasoning_effort only applies to gpt-oss; ignore for other models
+        effort = None
 
     sid = body.session_id or f"s-{uuid.uuid4().hex[:8]}"
     if store.session_exists(sid):

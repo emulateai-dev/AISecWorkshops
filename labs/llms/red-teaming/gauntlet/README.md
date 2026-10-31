@@ -10,19 +10,24 @@ is a draft competition finding.
 
 ---
 
-## Difficulty = one model, prompt hardening + guardrails
+## Difficulty = target model + prompt hardening + guardrails
 
-**One model** (`groq/openai/gpt-oss-20b`) runs every level. Difficulty comes from the
-**system prompt** (stacked hardening clauses) and the **guardrails** wrapped around the
-call — not from swapping models. Each rung forces a *new* technique:
+Difficulty stacks on three axes. The **target model steps up by level** — an *easy* model
+at L1/L2 so beginners get a real win, then the robust **`gpt-oss-20b`** target at L3+ (the
+competition model) wrapped in **hardening clauses** and **guardrails**. Each rung forces a
+*new* technique:
 
-| Level | Label | Hardening added | Guardrails |
-|-------|-------|-----------------|-----------|
-| **L1** | naive     | — | — |
-| **L2** | aware     | anti-injection | — |
-| **L3** | filtered  | + anti-encode | `input_filter`, **`input_guard`** |
-| **L4** | guarded   | + anti-encode | `+ output_scan`, **`output_guard`** |
-| **L5** | fortified | + self-check | `+ safety` (Llama-Guard, both sides) |
+| Level | Label | Target model | Hardening added | Guardrails |
+|-------|-------|--------------|-----------------|-----------|
+| **L1** | naive     | `llama-3.1-8b-instant` (easy) | — | — |
+| **L2** | aware     | `llama-3.1-8b-instant` (easy) | anti-injection | — |
+| **L3** | filtered  | **`gpt-oss-20b`** (target) | + anti-encode | `input_filter`, **`input_guard`** |
+| **L4** | guarded   | **`gpt-oss-20b`** (target) | + anti-encode | `+ output_scan`, **`output_guard`** |
+| **L5** | fortified | **`gpt-oss-20b`** (target) | + self-check | `+ safety` (Llama-Guard, both sides) |
+
+Why the model steps up: `gpt-oss-20b` is robustly aligned, so a *naive* L1 against it isn't
+actually easy — basic techniques just bounce. An easy model at L1/L2 makes the first rungs
+genuinely solvable and teaches the techniques; L3+ then pits them against the real target.
 
 Guardrails: `input_filter`/`output_scan` are cheap regex layers; **`input_guard`**
 (LLM injection classifier) and **`output_guard`** (LLM leak classifier) are real

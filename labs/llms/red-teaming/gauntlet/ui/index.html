@@ -204,8 +204,9 @@ async function loadLevels(){
   const sel=document.getElementById('level'); sel.innerHTML='';
   d.ladder.forEach(l=>{ const o=document.createElement('option'); o.value=l.level;
     const g=l.guards.length?(' · '+l.guards.join('+')):' · no guards';
-    o.textContent=`${l.level} · ${l.label}${g}`; sel.appendChild(o); });
-  try{document.getElementById('mode').textContent='model: '+d.model.replace('groq/','');}catch(e){}
+    const m=l.model?(' · '+l.model.replace('groq/','').replace('openai/','')):'';
+    o.textContent=`${l.level} · ${l.label}${m}${g}`; sel.appendChild(o); });
+  try{document.getElementById('mode').textContent='target: easy model → gpt-oss (L3+)';}catch(e){}
 }
 (async()=>{ await loadGallery(); await loadLevels();
   if(location.hash.indexOf('#info=')===0) openInfo(decodeURIComponent(location.hash.slice(6)));

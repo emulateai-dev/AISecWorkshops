@@ -1,22 +1,27 @@
 # ============================================================
 # The Gauntlet — provider + difficulty ladder
 #
-# ONE model runs every level. Difficulty comes from the SYSTEM PROMPT
-# (stacked hardening clauses) and GUARDRAILS (stacked defenses) — not from
-# swapping models. (Model + reasoning_effort remain OPTIONAL overrides.)
+# Difficulty comes from THREE stacked axes: the target MODEL steps up by level,
+# plus SYSTEM-PROMPT hardening clauses, plus GUARDRAILS.
+#   L1/L2  — an EASY model (llama-3.1-8b-instant): weakly aligned, crackable with
+#            basic techniques, so beginners get a real win. Not a reasoning model.
+#   L3/L4/L5 — the gpt-oss-20b TARGET (the competition model): robust, reasoning,
+#            wrapped in hardening + guards. This is where real findings are made.
+# (Per-session `overrides.model` / `overrides.reasoning_effort` still win over these.)
 # ============================================================
 provider:
   name: groq
   prefix: "groq/"
   key_env: GROQ_API_KEY            # resolved from env first, then <secrets_dir>/<key_file>
   key_file: "GROQ_API_KEY.txt"
-  model: "groq/openai/gpt-oss-20b"  # single model for ALL levels (override per-session if desired)
+  model: "groq/openai/gpt-oss-20b"  # DEFAULT target (L3+); levels may override `model` below
   # reasoning_effort: medium        # optional default thinking level (low|medium|high; gpt-oss only)
 
-# Difficulty ladder (same model). Each level = hardening clauses + guard stack.
+# Difficulty ladder. `model` per level overrides the provider default; levels without
+# one inherit it. Each level also stacks hardening clauses + a guard stack.
 levels:
-  L1: { label: naive,     harden: [],                                      guards: [] }
-  L2: { label: aware,     harden: [anti_injection],                        guards: [] }
+  L1: { label: naive,     model: "groq/llama-3.1-8b-instant", harden: [],                        guards: [] }
+  L2: { label: aware,     model: "groq/llama-3.1-8b-instant", harden: [anti_injection],          guards: [] }
   L3: { label: filtered,  harden: [anti_injection, anti_encode],           guards: [input_filter, input_guard] }
   L4: { label: guarded,   harden: [anti_injection, anti_encode],           guards: [input_filter, input_guard, output_scan, output_guard] }
   L5: { label: fortified, harden: [anti_injection, anti_encode, self_check], guards: [input_filter, input_guard, output_scan, output_guard, safety] }
