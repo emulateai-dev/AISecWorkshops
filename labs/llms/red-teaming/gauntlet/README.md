@@ -71,8 +71,13 @@ uses the local Llama-Guard pulled by `Tool_Setup.sh` (falls back to the classifi
 ```bash
 ./setup.sh                     # build .env from ~/.secrets (or tell you to add a key)
 ./start.sh                     # → http://localhost:8000
+./rebuild.sh                   # after a git pull / code change: rebuild image & restart
 ./stop.sh
 ```
+
+The app code is baked into the image, so after a `git pull` or local edit run
+`./rebuild.sh` (add `--no-cache` for a clean rebuild) to pick up the change. Sessions in
+`./data` are preserved.
 
 `setup.sh` reads your provider key from `~/.secrets` (or `$SECRETS_DIR`) — it looks for
 `GROQ_API_KEY.txt` (also `OPENAI_API_KEY.txt`, `ANTHROPIC_API_KEY.txt`, and
